@@ -3,6 +3,7 @@
 
 #include "msp430g2553.h"
 
+#include "../compat.hpp"
 #include "msp430/gpio-port.hpp"
 #include "msp430/gpio-pin.hpp"
 

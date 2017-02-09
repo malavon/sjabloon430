@@ -19,44 +19,65 @@
 //***************************************************************************************
 
 #include "mylibrary/ti/msp430g2553.hpp"
-//#include "msp430g2553.h"
 
 using namespace mylibrary;
 
 template<typename PIN>
-class Led: PIN {
+class Led: private PIN {
 public:
-    void on() {
-        PIN::toggle();
+    Led() {
+        PIN::configureAsOutput();
     }
 
-    void off() {
+    void on() const {
+        PIN::setHigh();
+    }
+
+    void off() const {
+        PIN::setLow();
+    }
+
+    void toggle() const {
         PIN::toggle();
     }
 };
 
+
+template<typename PIN>
+class Button: private PIN {
+public:
+    Button() {
+        PIN::configureAsInput();
+    }
+
+    bool isPressed() const {
+        return PIN::isHigh();
+    }
+
+    bool isReleased() const {
+        return PIN::isLow();
+    }
+};
+
+
 int main(void) {
     WDTCTL = WDTPW | WDTHOLD;       // Stop watchdog timer
 
-    Led<Pin<P1IN, P1OUT, P1DIR, P1IFG, P1IES, P1IE, P1SEL, P1REN, Gpio1Pins, GPIO1_6> > led;
-    led.on();
-
-    const Pin<P1IN, P1OUT, P1DIR, P1IFG, P1IES, P1IE, P1SEL, P1REN, Gpio1Pins, GPIO1_6> greenLed = p1_6;
-
-    greenLed.configureAsOutput();
-    p1_6.configureAsOutput();
-
-    p1_3.configureAsInput();
+	const Led<decltype(p1_0)> greenLed;
+    const Led<decltype(p1_6)> redLed;
+    const Button<decltype(p1_3)> button;
+    redLed.off();
+    greenLed.off();
 
     unsigned int rounds = 0;
     for (;;) {
-        while (p1_3.isLow()) {
+        while (button.isReleased()) {
         }
-        p1_0.toggle();
+        greenLed.toggle();
 
-        while (p1_3.isHigh()) {
+        while (button.isPressed()) {
         }
-        p1_6.toggle();
+        redLed.toggle();
         rounds++;
     }
 

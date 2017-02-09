@@ -18,10 +18,6 @@ public:
         GpioTemplate<inReg, outReg, dirReg, intReg, intEdgeReg, intEnReg, selectReg, resistorReg, P>::configureAsOutput(pin);
     }
 
-    void toggle() const {
-        GpioTemplate<inReg, outReg, dirReg, intReg, intEdgeReg, intEnReg, selectReg, resistorReg, P>::toggle(pin);
-    }
-
     bool isLow() const {
         return GpioTemplate<inReg, outReg, dirReg, intReg, intEdgeReg, intEnReg, selectReg, resistorReg, P>::isLow(pin);
     }
@@ -29,11 +25,19 @@ public:
     bool isHigh() const {
         return GpioTemplate<inReg, outReg, dirReg, intReg, intEdgeReg, intEnReg, selectReg, resistorReg, P>::isHigh(pin);
     }
-private:
-//    Pin(const Pin& src);
-//    Pin& operator=(const Pin& src);
-};
 
+    void setLow() const {
+        GpioTemplate<inReg, outReg, dirReg, intReg, intEdgeReg, intEnReg, selectReg, resistorReg, P>::setLow(pin);
+    }
+
+    void setHigh() const {
+        GpioTemplate<inReg, outReg, dirReg, intReg, intEdgeReg, intEnReg, selectReg, resistorReg, P>::setHigh(pin);
+    }
+
+    void toggle() const {
+        GpioTemplate<inReg, outReg, dirReg, intReg, intEdgeReg, intEnReg, selectReg, resistorReg, P>::toggle(pin);
+    }
+};
 }
 
 #endif /* MYLIBRARY_TI_MSP430_GPIO_PIN_HPP_ */

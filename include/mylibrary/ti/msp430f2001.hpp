@@ -3,8 +3,7 @@
 
 //#include "msp430f2001.h"
 
-#include "../generic.hpp"
-
+#include "../compat.hpp"
 #include "msp430/gpio-port.hpp"
 #include "msp430/gpio-pin.hpp"
 #include "msp430/registers.hpp"
