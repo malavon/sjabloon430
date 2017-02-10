@@ -51,11 +51,11 @@ public:
     }
 
     bool isPressed() const {
-        return PIN::isHigh();
+        return PIN::isLow();
     }
 
     bool isReleased() const {
-        return PIN::isLow();
+        return PIN::isHigh();
     }
 };
 
@@ -63,19 +63,20 @@ public:
 int main(void) {
     WDTCTL = WDTPW | WDTHOLD;       // Stop watchdog timer
 
-	const Led<decltype(p1_0)> greenLed;
-    const Led<decltype(p1_6)> redLed;
+    const Led<decltype(p1_0)> redLed;
+    const Led<decltype(p1_6)> greenLed;
     const Button<decltype(p1_3)> button;
-    redLed.off();
-    greenLed.off();
+    p1_3.enablePullup();
+//    redLed.off();
+//    greenLed.off();
 
-    unsigned int rounds = 0;
+    volatile unsigned int rounds = 0;
     for (;;) {
         while (button.isReleased()) {
         }
         greenLed.toggle();
 
-        while (button.isPressed()) {
+        while (button.isReleased()) {
         }
         redLed.toggle();
         rounds++;

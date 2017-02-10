@@ -20,6 +20,16 @@ public:
         dirReg |= (pin1 | pin2 | pin3 | pin4 | pin5 | pin6 | pin7 | pin8);
     }
 
+    void enablePullup(const P pin1, const P pin2 = (P) 0, const P pin3 = (P) 0, const P pin4 = (P) 0, const P pin5 = (P) 0, const P pin6 = (P) 0, const P pin7 = (P) 0, const P pin8 = (P) 0) const {
+        outReg |= pin1 | pin2 | pin3 | pin4 | pin5 | pin6 | pin7 | pin8;
+        resistorReg |= pin1 | pin2 | pin3 | pin4 | pin5 | pin6 | pin7 | pin8;
+    }
+
+    void enablePulldown(const P pin1, const P pin2 = (P) 0, const P pin3 = (P) 0, const P pin4 = (P) 0, const P pin5 = (P) 0, const P pin6 = (P) 0, const P pin7 = (P) 0, const P pin8 = (P) 0) const {
+        outReg |= ~(pin1 | pin2 | pin3 | pin4 | pin5 | pin6 | pin7 | pin8);
+        resistorReg |= ~(pin1 | pin2 | pin3 | pin4 | pin5 | pin6 | pin7 | pin8);
+    }
+
     bool isLow(const P pin) const {
         return inReg & pin == 0;
     }
