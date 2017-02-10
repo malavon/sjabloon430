@@ -18,6 +18,14 @@ public:
         GpioTemplate<inReg, outReg, dirReg, intReg, intEdgeReg, intEnReg, selectReg, resistorReg, P>::configureAsOutput(pin);
     }
 
+    void enablePulldown() const {
+        GpioTemplate<inReg, outReg, dirReg, intReg, intEdgeReg, intEnReg, selectReg, resistorReg, P>::enablePulldown(pin);
+    }
+
+    void enablePullup() const {
+        GpioTemplate<inReg, outReg, dirReg, intReg, intEdgeReg, intEnReg, selectReg, resistorReg, P>::enablePullup(pin);
+    }
+
     bool isLow() const {
         return GpioTemplate<inReg, outReg, dirReg, intReg, intEdgeReg, intEnReg, selectReg, resistorReg, P>::isLow(pin);
     }
