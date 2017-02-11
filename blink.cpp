@@ -25,8 +25,10 @@ using namespace mylibrary;
 template<typename PIN>
 class Led: private PIN {
 public:
-    Led() {
-        PIN::configureAsOutput();
+    Led(bool autoConfigure = true) {
+        if (autoConfigure) {
+            PIN::configureAsOutput();
+        }
     }
 
     void on() const {
@@ -42,12 +44,13 @@ public:
     }
 };
 
-
 template<typename PIN>
 class Button: private PIN {
 public:
-    Button() {
-        PIN::configureAsInput();
+    Button(bool autoConfigure = true) {
+        if (autoConfigure) {
+            PIN::configureAsInput();
+        }
     }
 
     bool isPressed() const {
@@ -62,6 +65,9 @@ public:
 
 int main(void) {
     WDTCTL = WDTPW | WDTHOLD;       // Stop watchdog timer
+
+    gpio1.init();
+    gpio2.init();
 
     const Led<decltype(p1_0)> redLed;
     const Led<decltype(p1_6)> greenLed;

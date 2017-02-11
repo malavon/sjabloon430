@@ -26,8 +26,8 @@ enum Gpio2Pins {
     GPIO2_7 = BIT7
 };
 
-typedef GpioTemplate<P1IN, P1OUT, P1DIR, P1IFG, P1IES, P1IE, P1SEL, P1REN, Gpio1Pins> t_gpio1;
-typedef GpioTemplate<P2IN, P2OUT, P2DIR, P2IFG, P2IES, P2IE, P2SEL, P2REN, Gpio2Pins> t_gpio2;
+typedef GpioPort<P1IN, P1OUT, P1DIR, P1IFG, P1IES, P1IE, P1SEL, P1REN, Gpio1Pins> t_gpio1;
+typedef GpioPort<P2IN, P2OUT, P2DIR, P2IFG, P2IES, P2IE, P2SEL, P2REN, Gpio2Pins> t_gpio2;
 
 const t_gpio1 gpio1;
 const t_gpio2 gpio2;
