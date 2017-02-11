@@ -10,9 +10,9 @@
 /*
  After a system reset, user software must initialize the device for the application requirements. The
  following must occur:
- ï¿½ Initialize the stack pointer (SP), typically to the top of RAM.
- ï¿½ Initialize the watchdog to the requirements of the application.
- ï¿½ Configure peripheral modules to the requirements of the application.
+ • Initialize the stack pointer (SP), typically to the top of RAM.
+ • Initialize the watchdog to the requirements of the application.
+ • Configure peripheral modules to the requirements of the application.
  */
 
 namespace mylibrary {
