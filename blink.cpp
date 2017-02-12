@@ -19,73 +19,31 @@
 //***************************************************************************************
 
 #include "mylibrary/ti/msp430g2553.hpp"
+#include "mylibrary/gpio-peripherals.hpp"
 
 using namespace mylibrary;
-
-template<typename PIN>
-class Led: private PIN {
-public:
-    Led(bool autoConfigure = true) {
-        if (autoConfigure) {
-            PIN::configureAsOutput();
-        }
-    }
-
-    void on() const {
-        PIN::setHigh();
-    }
-
-    void off() const {
-        PIN::setLow();
-    }
-
-    void toggle() const {
-        PIN::toggle();
-    }
-};
-
-template<typename PIN>
-class Button: private PIN {
-public:
-    Button(bool autoConfigure = true) {
-        if (autoConfigure) {
-            PIN::configureAsInput();
-        }
-    }
-
-    bool isPressed() const {
-        return PIN::isLow();
-    }
-
-    bool isReleased() const {
-        return PIN::isHigh();
-    }
-};
-
 
 int main(void) {
     WDTCTL = WDTPW | WDTHOLD;       // Stop watchdog timer
 
-    gpio1.init();
-    gpio2.init();
+    mcu.safeInit();
 
-    const Led<decltype(p1_0)> redLed;
-    const Led<decltype(p1_6)> greenLed;
-    const Button<decltype(p1_3)> button;
-    p1_3.enablePullup();
-//    redLed.off();
-//    greenLed.off();
+    const Led<OutputActiveHigh<p1_0_t> > redLed;
+    const Led<OutputActiveHigh<p1_6_t> > greenLed;
+    const Button<InputActiveLow<p1_3_t> > button;
 
-    volatile unsigned int rounds = 0;
+    button.enablePullUp();
+
     for (;;) {
         while (button.isReleased()) {
         }
-        greenLed.toggle();
+        greenLed.on();
+        redLed.off();
 
         while (button.isReleased()) {
         }
-        redLed.toggle();
-        rounds++;
+        greenLed.off();
+        redLed.on();
     }
 
     return 0;
