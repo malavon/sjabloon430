@@ -19,12 +19,16 @@ public:
         GpioPort<inReg, outReg, dirReg, selectReg, resistorReg, P>::configureAsOutput(pin);
     }
 
-    void enablePulldown() const {
-        GpioPort<inReg, outReg, dirReg, selectReg, resistorReg, P>::enablePulldown(pin);
+    void disablePullUpDown() const {
+        GpioPort<inReg, outReg, dirReg, selectReg, resistorReg, P>::disablePullUpDown(pin);
     }
 
-    void enablePullup() const {
-        GpioPort<inReg, outReg, dirReg, selectReg, resistorReg, P>::enablePullup(pin);
+    void enablePullDown() const {
+        GpioPort<inReg, outReg, dirReg, selectReg, resistorReg, P>::enablePullDown(pin);
+    }
+
+    void enablePullUp() const {
+        GpioPort<inReg, outReg, dirReg, selectReg, resistorReg, P>::enablePullUp(pin);
     }
 
     bool isLow() const {
@@ -63,12 +67,12 @@ public:
         Pin<inReg, outReg, dirReg, selectReg, resistorReg, P, pin>::configureAsOutput();
     }
 
-    void enablePulldown() const {
-        Pin<inReg, outReg, dirReg, selectReg, resistorReg, P, pin>::enablePulldown();
+    void enablePullDown() const {
+        Pin<inReg, outReg, dirReg, selectReg, resistorReg, P, pin>::enablePullDown();
     }
 
-    void enablePullup() const {
-        Pin<inReg, outReg, dirReg, selectReg, resistorReg, P, pin>::enablePullup();
+    void enablePullUp() const {
+        Pin<inReg, outReg, dirReg, selectReg, resistorReg, P, pin>::enablePullUp();
     }
 
     bool isLow() const {
@@ -93,6 +97,5 @@ public:
 };
 
 }
-
 
 #endif /* MYLIBRARY_TI_MSP430_GPIO_PIN_HPP_ */
