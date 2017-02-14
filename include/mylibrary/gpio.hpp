@@ -31,9 +31,9 @@ public:
 };
 
 template<typename PIN>
-class OutputActiveHigh: public Output<PIN> {
-protected:
-    OutputActiveHigh(bool autoConfigure = true) :
+class ActiveHighOutput: public Output<PIN> {
+public:
+    ActiveHighOutput(bool autoConfigure = true) :
             Output<PIN>(autoConfigure) {
     }
 
@@ -48,9 +48,9 @@ public:
 };
 
 template<typename PIN>
-class OutputActiveLow: public Output<PIN> {
-protected:
-    OutputActiveLow(bool autoConfigure = true) :
+class ActiveLowOutput: public Output<PIN> {
+public:
+    ActiveLowOutput(bool autoConfigure = true) :
             Output<PIN>(autoConfigure) {
     }
 
@@ -88,9 +88,9 @@ public:
 };
 
 template<typename PIN>
-class InputActiveHigh: public Input<PIN> {
-protected:
-    InputActiveHigh(bool autoConfigure = true) :
+class ActiveHighInput: public Input<PIN> {
+public:
+    ActiveHighInput(bool autoConfigure = true) :
             Input<PIN>(autoConfigure) {
     }
 
@@ -105,9 +105,9 @@ public:
 };
 
 template<typename PIN>
-class InputActiveLow: public Input<PIN> {
-protected:
-    InputActiveLow(bool autoConfigure = true) :
+class ActiveLowInput: public Input<PIN> {
+public:
+    ActiveLowInput(bool autoConfigure = true) :
             Input<PIN>(autoConfigure) {
     }
 

@@ -18,19 +18,18 @@
 //  Built with Code Composer Studio v5
 //***************************************************************************************
 
-#include "mylibrary/ti/msp430g2553.hpp"
+#include "mylibrary/ti/msp430g2553in20.hpp"
 #include "mylibrary/gpio-peripherals.hpp"
 
 using namespace mylibrary;
 
 int main(void) {
     WDTCTL = WDTPW | WDTHOLD;       // Stop watchdog timer
-
     mcu.safeInit();
 
-    const Led<OutputActiveHigh<p1_0_t> > redLed;
-    const Led<OutputActiveHigh<p1_6_t> > greenLed;
-    const Button<InputActiveLow<p1_3_t> > button;
+    const Led<ActiveHighOutput<gp1_0_t> > redLed(pp02.asOutputActiveHigh());
+    const Led<ActiveHighOutput<gp1_6_t> > greenLed(pp14.asOutputActiveHigh());
+    const Button<ActiveLowInput<gp1_3_t> > button(pp05.asInputActiveLow());
 
     button.enablePullUp();
 
@@ -45,6 +44,5 @@ int main(void) {
         greenLed.off();
         redLed.on();
     }
-
     return 0;
 }

@@ -8,7 +8,7 @@ namespace mylibrary {
 template<typename OUTPUT>
 class Led: private OUTPUT {
 public:
-    Led(bool autoConfigure = true) :
+    Led(const OUTPUT& dummy, bool autoConfigure = false) :
             OUTPUT(autoConfigure) {
     }
 
@@ -40,7 +40,7 @@ public:
 template<typename INPUT>
 class Button: public INPUT {
 public:
-    Button(bool autoConfigure = true) :
+    Button(const INPUT& dummy, bool autoConfigure = false) :
             INPUT(autoConfigure) {
     }
 
