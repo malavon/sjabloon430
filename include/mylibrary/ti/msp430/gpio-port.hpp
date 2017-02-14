@@ -1,12 +1,12 @@
 #ifndef MYLIBRARY_TI_GPIOT_H_
 #define MYLIBRARY_TI_GPIOT_H_
 
-#include "../includes.h"
+#include "mylibrary/types.hpp"
 
 namespace mylibrary {
 
 // todo second select regs
-template<vub& inReg, vub& outReg, vub& dirReg, vub& selectReg, vub& resistorReg, class P>
+template<vub& inReg, vub& outReg, vub& dirReg, vub& resistorReg, class P>
 class GpioPort {
 public:
     GpioPort() {
@@ -88,11 +88,11 @@ public:
 
 
 
-template<vub& inReg, vub& outReg, vub& dirReg, vub& selectReg, vub& resistorReg, vub& intReg, vub& intEdgeReg, vub& intEnReg, class P>
-class GpioPortWithInterrupt: public GpioPort<inReg, outReg, dirReg, selectReg, resistorReg, P> {
+template<vub& inReg, vub& outReg, vub& dirReg, vub& resistorReg, vub& intReg, vub& intEdgeReg, vub& intEnReg, class P>
+class GpioPortWithInterrupt: public GpioPort<inReg, outReg, dirReg, resistorReg, P> {
 public:
     GpioPortWithInterrupt() :
-            GpioPort<inReg, outReg, dirReg, selectReg, resistorReg, P>() {
+            GpioPort<inReg, outReg, dirReg, resistorReg, P>() {
     }
 
     // TODO: interrupt stuff

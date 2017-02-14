@@ -7,6 +7,8 @@
 #include "msp430/gpio-port.hpp"
 #include "msp430/gpio-pin.hpp"
 
+#include "msp430/peripheral-pin.hpp"
+
 /*
  After a system reset, user software must initialize the device for the application requirements. The
  following must occur:
@@ -41,45 +43,30 @@ enum Gpio2Pins {
 
 // P3: 0-7 for 28-pin devices, no interrupt capability
 
-const GpioPortWithInterrupt<P1IN, P1OUT, P1DIR, P1SEL, P1REN, P1IFG, P1IES, P1IE, Gpio1Pins> gpio1;
-const GpioPortWithInterrupt<P2IN, P2OUT, P2DIR, P2SEL, P2REN, P2IFG, P2IES, P2IE, Gpio2Pins> gpio2;
+const GpioPortWithInterrupt<P1IN, P1OUT, P1DIR, P1REN, P1IFG, P1IES, P1IE, Gpio1Pins> gpio1;
+const GpioPortWithInterrupt<P2IN, P2OUT, P2DIR, P2REN, P2IFG, P2IES, P2IE, Gpio2Pins> gpio2;
 
-typedef PinWithInterrupt<P1IN, P1OUT, P1DIR, P1SEL, P1REN, P1IFG, P1IES, P1IE, Gpio1Pins, GPIO1_0> p1_0_t;
-typedef PinWithInterrupt<P1IN, P1OUT, P1DIR, P1SEL, P1REN, P1IFG, P1IES, P1IE, Gpio1Pins, GPIO1_1> p1_1_t;
-typedef PinWithInterrupt<P1IN, P1OUT, P1DIR, P1SEL, P1REN, P1IFG, P1IES, P1IE, Gpio1Pins, GPIO1_2> p1_2_t;
-typedef PinWithInterrupt<P1IN, P1OUT, P1DIR, P1SEL, P1REN, P1IFG, P1IES, P1IE, Gpio1Pins, GPIO1_3> p1_3_t;
-typedef PinWithInterrupt<P1IN, P1OUT, P1DIR, P1SEL, P1REN, P1IFG, P1IES, P1IE, Gpio1Pins, GPIO1_4> p1_4_t;
-typedef PinWithInterrupt<P1IN, P1OUT, P1DIR, P1SEL, P1REN, P1IFG, P1IES, P1IE, Gpio1Pins, GPIO1_5> p1_5_t;
-typedef PinWithInterrupt<P1IN, P1OUT, P1DIR, P1SEL, P1REN, P1IFG, P1IES, P1IE, Gpio1Pins, GPIO1_6> p1_6_t;
-typedef PinWithInterrupt<P1IN, P1OUT, P1DIR, P1SEL, P1REN, P1IFG, P1IES, P1IE, Gpio1Pins, GPIO1_7> p1_7_t;
+typedef PinWithInterrupt<P1IN, P1OUT, P1DIR, P1REN, P1IFG, P1IES, P1IE, Gpio1Pins, GPIO1_0> gp1_0_t;
+typedef PinWithInterrupt<P1IN, P1OUT, P1DIR, P1REN, P1IFG, P1IES, P1IE, Gpio1Pins, GPIO1_1> gp1_1_t;
+typedef PinWithInterrupt<P1IN, P1OUT, P1DIR, P1REN, P1IFG, P1IES, P1IE, Gpio1Pins, GPIO1_2> gp1_2_t;
+typedef PinWithInterrupt<P1IN, P1OUT, P1DIR, P1REN, P1IFG, P1IES, P1IE, Gpio1Pins, GPIO1_3> gp1_3_t;
+typedef PinWithInterrupt<P1IN, P1OUT, P1DIR, P1REN, P1IFG, P1IES, P1IE, Gpio1Pins, GPIO1_4> gp1_4_t;
+typedef PinWithInterrupt<P1IN, P1OUT, P1DIR, P1REN, P1IFG, P1IES, P1IE, Gpio1Pins, GPIO1_5> gp1_5_t;
+typedef PinWithInterrupt<P1IN, P1OUT, P1DIR, P1REN, P1IFG, P1IES, P1IE, Gpio1Pins, GPIO1_6> gp1_6_t;
+typedef PinWithInterrupt<P1IN, P1OUT, P1DIR, P1REN, P1IFG, P1IES, P1IE, Gpio1Pins, GPIO1_7> gp1_7_t;
 
-const PinWithInterrupt<P1IN, P1OUT, P1DIR, P1SEL, P1REN, P1IFG, P1IES, P1IE, Gpio1Pins, GPIO1_0> p1_0;
-const PinWithInterrupt<P1IN, P1OUT, P1DIR, P1SEL, P1REN, P1IFG, P1IES, P1IE, Gpio1Pins, GPIO1_1> p1_1;
-const PinWithInterrupt<P1IN, P1OUT, P1DIR, P1SEL, P1REN, P1IFG, P1IES, P1IE, Gpio1Pins, GPIO1_2> p1_2;
-const PinWithInterrupt<P1IN, P1OUT, P1DIR, P1SEL, P1REN, P1IFG, P1IES, P1IE, Gpio1Pins, GPIO1_3> p1_3;
-const PinWithInterrupt<P1IN, P1OUT, P1DIR, P1SEL, P1REN, P1IFG, P1IES, P1IE, Gpio1Pins, GPIO1_4> p1_4;
-const PinWithInterrupt<P1IN, P1OUT, P1DIR, P1SEL, P1REN, P1IFG, P1IES, P1IE, Gpio1Pins, GPIO1_5> p1_5;
-const PinWithInterrupt<P1IN, P1OUT, P1DIR, P1SEL, P1REN, P1IFG, P1IES, P1IE, Gpio1Pins, GPIO1_6> p1_6;
-const PinWithInterrupt<P1IN, P1OUT, P1DIR, P1SEL, P1REN, P1IFG, P1IES, P1IE, Gpio1Pins, GPIO1_7> p1_7;
+typedef PinWithInterrupt<P2IN, P2OUT, P2DIR, P2REN, P2IFG, P2IES, P2IE, Gpio2Pins, GPIO2_0> gp2_0_t;
+typedef PinWithInterrupt<P2IN, P2OUT, P2DIR, P2REN, P2IFG, P2IES, P2IE, Gpio2Pins, GPIO2_1> gp2_1_t;
+typedef PinWithInterrupt<P2IN, P2OUT, P2DIR, P2REN, P2IFG, P2IES, P2IE, Gpio2Pins, GPIO2_2> gp2_2_t;
+typedef PinWithInterrupt<P2IN, P2OUT, P2DIR, P2REN, P2IFG, P2IES, P2IE, Gpio2Pins, GPIO2_3> gp2_3_t;
+typedef PinWithInterrupt<P2IN, P2OUT, P2DIR, P2REN, P2IFG, P2IES, P2IE, Gpio2Pins, GPIO2_4> gp2_4_t;
+typedef PinWithInterrupt<P2IN, P2OUT, P2DIR, P2REN, P2IFG, P2IES, P2IE, Gpio2Pins, GPIO2_5> gp2_5_t;
+typedef PinWithInterrupt<P2IN, P2OUT, P2DIR, P2REN, P2IFG, P2IES, P2IE, Gpio2Pins, GPIO2_6> gp2_6_t;
+typedef PinWithInterrupt<P2IN, P2OUT, P2DIR, P2REN, P2IFG, P2IES, P2IE, Gpio2Pins, GPIO2_7> gp2_7_t;
 
-const PinWithInterrupt<P2IN, P2OUT, P2DIR, P2SEL, P2REN, P2IFG, P2IES, P2IE, Gpio2Pins, GPIO2_0> p2_0;
-const PinWithInterrupt<P2IN, P2OUT, P2DIR, P2SEL, P2REN, P2IFG, P2IES, P2IE, Gpio2Pins, GPIO2_1> p2_1;
-const PinWithInterrupt<P2IN, P2OUT, P2DIR, P2SEL, P2REN, P2IFG, P2IES, P2IE, Gpio2Pins, GPIO2_2> p2_2;
-const PinWithInterrupt<P2IN, P2OUT, P2DIR, P2SEL, P2REN, P2IFG, P2IES, P2IE, Gpio2Pins, GPIO2_3> p2_3;
-const PinWithInterrupt<P2IN, P2OUT, P2DIR, P2SEL, P2REN, P2IFG, P2IES, P2IE, Gpio2Pins, GPIO2_4> p2_4;
-const PinWithInterrupt<P2IN, P2OUT, P2DIR, P2SEL, P2REN, P2IFG, P2IES, P2IE, Gpio2Pins, GPIO2_5> p2_5;
-
-class Mcu {
-public:
-    void safeInit() const {
-        gpio1.safeInit();
-        gpio2.safeInit();
-    }
+template<ub bit>
+class Config: protected Msp430G2xxxPinConfigurer<P1SEL, P1SEL2, bit> {
 };
 
-const Mcu mcu;
 }
-
-
-
 #endif /* MYLIBRARY_TI_MSP430FR2433_HPP_ */
