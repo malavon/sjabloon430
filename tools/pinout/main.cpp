@@ -1,5 +1,7 @@
 #include <iostream>
 
+#include "sqlite3.h"
+
 using namespace std;
 
 int main()
@@ -8,8 +10,9 @@ int main()
     // store dumb, filtering possible in pure SQL (no globs etc - maybe useful for reference though)
 
     cout << "Datasheet (slas...)? " << endl; // or argument/option if present?
+    // misschien geen keuze laten, devices/package moet al bestaan???
     cout << "Parts? " << endl; // can be pre-filled already?
-    cout << "Package n" << endl; // can be pre-filled already? list exists
+    cout << "Package drawing n" << endl; // can be pre-filled already? list exists
     // keep adding packages until empty
     { // while (all pins empty)
         // for: packages
