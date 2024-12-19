@@ -1,6 +1,8 @@
+#include <getopt.h>
+#include <sysexits.h>
+
 #include <iostream>
 
-#include <getopt.h>
 #include "sqlite3.h"
 
 using namespace std;
@@ -12,13 +14,13 @@ void printUsage() {
 		 << "[-l <links-file>] "
 		 << "[-p <packages-file>] <sqlite3db>" << endl;
 
-	cout << "<families-file> is a tab-separated file eported from the TI website "
-	 "and converted to tsv containing records of:\n"
+	cout << "<families-file> is a tab-separated file exported from the TI website "
+			"and converted to tsv containing records of:\n"
 		 << "\tPart\tFrequency\tNonvolatile Memory\tRAM\tADC Type etc\n\n";
 
 	cout << "<datasheets-file> is a tab-separated file containing records of:\n"
 		 << "\tSheet\tRev.\tIssued\tRevised\n"
-		 << "e.g.\tSLAS380\tF\t4/2004\t3/2022\n\n";
+		 << "e.g.\tSLAS380\tF\t04/2004\t03/2022\n\n";
 
 	cout << "<links-file> is a tab-separated file containing records of:\n"
 		 << "\tPart Number\tSheet\n"
@@ -29,10 +31,58 @@ void printUsage() {
 		 << "e.g.\tMSP430FR2533IRHBT\tslas942\tACTIVE\tVQFN\tRHB\t32\tLevel-2-260C-1_YEAR\n";
 }
 
-int main() // opties voor elke .txt file? misschien niet slecht?
+void insertOrUpdateFamilies(sqlite3 *db, const char *families, const char *links);
+void insertOrUpdatePackages(sqlite3 *db, const char *packages);
+
+int main(int argc, char **argv) // opties voor elke .txt file? misschien niet slecht?
 {
-	printUsage();
+	const char *families = nullptr;
+	const char *datasheets = nullptr;
+	const char *links = nullptr;
+	const char *packages = nullptr;
+	const char *database = nullptr;
+
+	int opt;
+	while ( (opt = getopt(argc, argv, "dflph")) != -1 ) {
+		switch ( opt ) {
+			case 'd':
+				datasheets = optarg;
+				break;
+			case 'f':
+				families = optarg;
+				break;
+			case 'l':
+				links = optarg;
+				break;
+			case 'p':
+				packages = optarg;
+				break;
+			case 'h':
+			default:
+				printUsage();
+				return EX_USAGE;
+		}
+	}
+
+	if ( argc > optind + 1 ) {
+		database = argv[optind + 1];
+	} else {
+		printUsage();
+		return EX_USAGE;
+	}
+
 	sqlite3 *sql;
+	// sqlite3_open("file::memory:", &sql);
+	cout << "Opening SQLite3 database " << database << endl;
+
+	unsigned int rc = sqlite3_open(database, &sql);
+	if ( rc != 0 ) {
+		sqlite3_close(sql);
+		return 1;
+	}
+
+	// datasheets have been imported manually
+
 	// read msp430-family.txt for devices (export van TI website! niet modificeren)
 	// read packages.txt (extracted from datasheets)
 	// extend packages.txt? niet ieder DS heeft devices in header; meeste wel
@@ -42,26 +92,31 @@ int main() // opties voor elke .txt file? misschien niet slecht?
 	// MAAR: zitten toch nog altijd met de matching van mcu & package
 	// EN: niet elke match is op naam te doen!
 	// OPLOSSING: derde txt file aangemaakt met device & datasheet
-	// for family
-	{
-		// insert or update in device table
-		// comment: TI EXPORT
-	}
-	// for datasheet links
-	{
-		// insert or update in device table
-		// comment: AUTOMATIC RESOLUTION (!= MANUALLY VERIFIED)
-	}
-	// for datasheets (rev & dates)
-	{
-		// insert (or update?) in device table
-	}
-	// for packages
-	{
-		// insert package & use datasheet to resolve family + part
-		// comment: AUTOMATIC RESOLUTION (!= MANUALLY VERIFIED)
+	if ( families != nullptr ) {
+		cout << "Reading families file " << families << endl;
+		insertOrUpdateFamilies(sql, families, links);
+		// for family
+		{
+			// insert or update in device table
+			// comment: TI EXPORT
+		}
 	}
 
-	// sqlite3_close(sql);
+	if ( packages != nullptr ) {
+		cout << "Reading packages file " << packages << endl;
+
+		insertOrUpdatePackages(sql, packages);
+		// for packages
+		{
+			// insert package & use datasheet to resolve family + part
+			// comment: AUTOMATIC RESOLUTION (!= MANUALLY VERIFIED)
+		}
+	}
+
+	sqlite3_close(sql);
 	return 0;
 }
+
+void insertOrUpdateFamilies(sqlite3 *db, const char *families, const char* links) { }
+
+void insertOrUpdatePackages(sqlite3 *db, const char *packages) { }
