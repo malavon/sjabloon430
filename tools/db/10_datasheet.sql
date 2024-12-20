@@ -3,7 +3,6 @@
 --
 -- Text encoding used: UTF-8
 --
-BEGIN TRANSACTION;
 
 -- Table: datasheet
 CREATE TABLE IF NOT EXISTS datasheet (
@@ -17,5 +16,3 @@ CREATE TABLE IF NOT EXISTS datasheet (
 )
 WITHOUT ROWID,
 STRICT;
-
-COMMIT TRANSACTION;
