@@ -1,0 +1,32 @@
+--
+-- File generated with SQLiteStudio v3.4.4, modified manually!
+--
+-- Text encoding used: UTF-8
+--
+BEGIN TRANSACTION;
+
+-- Table: device
+CREATE TABLE IF NOT EXISTS device (
+    id            INTEGER PRIMARY KEY ON CONFLICT ROLLBACK AUTOINCREMENT
+                          NOT NULL,
+    datasheet_id  TEXT    REFERENCES datasheet (id) ON DELETE RESTRICT
+                          NOT NULL,
+    model         TEXT    NOT NULL
+                          UNIQUE,
+    freq_max      INTEGER,
+    storage_bytes INTEGER,
+    ram_bytes     INTEGER,
+    gpio_count    INTEGER,
+    uart_count    INTEGER,
+    usb_count     INTEGER DEFAULT (0),
+    i2c_count     INTEGER,
+    spi_count     INTEGER,
+    comp_count    INTEGER,
+    timer_count   INTEGER,
+    op_temp_min   INTEGER,
+    op_temp_max   INTEGER,
+    comment       TEXT
+)
+STRICT;
+
+COMMIT TRANSACTION;
