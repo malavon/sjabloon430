@@ -1,9 +1,8 @@
 --
--- File generated with SQLiteStudio v3.4.4, modified manually!
+-- File generated with SQLiteStudio, comment modified manually!
 --
 -- Text encoding used: UTF-8
 --
-BEGIN TRANSACTION;
 
 -- Table: feature
 CREATE TABLE IF NOT EXISTS feature (
@@ -30,5 +29,3 @@ CREATE TABLE IF NOT EXISTS device_feature (
     comment    TEXT
 )
 STRICT;
-
-COMMIT TRANSACTION;
