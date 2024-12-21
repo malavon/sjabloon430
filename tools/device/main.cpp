@@ -70,7 +70,6 @@ int main(int argc, char **argv) // opties voor elke .txt file? misschien niet sl
 				return EX_USAGE;
 		}
 	}
-	cout << "argc " << argc << " & optind " << optind << endl;
 	if ( argc > optind ) {
 		database = argv[optind];
 	} else {
@@ -115,11 +114,39 @@ int main(int argc, char **argv) // opties voor elke .txt file? misschien niet sl
 	return 0;
 }
 
-void addNextString(string &query, string value) {
+string nextTSV(string &line, int &tab1, int &tab2) {
+	int temp = tab1;
+	tab2 = line.find('\t', tab1);
+	tab1 = tab2 + 1;
+	if ( tab2 >= 0 ) {
+		return line.substr(temp, tab2 - temp);
+	} else { // last column, no more tabs afterwards, tab2 == -1
+		return line.substr(temp, line.length());
+	}
+}
+
+void addNextString(string &query, const string value) {
 	query.push_back('\'');
-	query.append(value);
+	query += value;
 	query.push_back('\'');
 	query.push_back(',');
+}
+
+// add multiple strings, all quoted and split on separator, hard-coded comma
+// TI export doesn't have following whitespace, but if it is, TODO: trim in this function
+void addStringsIn(string &query, string values) {
+	int sep = values.find(',');
+	// cout << sep << "NSERTING into " << values << endl;
+	while ( sep > 0 ) {
+		values.insert(sep + 1, "'");
+		values.insert(sep, "'");
+		sep = values.find(',', sep + 3);
+		// cout << sep << "NSERTING into " << values << endl;
+	}
+
+	query.push_back('\'');
+	query.append(values);
+	query.push_back('\'');
 }
 
 void addNextInteger(string &query, string value) {
@@ -128,13 +155,40 @@ void addNextInteger(string &query, string value) {
 	query.push_back(',');
 }
 
-string nextTSV(string &line, unsigned int &tab1, unsigned int &tab2) {
-	unsigned int temp = tab1;
-	tab2 = line.find('\t', tab1);
-	tab1 = tab2 + 1;
-	return line.substr(temp, tab2 - temp);
+void addGroupFeatures(vector<string> &features, const string &part, const string &text, const string &group, const string &param1 = "",
+					  const string &param2 = "", const string &param3 = "") {
+	if ( text.empty() || group.empty() ) {
+		return;
+	}
+	// comma-separated values ... select using IN-statement
+	static const string QUERY = "SELECT id "
+								"FROM feature "
+								"WHERE family_group = '"
+							  + group + "' AND family_text IN (";
+	static const string INSERT_QUERY = "INSERT INTO device_feature (device_id,feature_id,param1,param2,param3,comment) "
+									   "VALUES ( SELECT id FROM device WHERE model = ";
+
+	// select from DB features table
+	string select = QUERY;
+	addStringsIn(select, text);
+	select += ");";
+	features.push_back(select); // TEMP REMOVE once db accessed
+
+	// for
+	{
+		string insert = INSERT_QUERY;
+		addNextString(insert, part);
+		addNextString(insert, group); // TODO from for
+		addNextString(insert, param1.empty() ? "NULL" : param1);
+		addNextString(insert, param2.empty() ? "NULL" : param2);
+		addNextString(insert, param3.empty() ? "NULL" : param3);
+		addNextString(insert, "AUTOMATIC_RESOLUTION");
+		insert[insert.length() - 1] = ')';
+		features.push_back(insert);
+	}
 }
 
+// TODO: actually only inserts right now :)
 void insertOrUpdateFamilies(sqlite3 *db, ifstream &families, ifstream &links) {
 	string line;
 	// read links in map first
@@ -143,32 +197,29 @@ void insertOrUpdateFamilies(sqlite3 *db, ifstream &families, ifstream &links) {
 	while ( getline(links, line) ) {
 		// expected <device>\t<datasheet>
 		// e.g. MSP430FR2533	SLAS942
-		// abuse the fact that datasheets are always 7 characters long
-		// preceded by a single character (tab)
-		unsigned int l = line.length();
-		datasheets[line.substr(0, l - 8)] = line.substr(l - 7);
-		// cout << "datasheet '" << line.substr(l - 7) << "' for device '" << line.substr(0, l - 8) << "'" << endl;
+		unsigned int tab = line.find('\t');
+		datasheets[line.substr(0, tab)] = line.substr(tab + 1);
+		// cout << "datasheet '" << line.substr(tab+1) << "' for device '" << line.substr(0, tab) << "'" << endl;
 	}
 
-	unsigned int tab1, tab2;
-	string value;
+	int tab1, tab2; // not unsigned, string::find() returns -1 :)
+	string value, part, adc;
+	vector<string> featureLinks;
 	// no, this isn't efficient, but it's fine for this program
 	string query;
 	// first line contains header, but no datasheet will be found anyway
 	while ( getline(families, line) ) {
+		featureLinks.clear();
 		tab1 = 0;
+
 		query = INSERT_DEVICE;
 		query.append("( ");
 
-		// Part & Datasheet!!
-		value = nextTSV(line, tab1, tab2);
-		// if NULL, should fail
-		addNextString(query, datasheets[value]);
-		addNextString(query, value);
-		// tab1 = line.find('\t', 0);
-		// query.append("( \"");
-		// query.append(line.substr(0, tab1));
-		// query.push_back('"');
+		// Datasheet link & Part
+		part = nextTSV(line, tab1, tab2);
+		// TODO: if NULL, should fail? (database will error anyway)
+		addNextString(query, datasheets[part]);
+		addNextString(query, part);
 
 		// Frequency (MHz)
 		addNextInteger(query, nextTSV(line, tab1, tab2));
@@ -186,10 +237,10 @@ void insertOrUpdateFamilies(sqlite3 *db, ifstream &families, ifstream &links) {
 			addNextInteger(query, value);
 		}
 		// ADC type
-		nextTSV(line, tab1, tab2);
-		// TODO: interpret & add features
+		adc = nextTSV(line, tab1, tab2);
 		// Number of ADC channels
-		nextTSV(line, tab1, tab2);
+		value = nextTSV(line, tab1, tab2);
+		addGroupFeatures(featureLinks, part, adc, "ADC", value);
 
 		// Number of GPIOs
 		addNextInteger(query, nextTSV(line, tab1, tab2));
@@ -216,20 +267,35 @@ void insertOrUpdateFamilies(sqlite3 *db, ifstream &families, ifstream &links) {
 
 		// Bootloader (BSL)
 		// TODO: features
-		nextTSV(line, tab1, tab2);
+		value = nextTSV(line, tab1, tab2);
+		addGroupFeatures(featureLinks, part, value, "BSL");
+
 		// Special I/O
 		// TODO: features
-		nextTSV(line, tab1, tab2);
+		value = nextTSV(line, tab1, tab2);
+		addGroupFeatures(featureLinks, part, value, "Special I/O");
 
 		// Operating temperature range (°C)
-		// (-)n(n) to mm(m)
+		// "(-)n(n) to mm(m)"
 		value = nextTSV(line, tab1, tab2);
 		tab2 = value.find(" to ");
 		addNextInteger(query, value.substr(0, tab2));
 		addNextInteger(query, value.substr(tab2 + 4, value.length() - tab2 - 4));
 
-		// Price|Quantity (USD)	Package type	Pin count	Package area (mm^2)	Package
-		// size (L x W) (mm)	Features
+		// Price|Quantity (USD)
+		nextTSV(line, tab1, tab2);
+		// Package type
+		nextTSV(line, tab1, tab2);
+		// Pin count
+		nextTSV(line, tab1, tab2);
+		// Package area (mm^2)
+		nextTSV(line, tab1, tab2);
+		// Package size (L x W) (mm)
+		nextTSV(line, tab1, tab2);
+
+		// Features
+		value = nextTSV(line, tab1, tab2);
+		addGroupFeatures(featureLinks, part, value, "Features");
 
 		addNextString(query, "AUTOMATIC RESOLUTION");
 
@@ -237,6 +303,9 @@ void insertOrUpdateFamilies(sqlite3 *db, ifstream &families, ifstream &links) {
 		// comment: TI EXPORT
 		query[query.length() - 1] = ')';
 		cout << query << endl;
+		for ( string &q : featureLinks ) {
+			cout << q << endl;
+		}
 	}
 }
 
