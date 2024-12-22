@@ -38,7 +38,9 @@ void insertOrUpdatePackages(sqlite3 *db, ifstream &packages);
 
 const string INSERT_DEVICE = "INSERT INTO device (datasheet_id,model,freq_max,storage_bytes,"
 			     "ram_bytes,gpio_count,uart_count,usb_count,i2c_count,spi_count,"
-			     "comp_count,timer_count,op_temp_min,op_temp_max,comment) VALUES ";
+			     "comp_count,timer_count,op_temp_min,op_temp_max,comment) ";
+
+const string INSERT_PACKAGE = "INSERT INTO package (device_id,package,status,type,drawing,pins,msl,comment)";
 
 int main(int argc, char **argv) // opties voor elke .txt file? misschien niet slecht?
 {
@@ -155,19 +157,19 @@ void addNextInteger(string &query, string value) {
 	query.push_back(',');
 }
 
-void addGroupFeatures(sqlite3 *db, vector<string> &features, const string &part, const string &text, const string &group, const string &param1 = "",
-					  const string &param2 = "", const string &param3 = "") {
+void addGroupFeatures(sqlite3 *db, vector<string> &features, const string &part, const string &text, const string &group,
+		      const string &param1 = "", const string &param2 = "", const string &param3 = "") {
 	if ( text.empty() || group.empty() ) {
 		return;
 	}
 	static const string INSERT_QUERY = "INSERT INTO device_feature (device_id,feature_id,param1,param2,param3,comment) "
-									   "VALUES ( (SELECT id FROM device WHERE model = ";
+					   "VALUES ( (SELECT id FROM device WHERE model = ";
 
 	// comma-separated values ... select using IN-statement
 	string select = "SELECT id "
-					"FROM feature "
-					"WHERE family_group = '"
-				  + group + "' AND family_text IN (";
+			"FROM feature "
+			"WHERE family_group = '"
+		      + group + "' AND family_text IN (";
 	addStringsIn(select, text);
 	select += ");";
 
@@ -186,7 +188,7 @@ void addGroupFeatures(sqlite3 *db, vector<string> &features, const string &part,
 		string insert = INSERT_QUERY;
 		addNextString(insert, part);
 		insert[insert.length() - 1] = ')'; // finish sub-query
-		insert += ',';					   // add comma afterwards
+		insert += ',';			   // add comma afterwards
 		addNextString(insert, featureId);
 		addNextString(insert, param1.empty() ? "NULL" : param1);
 		addNextString(insert, param2.empty() ? "NULL" : param2);
@@ -223,7 +225,7 @@ void insertOrUpdateFamilies(sqlite3 *db, ifstream &families, ifstream &links) {
 		tab1 = 0;
 
 		query = INSERT_DEVICE;
-		query.append("( ");
+		query.append(" VALUES ( ");
 
 		// Datasheet link & Part
 		part = nextTSV(line, tab1, tab2);
@@ -307,6 +309,7 @@ void insertOrUpdateFamilies(sqlite3 *db, ifstream &families, ifstream &links) {
 		value = nextTSV(line, tab1, tab2);
 		addGroupFeatures(db, featureLinks, part, value, "Features");
 
+		// Comment
 		addNextString(query, "TI EXPORT");
 		query[query.length() - 1] = ')';
 
@@ -327,10 +330,108 @@ void insertOrUpdateFamilies(sqlite3 *db, ifstream &families, ifstream &links) {
 	}
 }
 
+// find devices for datasheet, match on models lexicologically
+// very naive way, matching with one letter less each time
+// use the best (top) match only
+// if SQLite3 has a function I can use for this, I didn't find it
+// custom function would have worked too, but not necessary in this case
+string findBestDeviceMatch(sqlite3 *db, const string &orderable, const string &datasheet) {
+	string select = "SELECT id, model, ";
+	// packages sometimes requires a few characters only to match, don't skimp
+	for ( int i = orderable.length(); i > 2; i-- ) {
+		const string substr = orderable.substr(0, i);
+		const string idx(to_string(i));
+		select += "instr ( model, '";
+		select += substr;
+		select += "' ) + instr ( '";
+		select += substr;
+		select += "', model ) + ";
+	}
+
+	select += "0 as matching FROM device WHERE datasheet_id ='" + datasheet + "' order by matching desc limit 1;";
+	// cout << select << endl;
+	sqlite3_stmt *stmt;
+	if ( sqlite3_prepare_v2(db, select.c_str(), -1, &stmt, NULL) != SQLITE_OK || sqlite3_step(stmt) != SQLITE_ROW ) {
+		cout << "SQLite3 error in device match " << sqlite3_errmsg(db) << endl;
+		return "-1";
+	}
+
+	// TODO: match strength would be useful to add in comment?
+	string id(reinterpret_cast<const char *>(sqlite3_column_text(stmt, 0)));
+	return id;
+}
+
 void insertOrUpdatePackages(sqlite3 *db, ifstream &packages) {
-	// for packages
-	{
-		// insert package & use datasheet to resolve family + part
-		// comment: AUTOMATIC RESOLUTION (!= MANUALLY VERIFIED)
+	string line;
+
+	int tab1, tab2;
+	string value, orderable, deviceId, datasheet, status, type, drawing;
+	// no, this isn't efficient, but it's fine for this program
+	string query;
+	while ( getline(packages, line) ) {
+		tab1 = 0;
+
+		query = INSERT_PACKAGE;
+		query.append(" VALUES ( ");
+
+		// defer query building until later, modifications may occur
+		orderable = nextTSV(line, tab1, tab2);
+		datasheet = nextTSV(line, tab1, tab2);
+
+		status = nextTSV(line, tab1, tab2);
+		type = nextTSV(line, tab1, tab2);
+		drawing = nextTSV(line, tab1, tab2);
+
+		// MSP430F149 has a "G4" postfix that is never referenced in the datasheet
+		// I have no idea what this is, but it's not a separate package
+		// and it also has reel ending (R) which is not detected if it's not cut off
+		// that's why this goes first
+		string last2 = orderable.substr(orderable.length() - 2, 2);
+		if ( last2 == "G4" ) {
+			orderable.pop_back();
+			orderable.pop_back();
+		}
+
+		// packages may contain information on reel/tube ordering
+		// these are not useful no keep
+		char last = orderable[orderable.length() - 1];
+		string last3 = orderable.substr(orderable.length() - 3, 3);
+		if ( last == 'R' || last == 'T' ) {
+			orderable.pop_back();
+		}
+		if ( last3 == "TEP" || last3 == "REP" ) {
+			orderable.pop_back();
+			orderable.pop_back();
+			orderable.pop_back();
+		}
+		// if the entire drawing is not in the orderable, it's been cut off
+		// occurs because I don't master grep/regex as well as I should
+		// if ( orderable.find(drawing) == -1 ) {
+		// 	continue;
+		// }
+
+		// Device ID
+		deviceId = findBestDeviceMatch(db, orderable, datasheet);
+
+		addNextInteger(query, deviceId);
+		addNextString(query, orderable);
+		addNextString(query, status);
+		addNextString(query, type);
+		addNextString(query, drawing);
+		// Pins
+		addNextInteger(query, nextTSV(line, tab1, tab2));
+		// MSL
+		addNextString(query, nextTSV(line, tab1, tab2));
+		// Comment
+		addNextString(query, "AUTOMATIC RESOLUTION");
+
+		query[query.length() - 1] = ')';
+
+		// insert or update in packages table
+		if ( sqlite3_exec(db, query.c_str(), NULL, NULL, NULL) == SQLITE_OK ) {
+			cout << "SUCCESS " << query << endl;
+		} else {
+			cout << " FAILED " << query << endl;
+		}
 	}
 }
