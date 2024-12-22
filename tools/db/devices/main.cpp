@@ -386,24 +386,24 @@ void insertOrUpdatePackages(sqlite3 *db, ifstream &packages) {
 		// I have no idea what this is, but it's not a separate package
 		// and it also has reel ending (R) which is not detected if it's not cut off
 		// that's why this goes first
-		char last2 = orderable.substr(orderable.length() - 2, 2);
-		if ( last2 == "G4" ) {
+		// cut off EP as well, there may b R/T before it
+		string last2 = orderable.substr(orderable.length() - 2, 2);
+		if ( last2 == "G4" || last2 == "EP") {
 			orderable.pop_back();
 			orderable.pop_back();
 		}
 
 		// packages may contain information on reel/tube ordering
 		// these are not useful no keep
+		// simple check for R/T is not enough, some packages end in T (e.g. PT)
+		// but PTT does not occur, PTR however does
+		// the rule might be: when it ends in the same letter, no duplication
 		char last = orderable[orderable.length() - 1];
-		string last3 = orderable.substr(orderable.length() - 3, 3);
-		if ( last == 'R' || last == 'T' ) {
-			orderable.pop_back();
-		}
-		if ( last3 == "TEP" || last3 == "REP" ) {
-			orderable.pop_back();
-			orderable.pop_back();
-			orderable.pop_back();
-		}
+		char lastDrw = drawing[drawing.length() - 1];
+		if( (last == 'T' || last=='R') && last != lastDrw) {
+				orderable.pop_back();
+			}
+
 		// if the entire drawing is not in the orderable, it's been cut off
 		// occurs because I don't master grep/regex as well as I should
 		// if ( orderable.find(drawing) == -1 ) {
