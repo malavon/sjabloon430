@@ -155,30 +155,39 @@ void addNextInteger(string &query, string value) {
 	query.push_back(',');
 }
 
-void addGroupFeatures(vector<string> &features, const string &part, const string &text, const string &group, const string &param1 = "",
+void addGroupFeatures(sqlite3 *db, vector<string> &features, const string &part, const string &text, const string &group, const string &param1 = "",
 					  const string &param2 = "", const string &param3 = "") {
 	if ( text.empty() || group.empty() ) {
 		return;
 	}
-	// comma-separated values ... select using IN-statement
-	static const string QUERY = "SELECT id "
-								"FROM feature "
-								"WHERE family_group = '"
-							  + group + "' AND family_text IN (";
 	static const string INSERT_QUERY = "INSERT INTO device_feature (device_id,feature_id,param1,param2,param3,comment) "
-									   "VALUES ( SELECT id FROM device WHERE model = ";
+									   "VALUES ( (SELECT id FROM device WHERE model = ";
 
-	// select from DB features table
-	string select = QUERY;
+	// comma-separated values ... select using IN-statement
+	string select = "SELECT id "
+					"FROM feature "
+					"WHERE family_group = '"
+				  + group + "' AND family_text IN (";
 	addStringsIn(select, text);
 	select += ");";
-	features.push_back(select); // TEMP REMOVE once db accessed
 
-	// for
-	{
+	sqlite3_stmt *stmt;
+	if ( sqlite3_prepare_v2(db, select.c_str(), -1, &stmt, NULL) != SQLITE_OK ) {
+		cout << "SQLite3 error " << sqlite3_errmsg(db) << endl;
+		return;
+	}
+
+	while ( sqlite3_step(stmt) == SQLITE_ROW ) {
+		// BAD IDEA, but even in a C++ wrapper for SQLite this is one the same way
+		// this won't work for anything that isn't 8-byte characters (e.g. unicode)
+		// but it's fine for this use since *I* control the input anyway
+		string featureId(reinterpret_cast<const char *>(sqlite3_column_text(stmt, 0)));
+
 		string insert = INSERT_QUERY;
 		addNextString(insert, part);
-		addNextString(insert, group); // TODO from for
+		insert[insert.length() - 1] = ')'; // finish sub-query
+		insert += ',';					   // add comma afterwards
+		addNextString(insert, featureId);
 		addNextString(insert, param1.empty() ? "NULL" : param1);
 		addNextString(insert, param2.empty() ? "NULL" : param2);
 		addNextString(insert, param3.empty() ? "NULL" : param3);
@@ -204,6 +213,7 @@ void insertOrUpdateFamilies(sqlite3 *db, ifstream &families, ifstream &links) {
 
 	int tab1, tab2; // not unsigned, string::find() returns -1 :)
 	string value, part, adc;
+	// insert queries to be executed later because foreign key is not yet satisfied
 	vector<string> featureLinks;
 	// no, this isn't efficient, but it's fine for this program
 	string query;
@@ -238,9 +248,9 @@ void insertOrUpdateFamilies(sqlite3 *db, ifstream &families, ifstream &links) {
 		}
 		// ADC type
 		adc = nextTSV(line, tab1, tab2);
-		// Number of ADC channels
+		// Number of ADC channels (these are external channels only)
 		value = nextTSV(line, tab1, tab2);
-		addGroupFeatures(featureLinks, part, adc, "ADC", value);
+		addGroupFeatures(db, featureLinks, part, adc, "ADC", value);
 
 		// Number of GPIOs
 		addNextInteger(query, nextTSV(line, tab1, tab2));
@@ -268,12 +278,12 @@ void insertOrUpdateFamilies(sqlite3 *db, ifstream &families, ifstream &links) {
 		// Bootloader (BSL)
 		// TODO: features
 		value = nextTSV(line, tab1, tab2);
-		addGroupFeatures(featureLinks, part, value, "BSL");
+		addGroupFeatures(db, featureLinks, part, value, "BSL");
 
 		// Special I/O
 		// TODO: features
 		value = nextTSV(line, tab1, tab2);
-		addGroupFeatures(featureLinks, part, value, "Special I/O");
+		addGroupFeatures(db, featureLinks, part, value, "Special I/O");
 
 		// Operating temperature range (°C)
 		// "(-)n(n) to mm(m)"
@@ -295,16 +305,24 @@ void insertOrUpdateFamilies(sqlite3 *db, ifstream &families, ifstream &links) {
 
 		// Features
 		value = nextTSV(line, tab1, tab2);
-		addGroupFeatures(featureLinks, part, value, "Features");
+		addGroupFeatures(db, featureLinks, part, value, "Features");
 
-		addNextString(query, "AUTOMATIC RESOLUTION");
+		addNextString(query, "TI EXPORT");
+		query[query.length() - 1] = ')';
 
 		// insert or update in device table
-		// comment: TI EXPORT
-		query[query.length() - 1] = ')';
-		cout << query << endl;
-		for ( string &q : featureLinks ) {
-			cout << q << endl;
+		if ( sqlite3_exec(db, query.c_str(), NULL, NULL, NULL) == SQLITE_OK ) {
+			cout << "SUCCESS " << query << endl;
+			for ( string &q : featureLinks ) {
+				if ( sqlite3_exec(db, q.c_str(), NULL, NULL, NULL) != SQLITE_OK ) {
+					cout << " FAILED ";
+				} else {
+					cout << "SUCCESS ";
+				}
+				cout << q << endl;
+			}
+		} else {
+			cout << " FAILED " << query << endl;
 		}
 	}
 }
