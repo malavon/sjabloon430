@@ -40,8 +40,6 @@ const string INSERT_DEVICE = "INSERT INTO device (datasheet_id,model,freq_max,st
 			     "ram_bytes,gpio_count,uart_count,usb_count,i2c_count,spi_count,"
 			     "comp_count,timer_count,op_temp_min,op_temp_max,comment) ";
 
-const string INSERT_PACKAGE = "INSERT INTO package (device_id,package,status,type,drawing,pins,msl,comment)";
-
 int main(int argc, char **argv) // opties voor elke .txt file? misschien niet slecht?
 {
 	// const char *families = nullptr;
@@ -341,11 +339,9 @@ string findBestDeviceMatch(sqlite3 *db, const string &orderable, const string &d
 	for ( int i = orderable.length(); i > 2; i-- ) {
 		const string substr = orderable.substr(0, i);
 		const string idx(to_string(i));
-		select += "instr ( model, '";
+		select += to_string(i) + " * instr ( model, '";
 		select += substr;
-		select += "' ) + instr ( '";
-		select += substr;
-		select += "', model ) + ";
+		select += "' ) + ";
 	}
 
 	select += "0 as matching FROM device WHERE datasheet_id ='" + datasheet + "' order by matching desc limit 1;";
@@ -362,76 +358,79 @@ string findBestDeviceMatch(sqlite3 *db, const string &orderable, const string &d
 }
 
 void insertOrUpdatePackages(sqlite3 *db, ifstream &packages) {
-	string line;
+	static const string INSERT_PACKAGE = "INSERT INTO package (device_id,type,drawing,pins,comment) VALUES (";
+	static const string INSERT_ORDERABLE = "INSERT INTO orderable (package_id,name,status,msl_level,comment) VALUES ( "
+					       " ( SELECT id FROM package WHERE ";
 
 	int tab1, tab2;
-	string value, orderable, deviceId, datasheet, status, type, drawing;
+	string line;
+	string orderable, deviceId, datasheet, status, type, drawing, pins, msl;
 	// no, this isn't efficient, but it's fine for this program
-	string query;
+	string insPackage, insOrderable;
 	while ( getline(packages, line) ) {
 		tab1 = 0;
 
-		query = INSERT_PACKAGE;
-		query.append(" VALUES ( ");
+		insPackage = INSERT_PACKAGE;
+		insOrderable = INSERT_ORDERABLE;
 
 		// defer query building until later, modifications may occur
 		orderable = nextTSV(line, tab1, tab2);
 		datasheet = nextTSV(line, tab1, tab2);
 
+		deviceId = findBestDeviceMatch(db, orderable, datasheet);
 		status = nextTSV(line, tab1, tab2);
 		type = nextTSV(line, tab1, tab2);
 		drawing = nextTSV(line, tab1, tab2);
+		pins = nextTSV(line, tab1, tab2);
+		msl = nextTSV(line, tab1, tab2);
 
-		// MSP430F149 has a "G4" postfix that is never referenced in the datasheet
-		// I have no idea what this is, but it's not a separate package
-		// and it also has reel ending (R) which is not detected if it's not cut off
-		// that's why this goes first
-		// cut off EP as well, there may b R/T before it
-		string last2 = orderable.substr(orderable.length() - 2, 2);
-		if ( last2 == "G4" || last2 == "EP" ) {
-			orderable.pop_back();
-			orderable.pop_back();
+		// transform MSL into simple integer level, default to 3
+		// Level-3-260C-168_HR
+		// Level-2-260C-1_YEAR
+		// Level-1-260C-UNLIM
+		if ( msl.length() > 7 ) {
+			msl = msl.at(6);
+		}
+		if ( msl != "3" && msl != "2" && msl != "1" ) {
+			msl = "3";
 		}
 
-		// packages may contain information on reel/tube ordering
-		// these are not useful no keep
-		// simple check for R/T is not enough, some packages end in T (e.g. PT)
-		// but PTT does not occur, PTR however does
-		// the rule might be: when it ends in the same letter, no duplication
-		char last = orderable[orderable.length() - 1];
-		char lastDrw = drawing[drawing.length() - 1];
-		if ( (last == 'T' || last == 'R') && last != lastDrw ) {
-			orderable.pop_back();
-		}
-
-		// if the entire drawing is not in the orderable, it's been cut off
-		// occurs because I don't master grep/regex as well as I should
-		// if ( orderable.find(drawing) == -1 ) {
-		// 	continue;
-		// }
-
-		// Device ID
-		deviceId = findBestDeviceMatch(db, orderable, datasheet);
-
-		addNextInteger(query, deviceId);
-		addNextString(query, orderable);
-		addNextString(query, status);
-		addNextString(query, type);
-		addNextString(query, drawing);
-		// Pins
-		addNextInteger(query, nextTSV(line, tab1, tab2));
-		// MSL
-		addNextString(query, nextTSV(line, tab1, tab2));
+		// package insert
+		addNextInteger(insPackage, deviceId);
+		addNextString(insPackage, type);
+		addNextString(insPackage, drawing);
+		addNextInteger(insPackage, pins);
 		// Comment
-		addNextString(query, "AUTOMATIC RESOLUTION");
+		addNextString(insPackage, "AUTOMATIC RESOLUTION");
+		insPackage[insPackage.length() - 1] = ')';
 
-		query[query.length() - 1] = ')';
-
-		// insert or update in packages table
-		if ( sqlite3_exec(db, query.c_str(), NULL, NULL, NULL) == SQLITE_OK ) {
-			cout << "SUCCESS " << query << endl;
+		if ( sqlite3_exec(db, insPackage.c_str(), NULL, NULL, NULL) == SQLITE_OK ) {
+			cout << "SUCCESS " << insPackage << endl;
 		} else {
-			cout << " FAILED " << query << endl;
+			cout << " FAILED " << insPackage << endl;
+		}
+
+		// insert orderable, even if package has failed (might be duplicate)
+		insOrderable += "device_id = " + deviceId;
+		insOrderable += " AND drawing = '" + drawing;
+		insOrderable += "' AND pins = " + pins;
+		insOrderable += "), ";
+		addNextString(insOrderable, orderable);
+		addNextString(insOrderable, status);
+		addNextInteger(insOrderable, msl);
+		addNextString(insOrderable, "AUTOMATIC RESOLUTION");
+		insOrderable[insOrderable.length() - 1] = ')';
+
+		if ( sqlite3_exec(db, insOrderable.c_str(), NULL, NULL, NULL) == SQLITE_OK ) {
+			cout << "SUCCESS " << insOrderable << endl;
+		} else {
+			cout << " FAILED " << insOrderable << endl;
 		}
 	}
+
+	// some manual corrections?
+	// MSP4301103IPWR -> MSP430AFE253
+	// MSP430G2113IN20 -> removed from datasheets, orderable still present
+	// MSP430G2453IPW0RQ1 -> 2453 Q1 not in family (LIFEBUY in 2014 ...)
+	// MSP430G2453IPW8RQ1 -> 2453 Q1 not in family (LIFEBUY in 2014 ...)
 }
