@@ -12,7 +12,8 @@ CREATE TABLE IF NOT EXISTS feature (
     param3_description ANY,
     comment            TEXT,
     family_text        TEXT,
-    family_group       TEXT
+    family_group       TEXT,
+    signal_group       TEXT
 )
 WITHOUT ROWID,
 STRICT;
