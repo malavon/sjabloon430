@@ -6266,5 +6266,31 @@ INSERT INTO package (id, device_id, type, drawing, pins, comment) VALUES (1113, 
 INSERT INTO package (id, device_id, type, drawing, pins, comment) VALUES (1114, 583, 'TSSOP', 'PW', 14, 'AUTOMATIC RESOLUTION');
 INSERT INTO package (id, device_id, type, drawing, pins, comment) VALUES (1115, 584, 'VQFN', 'RHA', 40, 'AUTOMATIC RESOLUTION');
 
+-- Table: package_signal
+CREATE TABLE IF NOT EXISTS package_signal (
+    package_id  INTEGER REFERENCES package (id) ON DELETE RESTRICT
+                        NOT NULL,
+    signal_id   INTEGER NOT NULL
+                        REFERENCES signal (id) ON DELETE RESTRICT
+                                               ON UPDATE RESTRICT,
+    pin_row_bga TEXT,
+    pin_number  INTEGER NOT NULL,
+    is_default  INTEGER DEFAULT (0) 
+                        NOT NULL,
+    comment     TEXT
+)
+STRICT;
+
+
+-- Table: signal
+CREATE TABLE IF NOT EXISTS signal (
+    id          INTEGER PRIMARY KEY ON CONFLICT ROLLBACK AUTOINCREMENT
+                        NOT NULL,
+    signal_name TEXT    NOT NULL,
+    signal_type TEXT    NOT NULL
+)
+STRICT;
+
+
 COMMIT TRANSACTION;
 PRAGMA foreign_keys = on;
