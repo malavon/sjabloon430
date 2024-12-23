@@ -9,7 +9,8 @@ CREATE TABLE IF NOT EXISTS orderable (
     name        TEXT    UNIQUE ON CONFLICT ROLLBACK
                         NOT NULL
                         PRIMARY KEY,
-    device_id   INTEGER REFERENCES device (id) ON DELETE RESTRICT
+    device_id   TEXT    REFERENCES device (model) ON DELETE RESTRICT
+                                                  ON UPDATE CASCADE
                         NOT NULL,
     drawing     TEXT    NOT NULL,
     pins        INTEGER NOT NULL,
