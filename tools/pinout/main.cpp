@@ -6,6 +6,7 @@ using namespace std;
 
 int main()
 {
+
     // do in-memory or preferrably in a transaction if possible
     // store dumb, filtering possible in pure SQL (no globs etc - maybe useful for reference though)
 
@@ -33,5 +34,5 @@ int main()
     // family (GPIO_PU, GPIO_P_INT, ADC ...)
     // human-readable name: GPIO Port x, IO y (PU/PD/INT); ADC Analog Input x ...
     // features from tsv file first: ADC10/ADC12 etc
-    return 0;
+	return EXIT_SUCCESS;
 }
