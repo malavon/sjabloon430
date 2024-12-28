@@ -13,6 +13,7 @@ CREATE TABLE IF NOT EXISTS orderable (
                         CONSTRAINT NN_ORDERABLE_DEVICE NOT NULL,
     drawing     TEXT    CONSTRAINT NN_ODBL_DRAWING NOT NULL,
     pins        INTEGER CONSTRAINT NN_ODBL_PINS NOT NULL,
+    pinset_id   INTEGER CONSTRAINT FK_ODBL_PINSET REFERENCES pinset (id) ON DELETE RESTRICT,
     status      TEXT    NOT NULL,
     msl_level   INTEGER,
     op_temp_min INTEGER,
