@@ -4,6 +4,15 @@
 -- Text encoding used: UTF-8
 --
 
+-- Table: pinset
+CREATE TABLE IF NOT EXISTS pinset (
+    id            INTEGER CONSTRAINT PK_SET PRIMARY KEY AUTOINCREMENT,
+    parent_set_id ANY     CONSTRAINT FK_pinset_pinset REFERENCES pinset (id) ON DELETE RESTRICT,
+    pins          INTEGER NOT NULL,
+    comment       TEXT
+)
+STRICT;
+
 -- Table: pinset_signal
 CREATE TABLE IF NOT EXISTS pinset_signal (
     pinset_id   INTEGER REFERENCES pinset (id) ON DELETE RESTRICT
