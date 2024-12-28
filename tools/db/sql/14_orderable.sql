@@ -6,13 +6,24 @@
 
 -- Table: orderable
 CREATE TABLE IF NOT EXISTS orderable (
-    name       TEXT    UNIQUE ON CONFLICT ROLLBACK
-                       NOT NULL
-                       PRIMARY KEY,
-    package_id INTEGER NOT NULL
-                       REFERENCES package (id) ON DELETE RESTRICT,
-    status     TEXT    NOT NULL,
-    msl_level  INTEGER,
-    comment    TEXT
+    name        TEXT    UNIQUE ON CONFLICT ROLLBACK
+                        NOT NULL
+                        PRIMARY KEY,
+    device_id   INTEGER REFERENCES device (id) ON DELETE RESTRICT
+                        NOT NULL,
+    drawing     TEXT    NOT NULL,
+    pins        INTEGER NOT NULL,
+    status      TEXT    NOT NULL,
+    msl_level   INTEGER,
+    op_temp_min INTEGER,
+    op_temp_max INTEGER,
+    comment     TEXT,
+    CONSTRAINT FK_ODBL_PACKAGE FOREIGN KEY (
+        drawing,
+        pins
+    )
+    REFERENCES package (drawing,
+    pins) MATCH [FULL]
 )
+WITHOUT ROWID,
 STRICT;
