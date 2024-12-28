@@ -13,16 +13,19 @@ void autofillDatasheet() {
 
 int main()
 {
-	FIELD *field[3];
-	FORM *my_form;
-	int ch;
+	setlocale(LC_ALL, "");
 
 	/* Initialize curses */
 	initscr();
 	start_color();
-	cbreak();
-	noecho();
-	keypad(stdscr, TRUE);
+	cbreak(); // do buffer input in full-line chunks ended with Enter
+	noecho(); // do not echo characters to terminal immediately
+	intrflush(stdscr, FALSE);
+	keypad(stdscr, TRUE); // enable more keys like the numpad
+
+	FIELD *field[3];
+	FORM *my_form;
+	int ch;
 
 	/* Initialize few color pairs */
 	init_pair(1, COLOR_WHITE, COLOR_BLUE);
@@ -116,6 +119,6 @@ int main()
 	free_field(field[0]);
 	free_field(field[1]);
 
-	endwin();
+	endwin(); // important: restores terminal
 	return EXIT_SUCCESS;
 }
