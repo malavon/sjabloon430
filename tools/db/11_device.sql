@@ -3,7 +3,6 @@
 --
 -- Text encoding used: UTF-8
 --
-BEGIN TRANSACTION;
 
 -- Table: device
 CREATE TABLE IF NOT EXISTS device (
@@ -28,5 +27,3 @@ CREATE TABLE IF NOT EXISTS device (
     comment       TEXT
 )
 STRICT;
-
-COMMIT TRANSACTION;
