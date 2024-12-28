@@ -178,7 +178,7 @@ void addGroupFeatures(sqlite3 *db, vector<string> &features, const string &part,
 	}
 
 	while ( sqlite3_step(stmt) == SQLITE_ROW ) {
-		// BAD IDEA, but even in a C++ wrapper for SQLite this is one the same way
+		// BAD IDEA, but even in a C++ wrapper for SQLite this is done the same way
 		// this won't work for anything that isn't 8-byte characters (e.g. unicode)
 		// but it's fine for this use since *I* control the input anyway
 		string featureId(reinterpret_cast<const char *>(sqlite3_column_text(stmt, 0)));
@@ -358,13 +358,13 @@ string findBestDeviceMatch(sqlite3 *db, const string &orderable, const string &d
 }
 
 void insertOrUpdatePackages(sqlite3 *db, ifstream &packages) {
-	static const string INSERT_PACKAGE = "INSERT INTO package (device_id,type,drawing,pins,comment) VALUES (";
-	static const string INSERT_ORDERABLE = "INSERT INTO orderable (package_id,name,status,msl_level,comment) VALUES ( "
-					       " ( SELECT id FROM package WHERE ";
+	static const string INSERT_PACKAGE = "INSERT INTO package (drawing,pins,type,comment) VALUES (";
+	static const string INSERT_ORDERABLE =
+	    "INSERT INTO orderable (name,device_id,drawing,pins,status,msl_level,op_temp_min,op_temp_max,comment) VALUES (";
 
 	int tab1, tab2;
 	string line;
-	string orderable, deviceId, datasheet, status, type, drawing, pins, msl;
+	string orderable, deviceId, datasheet, status, type, drawing, pins, msl, temp, tempMin, tempMax;
 	// no, this isn't efficient, but it's fine for this program
 	string insPackage, insOrderable;
 	while ( getline(packages, line) ) {
@@ -383,7 +383,16 @@ void insertOrUpdatePackages(sqlite3 *db, ifstream &packages) {
 		drawing = nextTSV(line, tab1, tab2);
 		pins = nextTSV(line, tab1, tab2);
 		msl = nextTSV(line, tab1, tab2);
+		temp = nextTSV(line, tab1, tab2);
 
+		// parse -40_to_85 (IF CORRECT)
+		int pos;
+		if ( (pos = temp.find('_')) > 0 ) {
+			tempMin = temp.substr(0, pos);
+			if ( (pos = temp.find('_', pos + 1)) > 0 ) {
+				tempMax = temp.substr(pos + 1, 3);
+			}
+		}
 		// transform MSL into simple integer level, default to 3
 		// Level-3-260C-168_HR
 		// Level-2-260C-1_YEAR
@@ -396,12 +405,11 @@ void insertOrUpdatePackages(sqlite3 *db, ifstream &packages) {
 		}
 
 		// package insert
-		addNextInteger(insPackage, deviceId);
-		addNextString(insPackage, type);
 		addNextString(insPackage, drawing);
 		addNextInteger(insPackage, pins);
+		addNextString(insPackage, type);
 		// Comment
-		addNextString(insPackage, "AUTOMATIC RESOLUTION");
+		addNextString(insPackage, "AUTOMATIC INSERTION");
 		insPackage[insPackage.length() - 1] = ')';
 
 		if ( sqlite3_exec(db, insPackage.c_str(), NULL, NULL, NULL) == SQLITE_OK ) {
@@ -411,13 +419,14 @@ void insertOrUpdatePackages(sqlite3 *db, ifstream &packages) {
 		}
 
 		// insert orderable, even if package has failed (might be duplicate)
-		insOrderable += "device_id = " + deviceId;
-		insOrderable += " AND drawing = '" + drawing;
-		insOrderable += "' AND pins = " + pins;
-		insOrderable += "), ";
 		addNextString(insOrderable, orderable);
+		addNextInteger(insOrderable, deviceId);
+		addNextString(insOrderable, drawing); // FK to package
+		addNextInteger(insOrderable, pins);   // FK to package
 		addNextString(insOrderable, status);
 		addNextInteger(insOrderable, msl);
+		addNextInteger(insOrderable, tempMin);
+		addNextInteger(insOrderable, tempMax);
 		addNextString(insOrderable, "AUTOMATIC RESOLUTION");
 		insOrderable[insOrderable.length() - 1] = ')';
 
@@ -430,6 +439,7 @@ void insertOrUpdatePackages(sqlite3 *db, ifstream &packages) {
 
 	// some manual corrections?
 	// MSP4301103IPWR -> MSP430AFE253
+	// SN0806723IPNR -> MSP430F6723
 	// MSP430G2113IN20 -> removed from datasheets, orderable still present
 	// MSP430G2453IPW0RQ1 -> 2453 Q1 not in family (LIFEBUY in 2014 ...)
 	// MSP430G2453IPW8RQ1 -> 2453 Q1 not in family (LIFEBUY in 2014 ...)
