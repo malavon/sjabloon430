@@ -5,12 +5,21 @@ project(pinout LANGUAGES CXX)
 set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-add_executable(pinout		main.cpp)
-
 find_package (SQLite3)
+find_package (Curses)
 
-target_include_directories(pinout	    PRIVATE ${SQLite3_INCLUDE_DIRS})
-target_link_libraries (pinout ${SQLite3_LIBRARIES})
+add_executable(pinout
+    main.cpp
+
+    # these are here only for QTCreator
+    cccurses/cccurses.hpp
+    cccurses/error.hpp
+    cccurses/form.hpp
+    cccurses/window.hpp
+)
+
+target_include_directories  (pinout PRIVATE ${SQLite3_INCLUDE_DIRS} ${CURSES_INCLUDE_DIRS})
+target_link_libraries	    (pinout PRIVATE ${SQLite3_LIBRARIES} ${CURSES_LIBRARIES})
 
 include(GNUInstallDirs)
 install(TARGETS pinout
