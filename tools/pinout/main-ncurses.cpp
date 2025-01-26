@@ -9,6 +9,7 @@ using namespace cccurses;
 using namespace std;
 
 void autofillDatasheet() { }
+void printShortcuts();
 
 static const int WIN_TOP_HEIGHT = 5;
 
@@ -23,7 +24,7 @@ int main() {
 
 	{
 		Window top(WIN_TOP_HEIGHT, COLS - MAX_WIDTH, 0, 0);
-		Window other(10, COLS - MAX_WIDTH, WIN_TOP_HEIGHT, 0);
+		Window other(10, COLS - MAX_WIDTH, WIN_TOP_HEIGHT + 1, 0);
 		// base on select max(length(name) from device?
 		Window right(LINES, MAX_WIDTH, 0, COLS - MAX_WIDTH);
 
@@ -35,6 +36,8 @@ int main() {
 		right.setTitle("Set: default");
 		right.addText(1, 1, WIDEST);
 		right.addText(2, 2, "PZ100");
+
+		printShortcuts();
 
 		top.paint();
 		other.paint();
@@ -99,4 +102,32 @@ int main() {
 	endwin(); // important: restores terminal
 
 	return EXIT_SUCCESS;
+}
+
+// print shortcuts to stdscr directly for now
+void printShortcuts() {
+	const int LINE = 5;
+	const int FN_LEN = 3;
+	const int HOTKEY_LEN = 10;
+	int key = 0;
+	mvaddstr(LINE, 2 + FN_LEN + HOTKEY_LEN * key++, "Quit");
+	mvaddstr(LINE, 1 + FN_LEN + HOTKEY_LEN * key++, "Help");
+	mvaddstr(LINE, 1 + FN_LEN + HOTKEY_LEN * key++, "Search");
+	mvaddstr(LINE, 1 + FN_LEN + HOTKEY_LEN * key++, "Up/Dwn");
+	mvaddstr(LINE, 1 + FN_LEN + HOTKEY_LEN * key++, "Edit");
+	mvaddstr(LINE, 1 + FN_LEN + HOTKEY_LEN * key++, "Save");
+	mvaddstr(LINE, 4 + FN_LEN + HOTKEY_LEN * key++, "Set #");
+	mvaddstr(LINE, 2 + FN_LEN + HOTKEY_LEN * key++, "???"); // silly movie reference
+
+	key = 0;
+	attron(A_STANDOUT);
+	mvaddstr(LINE, 1 + HOTKEY_LEN * key++, "ESC");
+	mvaddstr(LINE, 1 + HOTKEY_LEN * key++, "F1");
+	mvaddstr(LINE, 1 + HOTKEY_LEN * key++, "F2");
+	mvaddch(LINE, 1 + HOTKEY_LEN * key, ACS_UARROW);
+	mvaddch(LINE, 2 + HOTKEY_LEN * key++, ACS_DARROW);
+	mvaddstr(LINE, 1 + HOTKEY_LEN * key++, "^e");
+	mvaddstr(LINE, 1 + HOTKEY_LEN * key++, "^s");
+	mvaddstr(LINE, 1 + HOTKEY_LEN * key++, "F5-F9");
+	mvaddch(LINE, 3 + HOTKEY_LEN * key++, ACS_PI);
 }
