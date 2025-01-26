@@ -12,8 +12,11 @@ set(CCCURSES_HEADERS
     cccurses/cccurses.hpp
     cccurses/error.hpp
     cccurses/form.hpp
-    cccurses/support.hpp
     cccurses/window.hpp
+    cccurses/layout/layout.hpp
+    cccurses/layout/absolute-layout.hpp
+    cccurses/layout/flow-layout.hpp
+    cccurses/layout/column-layout.hpp
 )
 
 add_executable(pinout
