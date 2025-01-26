@@ -22,7 +22,6 @@ void initCurses() {
 }
 
 // class Window standard; // TODO: window from stdscr ptr
-
 // TODO: add SIGWINCH handler?
 
 } // namespace cccurses
