@@ -21,11 +21,7 @@ void initCurses() {
 	refresh();
 }
 
-<<<<<<< HEAD
 // class Window standard; // TODO: window from stdscr ptr
-
-=======
->>>>>>> 71c848a (CCurses: some empty layout classes to have a general idea)
 // TODO: add SIGWINCH handler?
 
 } // namespace ccurses
