@@ -12,7 +12,6 @@ set(CCCURSES_HEADERS
     cccurses/cccurses.hpp
     cccurses/error.hpp
     cccurses/form.hpp
-    cccurses/support.hpp
     cccurses/window.hpp
 )
 
