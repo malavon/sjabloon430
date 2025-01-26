@@ -1,7 +1,7 @@
 #include <iostream>
 
 #include "sqlite3.h"
-#include "cccurses/ccurses.hpp"
+#include "cccurses/cccurses.hpp"
 #include "cccurses/form.hpp"
 #include "cccurses/window.hpp"
 

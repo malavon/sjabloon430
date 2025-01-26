@@ -16,6 +16,10 @@ add_executable(pinout
     cccurses/error.hpp
     cccurses/form.hpp
     cccurses/window.hpp
+    cccurses/layout/layout.hpp
+    cccurses/layout/absolute-layout.hpp
+    cccurses/layout/flow-layout.hpp
+    cccurses/layout/column-layout.hpp
 )
 
 target_include_directories  (pinout PRIVATE ${SQLite3_INCLUDE_DIRS} ${CURSES_INCLUDE_DIRS})
