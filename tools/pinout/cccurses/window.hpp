@@ -1,6 +1,7 @@
 #ifndef CCURSES_WINDOW_HPP
 #define CCURSES_WINDOW_HPP
 
+#include <cassert>
 #include <string>
 
 #include "ncurses.h"
@@ -19,6 +20,7 @@ class Window {
   public:
 	Window(unsigned int height, unsigned int width, unsigned int row, unsigned int col) {
 		ptr = newwin(height, width, row, col);
+		assert(nullptr != ptr);
 	}
 
 	~Window() {
@@ -60,8 +62,7 @@ class Window {
 		wrefresh(ptr);
 	}
 
-	// TEMPORARY?
-	WINDOW *raw() const {
+	operator WINDOW *() const {
 		return ptr;
 	}
 
