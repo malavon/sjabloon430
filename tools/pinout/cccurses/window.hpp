@@ -13,18 +13,37 @@ using namespace std;
  */
 class Window {
   private:
-	// default constructor: for flex window?
 	Window() { }
 
   public:
-	Window(unsigned int leftX, unsigned int topY, unsigned int width, unsigned int height) {
-		ptr = newwin(height, width, topY, leftX);
+	Window(unsigned int line, unsigned int col, unsigned int width, unsigned int height) {
+		ptr = newwin(height, width, line, col);
 	}
+
+	Window(WINDOW *win) : ptr(win) { }
+
+	Window(const Window &other) : ptr(other.ptr), title(other.title) { }
 
 	~Window() {
 		if ( ptr != nullptr ) {
-			delwin(ptr);
+			delwin(ptr); // might be dangerous with stdscr?
 		}
+	}
+
+	void addCharacter(const char character) {
+		waddch(ptr, character);
+	}
+
+	void addCharacter(const char character, int attrs) {
+		waddch(ptr, character | attrs);
+	}
+
+	void addCharacter(const int line, const int col, const char character) {
+		mvwaddch(ptr, line, col, character);
+	}
+
+	void addCharacter(const int line, const int col, const char character, int attrs) {
+		mvwaddch(ptr, line, col, character | attrs);
 	}
 
 	void addText(const string &text) {
@@ -37,15 +56,27 @@ class Window {
 		wattroff(ptr, attrs);
 	}
 
-	void addText(const int y, const int x, const string &text) {
-		// mvwaddstr(ptr, y, x, text.c_str());
-		mvwaddnstr(ptr, y, x, text.c_str(), text.length());
+	void addText(const int line, const int col, const string &text) {
+		// mvwaddstr(ptr, line, col, text.c_str());
+		mvwaddnstr(ptr, line, col, text.c_str(), text.length());
 	}
 
-	void addText(const int y, const int x, const string &text, int attrs) {
+	void addText(const int line, const int col, const string &text, int attrs) {
 		wattron(ptr, attrs);
-		addText(y, x, text);
+		addText(line, col, text);
 		wattroff(ptr, attrs);
+	}
+
+	void enableAttributes(const int attrs) {
+		wattron(ptr, attrs);
+	}
+
+	void disableAttributes(const int attrs) {
+		wattroff(ptr, attrs);
+	}
+
+	void moveCursor(const int line, const int col) {
+		wmove(ptr, line, col);
 	}
 
 	void setTitle(const string &title) {
