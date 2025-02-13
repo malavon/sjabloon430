@@ -6,6 +6,9 @@
 
 namespace cccurses {
 
+// WILL NOT WORK AS STATIC VARIABLE
+// Window standardScreen(nullptr);
+
 /*
  * Temporary init function, without any choice basically. It's all I need right now.
  * */
@@ -19,6 +22,13 @@ void initCurses() {
 
 	// why? no window will be painted unless this is exectured before calling wrefresh() in Window::paint();
 	refresh();
+
+	// WILL NOT WORK
+	// standardScreen = Window(stdscr);
+}
+
+Window &createStandardScreen() {
+	return *new Window(stdscr);
 }
 
 // class Window standard; // TODO: window from stdscr ptr
