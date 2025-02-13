@@ -1,6 +1,7 @@
 #ifndef CCURSES_HPP
 #define CCURSES_HPP
 
+#include "colors.hpp"
 #include "ncurses.h"
 #include "window.hpp"
 
@@ -14,7 +15,6 @@ namespace cccurses {
  * */
 void initCurses() {
 	initscr();
-	start_color();
 	cbreak(); // do buffer input in full-line chunks ended with Enter
 	noecho(); // do not echo characters to terminal immediately
 	intrflush(stdscr, FALSE);
@@ -25,6 +25,7 @@ void initCurses() {
 
 	// WILL NOT WORK
 	// standardScreen = Window(stdscr);
+	internal::initColors();
 }
 
 Window &standardScreen() {
