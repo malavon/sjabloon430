@@ -19,7 +19,8 @@ int main() {
 	initCurses();
 
 	static const string WIDEST("MSP430F6459-HIREL");
-	static const int MAX_WIDTH = WIDEST.length() + 2;
+	static const int MODEL_INDENT = 1;
+	static const int MAX_WIDTH = WIDEST.length() + MODEL_INDENT + 2 /*border*/;
 
 	{
 		Window top(5, COLS - MAX_WIDTH, 0, 0);
@@ -33,8 +34,10 @@ int main() {
 		// whline(top.raw(), '-', 30);
 
 		right.setTitle("Set: default");
-		right.addText(1, 1, WIDEST);
-		right.addText(2, 2, "PZ100");
+		right.addText(1, 1, "Models:");
+		right.addText(2, 2, WIDEST);
+		right.addText(3, 1, "Packages:");
+		right.addText(4, 2, "PZ100");
 
 		printShortcuts();
 
@@ -103,30 +106,27 @@ int main() {
 	return EXIT_SUCCESS;
 }
 
-// print shortcuts to stdscr directly for now
+// this function assumes the screen is on the right position to make it simpler
+void printShortcut(Window &window, const string &key, const string &text) {
+	window.addCharacter(' ');
+	window.addText(key, A_STANDOUT);
+	window.addCharacter(' ');
+	window.addText(text);
+}
+
+// print shortcuts to wrapper now
 void printShortcuts() {
 	const int LINE = 5;
-	const int FN_LEN = 3;
-	const int HOTKEY_LEN = 10;
-	int key = 0;
-	mvaddstr(LINE, 2 + FN_LEN + HOTKEY_LEN * key++, "Quit");
-	mvaddstr(LINE, 1 + FN_LEN + HOTKEY_LEN * key++, "Help");
-	mvaddstr(LINE, 1 + FN_LEN + HOTKEY_LEN * key++, "Search");
-	mvaddstr(LINE, 1 + FN_LEN + HOTKEY_LEN * key++, "Up/Dwn");
-	mvaddstr(LINE, 1 + FN_LEN + HOTKEY_LEN * key++, "Edit");
-	mvaddstr(LINE, 1 + FN_LEN + HOTKEY_LEN * key++, "Save");
-	mvaddstr(LINE, 4 + FN_LEN + HOTKEY_LEN * key++, "Set #");
-	mvaddstr(LINE, 2 + FN_LEN + HOTKEY_LEN * key++, "???"); // silly movie reference
 
-	key = 0;
-	attron(A_STANDOUT);
-	mvaddstr(LINE, 1 + HOTKEY_LEN * key++, "ESC");
-	mvaddstr(LINE, 1 + HOTKEY_LEN * key++, "F1");
-	mvaddstr(LINE, 1 + HOTKEY_LEN * key++, "F2");
-	mvaddch(LINE, 1 + HOTKEY_LEN * key, ACS_UARROW);
-	mvaddch(LINE, 2 + HOTKEY_LEN * key++, ACS_DARROW);
-	mvaddstr(LINE, 1 + HOTKEY_LEN * key++, "^e");
-	mvaddstr(LINE, 1 + HOTKEY_LEN * key++, "^s");
-	mvaddstr(LINE, 1 + HOTKEY_LEN * key++, "F5-F9");
-	mvaddch(LINE, 3 + HOTKEY_LEN * key++, ACS_PI);
+	// TODO C++ knowledge: will only work as reference, not copy; WHY?????
+	Window &hotkeyWin = standardScreen();
+
+	hotkeyWin.moveCursor(LINE, 0);
+	printShortcut(hotkeyWin, "ESC", "QUIT");
+	printShortcut(hotkeyWin, "F1", "Help");
+	printShortcut(hotkeyWin, "F2", "Search");
+	printShortcut(hotkeyWin, "PgUp/PgDn", "Up/Down");
+	printShortcut(hotkeyWin, "Ctrl+e", "Edit");
+	printShortcut(hotkeyWin, "Ctrl+s", "Save");
+	printShortcut(hotkeyWin, "F5-F9", "Set #");
 }
