@@ -32,53 +32,94 @@ class Window {
 		}
 	}
 
-	void addCharacter(const char character) {
-		waddch(ptr, character);
-	}
-
-	void addCharacter(const char character, int attrs) {
-		waddch(ptr, character | attrs);
-	}
-
-	void addCharacter(const int line, const int col, const char character) {
-		mvwaddch(ptr, line, col, character);
-	}
-
-	void addCharacter(const int line, const int col, const char character, int attrs) {
-		mvwaddch(ptr, line, col, character | attrs);
-	}
-
-	void addText(const string &text) {
-		waddnstr(ptr, text.c_str(), text.length());
-	}
-
-	void addText(const string &text, int attrs) {
-		wattron(ptr, attrs);
-		addText(text);
-		wattroff(ptr, attrs);
-	}
+	// TEMPORARY functions to keep compatibility in the pinout project
 
 	void addText(const int line, const int col, const string &text) {
-		// mvwaddstr(ptr, line, col, text.c_str());
-		mvwaddnstr(ptr, line, col, text.c_str(), text.length());
+		add(line, col, text);
 	}
 
-	void addText(const int line, const int col, const string &text, int attrs) {
-		wattron(ptr, attrs);
-		addText(line, col, text);
-		wattroff(ptr, attrs);
+	void addText(const string &text, const int attrs = 0) {
+		add(text, attrs);
+	}
+
+	void addCharacter(char kar) {
+		add(kar);
+	}
+
+	// end TEMPORARY functions
+
+	void add(const char character) {
+		int rc = waddch(ptr, character);
+		assert(OK == rc);
+	}
+
+	void add(const chtype raw) {
+		int rc = waddch(ptr, raw);
+		assert(OK == rc);
+	}
+
+	void add(const string &text) {
+		int rc = waddnstr(ptr, text.c_str(), text.length());
+		assert(OK == rc);
+	}
+
+	void add(const char character, int attrs) {
+		int rc = waddch(ptr, character | attrs);
+		assert(OK == rc);
+	}
+
+	void add(const string &text, int attrs) {
+		int rc = wattron(ptr, attrs);
+		assert(OK == rc);
+		rc = waddnstr(ptr, text.c_str(), text.length());
+		assert(OK == rc);
+		rc = wattroff(ptr, attrs);
+		assert(OK == rc);
+	}
+
+	void add(const int line, const int col, const char character) {
+		int rc = mvwaddch(ptr, line, col, character);
+		assert(OK == rc);
+	}
+
+	void add(const int line, const int col, const chtype raw) {
+		int rc = mvwaddch(ptr, line, col, raw);
+		assert(OK == rc);
+	}
+
+	void add(const int line, const int col, const string &text) {
+		// mvwaddstr(ptr, line, col, text.c_str();
+		int rc = mvwaddnstr(ptr, line, col, text.c_str(), text.length());
+		assert(OK == rc);
+	}
+
+	void add(const int line, const int col, const char character, int attrs) {
+		int rc = mvwaddch(ptr, line, col, character | attrs);
+		assert(OK == rc);
+	}
+
+	void add(const int line, const int col, const string &text, int attrs) {
+		int rc = wattron(ptr, attrs);
+		assert(OK == rc);
+		rc = mvwaddnstr(ptr, line, col, text.c_str(), text.length());
+		assert(OK == rc);
+		rc = wattroff(ptr, attrs);
+		assert(OK == rc);
 	}
 
 	void enableAttributes(const int attrs) {
-		wattron(ptr, attrs);
+		int rc = wattron(ptr, attrs);
+		assert(OK == rc);
 	}
 
 	void disableAttributes(const int attrs) {
-		wattroff(ptr, attrs);
+		int rc = wattroff(ptr, attrs);
+		assert(OK == rc);
 	}
 
 	void moveCursor(const int line, const int col) {
-		wmove(ptr, line, col);
+		int rc = wmove(ptr, line, col);
+		assert(OK == rc);
 	}
 
 	void setTitle(const string &title) {

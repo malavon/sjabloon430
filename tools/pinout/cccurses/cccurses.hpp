@@ -7,9 +7,6 @@
 
 namespace cccurses {
 
-// WILL NOT WORK AS STATIC VARIABLE
-// Window standardScreen(nullptr);
-
 /*
  * Temporary init function, without any choice basically. It's all I need right now.
  * */
@@ -29,7 +26,8 @@ void initCurses() {
 }
 
 Window &standardScreen() {
-	return *new Window(stdscr);
+	static Window standardScreen(stdscr);
+	return standardScreen;
 }
 
 // class Window standard; // TODO: window from stdscr ptr
