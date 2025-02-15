@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.14)
 
 project(pinout LANGUAGES CXX)
 
-set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 find_package (SQLite3)
@@ -25,6 +25,8 @@ add_executable(pinout
 
 target_include_directories  (pinout PRIVATE ${SQLite3_INCLUDE_DIRS} ${CURSES_INCLUDE_DIRS})
 target_link_libraries	    (pinout PRIVATE ${SQLite3_LIBRARIES} ${CURSES_LIBRARIES})
+
+target_compile_definitions  (pinout PUBLIC DB_DIRECTORY="${CMAKE_SOURCE_DIR}/../db")
 
 include(GNUInstallDirs)
 install(TARGETS pinout
