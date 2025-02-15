@@ -30,6 +30,8 @@ add_executable(pinout
 target_include_directories  (pinout PRIVATE ${SQLite3_INCLUDE_DIRS} ${CURSES_INCLUDE_DIRS})
 target_link_libraries	    (pinout PRIVATE ${SQLite3_LIBRARIES} ${CURSES_LIBRARIES})
 
+target_compile_definitions  (pinout PUBLIC DB_DIRECTORY="${CMAKE_SOURCE_DIR}/../db/sql")
+
 include(GNUInstallDirs)
 install(TARGETS pinout
     LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
