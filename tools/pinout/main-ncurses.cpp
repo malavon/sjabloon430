@@ -21,30 +21,53 @@ int main() {
 
 	static const string WIDEST("MSP430F6459-HIREL");
 	static const int MODEL_INDENT = 1;
+	// base on select max(length(name)) + MODEL_INDENT + 2 from device?
 	static const int MAX_WIDTH = WIDEST.length() + MODEL_INDENT + 2 /*border*/;
 
 	{
 		Window top(WIN_TOP_HEIGHT, COLS - MAX_WIDTH, 0, 0);
-		Window other(10, COLS - MAX_WIDTH, WIN_TOP_HEIGHT + 1, 0);
-		// base on select max(length(name) from device?
-		Window right(LINES, MAX_WIDTH, 0, COLS - MAX_WIDTH);
+
+		Window defaultSet(10, MAX_WIDTH, 0, COLS - MAX_WIDTH);
+		Window newSet(3, MAX_WIDTH, 10, COLS - MAX_WIDTH);
+		// TODO: no border, separate with hline or something?
+		Window firstPin(6, COLS - MAX_WIDTH, 6, 0);
+		Window secondPin(5, COLS - MAX_WIDTH, 12, 0);
 
 		top.setTitle("Search");
-		top.addText(1, 3, "HELLO\n");
-		top.addText(2, 3, "HELLO OTHER\n");
+		top.add(1, 3, "Datasheet: SLAS942\t(c) 11/2015");
+		top.add(2, 3, "Revision: E\t\t(c) 12/2019");
 		// whline(top.raw(), '-', 30);
 
-		right.setTitle("Set: default");
-		right.addText(1, 1, "Models:");
-		right.addText(2, 2, WIDEST);
-		right.addText(3, 1, "Packages:");
-		right.addText(4, 2, "PZ100");
+		int lr = 1;
+		defaultSet.setTitle("Default");
+		defaultSet.add(lr++, 1, "Models: MOCK UP!");
+		defaultSet.add(lr++, 2, "MSP430FR2532");
+		defaultSet.add(lr++, 2, "MSP430FR2533");
+		defaultSet.add(lr++, 2, "MSP430FR2632");
+		defaultSet.add(lr++, 2, "MSP430FR2633");
+		defaultSet.add(lr++, 1, "Packages:");
+		defaultSet.add(lr++, 2, "RHB32, DA32,\n  RGE24, YQW24");
+
+		newSet.setTitle("Set F5");
+		newSet.add(1, 1, "F5: Create new set");
+
+		// note: 3 characters for pin number is enough (even for BGA)
+		firstPin.add(1, 1, " RHB32   DA32  RGE24  YQW24\tSignal\t\tDescription");
+		firstPin.add(2, 1, "     1      5      1     E1\t~RST\t\tActive-low reset input");
+		firstPin.add(3, 1, "                           \tNMI\t\tNonmaskable interrupt input");
+		firstPin.add(4, 1, "                           \tSBWTDIO\t\tSpy-Bi-Wire data input/output");
+
+		secondPin.add(1, 1, " RHB32   DA32  RGE24  YQW24\tSignal\t\tDescription");
+		secondPin.add(2, 1, "     2      6      2     D2\tTEST\t\tTest Mode pin");
+		secondPin.add(3, 1, "                           \tSBWTCK\t\tSpy-Bi-Wire input clock ");
 
 		printShortcuts();
 
 		top.paint();
-		other.paint();
-		right.paint();
+		defaultSet.paint();
+		newSet.paint();
+		firstPin.paint();
+		secondPin.paint();
 
 		Form form(top);
 
@@ -59,8 +82,8 @@ int main() {
 		// int ch;
 
 		/* Initialize few color pairs */
-		init_pair(1, COLOR_WHITE, COLOR_BLUE);
-		init_pair(2, COLOR_WHITE, COLOR_BLUE);
+		// init_pair(1, COLOR_WHITE, COLOR_BLUE);
+		// init_pair(2, COLOR_WHITE, COLOR_BLUE);
 
 		/* Initialize the fields */
 		// field[0] = new_field(1, 20, 1, 20, 0, 0);
@@ -107,12 +130,12 @@ int main() {
 	return EXIT_SUCCESS;
 }
 
-// this function assumes the screen is on the right position to make it simpler
+// this function assumes the screen is on the defaultSet position to make it simpler
 void printShortcut(Window &window, const string &key, const string &text) {
-	window.addCharacter(' ');
-	window.addText(key, A_STANDOUT);
-	window.addCharacter(' ');
-	window.addText(text);
+	window.add(' ');
+	window.add(key, A_STANDOUT);
+	window.add(' ');
+	window.add(text);
 }
 
 // print shortcuts to wrapper now
@@ -127,7 +150,7 @@ void printShortcuts() {
 	printShortcut(hotkeyWin, "F1", "Help");
 	printShortcut(hotkeyWin, "F2", "Search");
 	printShortcut(hotkeyWin, "PgUp/PgDn", "Up/Down");
-	printShortcut(hotkeyWin, "Ctrl+e", "Edit");
+	printShortcut(hotkeyWin, "Ctrl+e", "Edit Mode");
 	printShortcut(hotkeyWin, "Ctrl+s", "Save");
 	printShortcut(hotkeyWin, "F5-F9", "Set #");
 }
