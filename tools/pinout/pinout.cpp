@@ -8,6 +8,12 @@
 using namespace cccurses;
 using namespace std;
 
+// maybe this should be a function shared with other programs
+void importDatabase() {
+	// import all structure first?
+	// import data in order
+}
+
 void autofillDatasheet() { }
 
 void printShortcuts();
