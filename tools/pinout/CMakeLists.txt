@@ -21,7 +21,7 @@ set(CCCURSES_HEADERS
 )
 
 add_executable(pinout
-    main-ncurses.cpp
+    pinout.cpp
 
     # these are here only for QTCreator
     ${CCCURSES_HEADERS}
