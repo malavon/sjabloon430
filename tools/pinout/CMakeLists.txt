@@ -9,7 +9,7 @@ find_package (SQLite3)
 find_package (Curses)
 
 add_executable(pinout
-    main-ncurses.cpp
+    pinout.cpp
 
     # these are here only for QTCreator
     cccurses/cccurses.hpp
