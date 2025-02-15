@@ -16,7 +16,7 @@ class Window {
 	Window() { }
 
   public:
-	Window(unsigned int line, unsigned int col, unsigned int width, unsigned int height) {
+	Window(unsigned int line, unsigned int col, unsigned int height, unsigned int width) {
 		ptr = newwin(height, width, line, col);
 	}
 
@@ -30,40 +30,48 @@ class Window {
 		}
 	}
 
-	void addCharacter(const char character) {
+	void add(const char character) {
 		waddch(ptr, character);
 	}
 
-	void addCharacter(const char character, int attrs) {
-		waddch(ptr, character | attrs);
+	void add(const int raw) {
+		waddch(ptr, raw);
 	}
 
-	void addCharacter(const int line, const int col, const char character) {
-		mvwaddch(ptr, line, col, character);
-	}
-
-	void addCharacter(const int line, const int col, const char character, int attrs) {
-		mvwaddch(ptr, line, col, character | attrs);
-	}
-
-	void addText(const string &text) {
+	void add(const string &text) {
 		waddnstr(ptr, text.c_str(), text.length());
 	}
 
-	void addText(const string &text, int attrs) {
+	void add(const char character, int attrs) {
+		waddch(ptr, character | attrs);
+	}
+
+	void add(const string &text, int attrs) {
 		wattron(ptr, attrs);
-		addText(text);
+		add(text);
 		wattroff(ptr, attrs);
 	}
 
-	void addText(const int line, const int col, const string &text) {
+	void add(const int line, const int col, const char character) {
+		mvwaddch(ptr, line, col, character);
+	}
+
+	void add(const int line, const int col, const int raw) {
+		mvwaddch(ptr, line, col, raw);
+	}
+
+	void add(const int line, const int col, const string &text) {
 		// mvwaddstr(ptr, line, col, text.c_str());
 		mvwaddnstr(ptr, line, col, text.c_str(), text.length());
 	}
 
-	void addText(const int line, const int col, const string &text, int attrs) {
+	void add(const int line, const int col, const char character, int attrs) {
+		mvwaddch(ptr, line, col, character | attrs);
+	}
+
+	void add(const int line, const int col, const string &text, int attrs) {
 		wattron(ptr, attrs);
-		addText(line, col, text);
+		add(line, col, text);
 		wattroff(ptr, attrs);
 	}
 

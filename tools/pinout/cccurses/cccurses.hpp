@@ -7,9 +7,6 @@
 
 namespace cccurses {
 
-// WILL NOT WORK AS STATIC VARIABLE
-// Window standardScreen(nullptr);
-
 /*
  * Temporary init function, without any choice basically. It's all I need right now.
  * */
@@ -28,8 +25,9 @@ void initCurses() {
 	internal::initColors();
 }
 
-Window &createStandardScreen() {
-	return *new Window(stdscr);
+Window &standardScreen() {
+	static Window standardScreen(stdscr);
+	return standardScreen;
 }
 
 // class Window standard; // TODO: window from stdscr ptr
