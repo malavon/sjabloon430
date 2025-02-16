@@ -16,7 +16,8 @@ struct DatabaseTotals {
 /* SQLite 3 init & database import/export */
 sqlite3 *createDatabase();
 
-DatabaseTotals retrieveDBCounts(sqlite3 *db);
+/* Query DB */
+DatabaseTotals countTotals(sqlite3 *db);
 
 }}}} // namespace sjabloon430::tools::pinout::db
 #endif // SJABLOON430_TOOLS_PINOUT_DATABASE_HPP
