@@ -100,4 +100,29 @@ DatabaseTotals countTotals(sqlite3 *db) {
 
 	return totals;
 }
+
+string findDatasheetByModel(sqlite3 *db, const string model) {
+	static const char *QUERY = "SELECT datasheet FROM device WHERE model='?'";
+
+	static sqlite3_stmt *stmt;
+	if ( stmt == nullptr ) {
+		// a single result row is best, 1 column per count
+		// this is the best I can do with my knowledge of sqlite
+		int rc = sqlite3_prepare_v2(db, QUERY, -1, &stmt, NULL);
+		if ( rc != SQLITE_OK ) {
+			cerr << "SQLite3 error " << sqlite3_errmsg(db) << endl;
+		}
+		assert(rc == SQLITE_OK);
+	}
+
+	sqlite3_reset(stmt);
+	sqlite3_bind_text(stmt, 1, model.c_str(), -1, SQLITE_STATIC);
+
+	// assume only a single row
+	if ( sqlite3_step(stmt) == SQLITE_ROW ) {
+		return reinterpret_cast<const char *>(sqlite3_column_text(stmt, 0));
+	}
+	return "ERROR";
+}
+
 }}} // namespace sjabloon430::tools::db

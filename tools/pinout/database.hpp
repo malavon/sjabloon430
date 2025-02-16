@@ -5,6 +5,7 @@
 
 #include <filesystem>
 #include <functional>
+#include <vector>
 
 namespace sjabloon430 { namespace tools { namespace db {
 
@@ -22,6 +23,8 @@ void importDatabase(sqlite3 *db, std::function<void(const std::string &file, con
 
 /* Query DB */
 DatabaseTotals countTotals(sqlite3 *db);
+
+std::string findDatasheetByModel(sqlite3 *db, const std::string model);
 
 }}} // namespace sjabloon430::tools::db
 #endif // DATABASE_HPP
