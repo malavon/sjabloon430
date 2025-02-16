@@ -12,8 +12,10 @@ using namespace cccurses;
 using namespace sjabloon430::tools::pinout;
 namespace dbf = sjabloon430::tools::db;
 
+void searchDatasheet(sqlite3 *db);
 void printShortcuts();
 
+static const int WIDEST_MODEL_LENGTH = strlen("MSP430F6459-HIREL"); /* hardcoded longest model */
 static const int WIN_TOP_HEIGHT = 5;
 
 int main() {
@@ -29,10 +31,9 @@ int main() {
 	/* Initialize curses */
 	initCurses();
 
-	static const string WIDEST("MSP430F6459-HIREL");
 	static const int MODEL_INDENT = 1;
 	// base on select max(length(name)) + MODEL_INDENT + 2 from device?
-	static const int MAX_WIDTH = WIDEST.length() + MODEL_INDENT + 2 /*border*/;
+	static const int MAX_WIDTH = WIDEST_MODEL_LENGTH + MODEL_INDENT + 2 /*border*/;
 
 	{
 		Window top(WIN_TOP_HEIGHT, COLS - MAX_WIDTH, 0, 0);
@@ -104,6 +105,9 @@ int main() {
 		newSet.paint();
 		firstPin.paint();
 		secondPin.paint();
+
+		// initial state: open search window
+		searchDatasheet(db);
 
 		Form form(top);
 
@@ -189,4 +193,32 @@ void printShortcuts() {
 	printShortcut(hotkeyWin, "Ctrl+e", "Edit Mode");
 	printShortcut(hotkeyWin, "Ctrl+s", "Save");
 	printShortcut(hotkeyWin, "F5-F9", "Set #");
+}
+
+// open a window in middle of screen, allow searching database
+void searchDatasheet(sqlite3 *db) {
+	static const string PROMPT("Search by datasheet or device");
+	static const string DATASHEET_HDR("Datasheet ");
+	static const string MODEL_HDR("Model ");
+	const int MAX_WIDTH = max(PROMPT.length() + 2 + 2 /* last +2 = border */,
+				  DATASHEET_HDR.length() + (WIDEST_MODEL_LENGTH + 1) * 2 + 2 /* last +2 = border */);
+
+	const int MAX_HEIGHT = 8 + 2; // last +2 = border
+	// TODO: doesn't care about resizing or too small a screen
+	Window center(MAX_HEIGHT, MAX_WIDTH, (LINES - MAX_HEIGHT) / 2, (COLS - MAX_WIDTH) / 2);
+
+	// still takes into account (internal) border until ccurses takes this into account
+	int line = 1;
+	center.add(line, 2, PROMPT);
+	center.add(++ ++line, 2, DATASHEET_HDR);
+	center.add(line, 12, "SLAS555", WA_STANDOUT);
+	center.add(++ ++line, 2, MODEL_HDR);
+	center.add(line, 12, "MSP430F6459-HIREL", WA_STANDOUT);
+	center.add(' ');
+	center.add("MSP430F6459-HIREL");
+
+	static const string BUTTON_TEXT = "[OPEN]";
+	center.add(MAX_HEIGHT - 3, (MAX_WIDTH - BUTTON_TEXT.length()) / 2, BUTTON_TEXT, COLOR_PAIR(3));
+
+	center.paint();
 }
