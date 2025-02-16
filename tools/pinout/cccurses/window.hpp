@@ -87,6 +87,16 @@ class Window {
 		wmove(ptr, line, col);
 	}
 
+	// these don't work, need to pass the variadic argument somehow
+	// void print(const char *fmt, ...) {
+	// 	wprintw(ptr, fmt);
+	// }
+
+	// void print(const int line, const int col, const char *fmt, ...) {
+	// 	wmove(ptr, line, col);
+	// 	wprintw(ptr, fmt);
+	// }
+
 	void setTitle(const string &title) {
 		this->title = title;
 	}
