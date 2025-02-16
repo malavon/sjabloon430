@@ -59,7 +59,6 @@ DatabaseTotals countTotals(sqlite3 *db) {
 							UNION SELECT 0, COUNT(*), 0, 0 FROM device \
 							UNION SELECT 0, 0, COUNT(*), 0 FROM orderable \
 							UNION SELECT 0, 0, 0, COUNT(*) FROM package )";
-
 	sqlite3_stmt *stmt;
 	DatabaseTotals totals;
 	totals.datasheets = -1;
@@ -79,6 +78,46 @@ DatabaseTotals countTotals(sqlite3 *db) {
 	}
 
 	return totals;
+}
+
+string findDatasheetByModel(sqlite3 *db, const string model) {
+	static const string QUERY("SELECT datasheet FROM device WHERE model='");
+	string query = QUERY + model + "'";
+	sqlite3_stmt *stmt;
+	// assume only a single row
+	if ( sqlite3_prepare_v2(db, query.c_str(), -1, &stmt, NULL) == SQLITE_OK && sqlite3_step(stmt) == SQLITE_ROW ) {
+		return reinterpret_cast<const char *>(sqlite3_column_text(stmt, 0));
+	}
+	return "ERROR";
+}
+
+vector<string> listDatasheets(sqlite3 *db, const string firstChars) {
+	// maybe allow intermediate chars? % twice?
+	static const string QUERY("SELECT id FROM datasheet WHERE id ILIKE '");
+	string query = QUERY + firstChars + "%'";
+
+	vector<string> result;
+	sqlite3_stmt *stmt;
+	if ( sqlite3_prepare_v2(db, query.c_str(), -1, &stmt, NULL) == SQLITE_OK ) {
+		while ( sqlite3_step(stmt) == SQLITE_ROW ) {
+			result.push_back(string(reinterpret_cast<const char *>(sqlite3_column_text(stmt, 0))));
+		}
+	}
+	return result;
+}
+
+vector<string> listModels(sqlite3 *db, const string firstChars) {
+	static const string QUERY("SELECT model FROM device WHERE model ILIKE '");
+	string query = QUERY + firstChars + "%'";
+
+	vector<string> result;
+	sqlite3_stmt *stmt;
+	if ( sqlite3_prepare_v2(db, query.c_str(), -1, &stmt, NULL) == SQLITE_OK ) {
+		while ( sqlite3_step(stmt) == SQLITE_ROW ) {
+			result.push_back(string(reinterpret_cast<const char *>(sqlite3_column_text(stmt, 0))));
+		}
+	}
+	return result;
 }
 
 }}} // namespace sjabloon430::tools::db
