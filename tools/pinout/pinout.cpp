@@ -49,11 +49,6 @@ int main() {
 		Window firstPin(6, 0, 6, COLS - MAX_WIDTH);
 		Window secondPin(12, 0, 5, COLS - MAX_WIDTH);
 
-		top.setTitle("Search");
-		top.add(1, 3, "Datasheet: SLAS942\t(c) 11/2015");
-		top.add(2, 3, "Revision: E\t\t(c) 12/2019");
-		// whline(top.raw(), '-', 30);
-
 		int lr = 1;
 		defaultSet.setTitle("Default");
 		defaultSet.add(lr++, 1, "Models: MOCK UP!");
@@ -92,6 +87,23 @@ int main() {
 				statusWin.add(error);
 			}
 		});
+		DatabaseTotals totals = retrieveDBCounts(db);
+
+		top.setTitle("Search");
+		top.add(1, 3, "Datasheet: SLAS942\t(c) 11/2015");
+		top.add(2, 3, "Revision: E\t\t(c) 12/2019");
+		// currently doesn't work
+		// top.print(4, 1, "DB contains: %i datasheets, %i devices, %d orderables, %i packages", totals.datasheets, totals.devices, totals.orderables,
+		// totals.packages);
+		top.add(3, 3, "DB contains: ");
+		top.add(std::to_string(totals.datasheets));
+		top.add(" datasheets, ");
+		top.add(std::to_string(totals.devices));
+		top.add(" devices, ");
+		top.add(std::to_string(totals.orderables));
+		top.add(" orderables, ");
+		top.add(std::to_string(totals.packages));
+		top.add(" packages");
 
 		top.paint();
 		defaultSet.paint();
