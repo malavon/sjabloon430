@@ -9,6 +9,7 @@ find_package (SQLite3)
 find_package (Curses)
 
 add_executable(pinout
+    database.cpp
     pinout.cpp
 
     # these are here only for QTCreator

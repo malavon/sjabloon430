@@ -4,22 +4,16 @@
 #include <iostream>
 #include <set>
 
-#include "sqlite3.h"
+#include "database.hpp"
 #include "cccurses/cccurses.hpp"
 #include "cccurses/form.hpp"
 #include "cccurses/window.hpp"
 
-#ifndef DB_DIRECTORY
-#  error "add -DDB_DIRECTORY=\"...\" to the compiler command line"
-#endif
-
 using namespace cccurses;
-using namespace std;
 using namespace std::filesystem;
 
 void autofillDatasheet();
 void printShortcuts();
-void importDatabase(sqlite3 *db, const path &dbDir);
 
 int main() {
 	setlocale(LC_ALL, "");
@@ -84,7 +78,20 @@ int main() {
 		secondPin.add(3, 1, "                           \tSBWTCK\t\tSpy-Bi-Wire input clock ");
 
 		printShortcuts();
-		importDatabase(db, dbDir);
+
+		int l = 20;
+		Window &statusWin = standardScreen();
+		statusWin.add(l++, 0, "Imported SQLite DB from files:");
+		importDatabase(db, dbDir, [&](const string &filename, const char *error) {
+			statusWin.add(l++, 2, '"');
+			statusWin.add(filename);
+			statusWin.add('"');
+
+			if ( error != nullptr ) {
+				statusWin.add(' ');
+				statusWin.add(error);
+			}
+		});
 
 		top.paint();
 		defaultSet.paint();
@@ -151,44 +158,6 @@ int main() {
 	endwin(); // important: restores terminal
 
 	return EXIT_SUCCESS;
-}
-
-// maybe this should be a function shared with other programs
-void importDatabase(sqlite3 *db, const path &dbDir) {
-	// iterate all files, sort alphabetically/numerically and check if it's actually a (SQL) file
-	// TODO: recursive, should also include pinout per device later, simplifies files
-	set<path> files;
-	directory_iterator it(dbDir);
-	for ( const directory_entry &dir_entry : it ) {
-		if ( dir_entry.is_regular_file() && dir_entry.path().extension() == ".sql" ) {
-			files.insert(dir_entry.path());
-		}
-	}
-
-	Window &statusWin = standardScreen();
-	// insert all files into in-memory DB
-	// print to stdscr as status messages before basically beginning to use the application
-	// TODO: line right under top window (no pinset is shown from application start)
-	int l = 20;
-	statusWin.add(l++, 0, "Imported SQLite DB from files:");
-	for ( const path &p : files ) {
-		statusWin.add(l++, 2, '"');
-		statusWin.add(p.filename());
-		statusWin.add('"');
-
-		// read file completely into memory
-		std::ifstream input(p);
-		std::string content((std::istreambuf_iterator<char>(input)), std::istreambuf_iterator<char>());
-
-		char *errorMsg;
-		sqlite3_exec(db, content.c_str(), nullptr /*NULL callback is valid?*/, nullptr, &errorMsg);
-
-		if ( errorMsg != nullptr ) {
-			statusWin.add(' ');
-			statusWin.add(errorMsg);
-			sqlite3_free(errorMsg);
-		}
-	}
 }
 
 // this function assumes the screen is on the defaultSet position to make it simpler
