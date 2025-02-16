@@ -24,41 +24,31 @@ sqlite3 *createDatabase() {
 DatabaseTotals retrieveDBCounts(sqlite3 *db) {
 	// something tells me there is an easier method of
 	// aggregating these 4 counts in a single result row ...
-	const char *QUERY = "select 1, count(*) from datasheet\
-		union select 2, count(*) from device \
-		union select 3, count(*) from package \
-		union select 4, count(*) from orderable;";
+	const char *QUERY = "select * from "
+			    "(	select 'datasheet' as ordr, count(*) from datasheet"
+			    "	union select 'device', count(*) from device"
+			    "	union select 'orderable', count(*) from orderable"
+			    "	union select 'package', count(*) from package"
+			    ") order by ordr asc;";
 	// I remember doing at work (Oracle) something with some sort of dummy table
 
 	sqlite3_stmt *stmt;
-	DatabaseTotals totals;
-	totals.datasheets = -1;
-	totals.devices = -1;
-	totals.orderables = -1;
-	totals.packages = -1;
+	DatabaseTotals totals = {-1, -1, -1, -1};
 
 	if ( sqlite3_prepare_v2(db, QUERY, -1, &stmt, NULL) != SQLITE_OK ) {
 		std::cout << "SQLite3 error " << sqlite3_errmsg(db) << std::endl;
 	} else {
-		while ( sqlite3_step(stmt) == SQLITE_ROW ) {
-			int det = sqlite3_column_int(stmt, 0);
-			int count = sqlite3_column_int(stmt, 1);
-			switch ( det ) {
-				case 1:
-					totals.datasheets = count;
-					break;
-				case 2:
-					totals.devices = count;
-					break;
-				case 3:
-					totals.packages = count;
-					break;
-				case 4:
-					totals.orderables = count;
-					break;
-				default:
-					std::cout << "ERROR: SQL result unknown: " << det << std::endl;
-			}
+		if ( sqlite3_step(stmt) == SQLITE_ROW ) {
+			totals.datasheets = sqlite3_column_int(stmt, 1);
+		}
+		if ( sqlite3_step(stmt) == SQLITE_ROW ) {
+			totals.devices = sqlite3_column_int(stmt, 1);
+		}
+		if ( sqlite3_step(stmt) == SQLITE_ROW ) {
+			totals.orderables = sqlite3_column_int(stmt, 1);
+		}
+		if ( sqlite3_step(stmt) == SQLITE_ROW ) {
+			totals.packages = sqlite3_column_int(stmt, 1);
 		}
 	}
 
