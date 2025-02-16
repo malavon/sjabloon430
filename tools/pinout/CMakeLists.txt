@@ -20,11 +20,19 @@ set(CCCURSES_HEADERS
     cccurses/layout/column-layout.hpp
 )
 
+set(PINOUT_HEADERS
+    database.hpp
+    database-files.hpp
+)
+
 add_executable(pinout
+    database.cpp
+    database-files.cpp
     pinout.cpp
 
     # these are here only for QTCreator
     ${CCCURSES_HEADERS}
+    ${PINOUT_HEADERS}
 )
 
 target_include_directories  (pinout PRIVATE ${SQLite3_INCLUDE_DIRS} ${CURSES_INCLUDE_DIRS})
