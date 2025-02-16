@@ -57,4 +57,5 @@ DatabaseTotals countTotals(sqlite3 *db) {
 
 	return totals;
 }
+
 }}} // namespace sjabloon430::tools::db
