@@ -83,7 +83,7 @@ int main() {
 				statusWin.add(error);
 			}
 		});
-		db::DatabaseTotals totals = db::retrieveDBCounts(db);
+		db::DatabaseTotals totals = db::countTotals(db);
 
 		top.setTitle("Search");
 		top.add(1, 3, "Datasheet: SLAS942\t(c) 11/2015");

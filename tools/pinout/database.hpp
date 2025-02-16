@@ -20,7 +20,8 @@ struct DatabaseTotals {
 sqlite3 *createDatabase();
 void importDatabase(sqlite3 *db, std::function<void(const std::string &file, const char *error)> callback);
 
-DatabaseTotals retrieveDBCounts(sqlite3 *db);
+/* Query DB */
+DatabaseTotals countTotals(sqlite3 *db);
 
 }}} // namespace sjabloon430::tools::db
 #endif // DATABASE_HPP

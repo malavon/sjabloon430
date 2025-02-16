@@ -2,6 +2,7 @@
 #include "database.hpp"
 
 #include <algorithm>
+#include <cassert>
 #include <filesystem>
 #include <fstream>
 #include <functional>
@@ -62,42 +63,41 @@ void importDatabase(sqlite3 *db, std::function<void(const std::string &file, con
 	}
 }
 
-DatabaseTotals retrieveDBCounts(sqlite3 *db) {
-	// something tells me there is an easier method of
-	// aggregating these 4 counts in a single result row ...
-	const char *QUERY = "select * from "
-			    "(	select 'datasheet' as ordr, count(*) from datasheet"
-			    "	union select 'device', count(*) from device"
-			    "	union select 'orderable', count(*) from orderable"
-			    "	union select 'package', count(*) from package"
-			    ") order by ordr asc;";
-	// I remember doing at work (Oracle) something with some sort of dummy table
+/* Query DB */
 
-	sqlite3_stmt *stmt;
+DatabaseTotals countTotals(sqlite3 *db) {
+	// a single result row is best, 1 column per count
+	// this is the best I can do with my knowledge of sqlite
+	static const char *QUERY = "SELECT SUM(datasheets), SUM(devices), SUM(orderables), SUM(packages) "
+				   "FROM ("
+				   "	SELECT 0 AS datasheets, 0 AS devices, 0 AS orderables, 0 AS packages"
+				   "	UNION SELECT COUNT(*), 0, 0, 0 FROM datasheet"
+				   "	UNION SELECT 0, COUNT(*), 0, 0 FROM device"
+				   "	UNION SELECT 0, 0, COUNT(*), 0 FROM orderable"
+				   "	UNION SELECT 0, 0, 0, COUNT(*) FROM package )";
+
+	static sqlite3_stmt *stmt;
+	if ( stmt == nullptr ) {
+		int rc = sqlite3_prepare_v2(db, QUERY, -1, &stmt, NULL);
+		if ( rc != SQLITE_OK ) {
+			cerr << "SQLite3 error " << sqlite3_errmsg(db) << endl;
+		}
+		assert(rc == SQLITE_OK);
+	}
+
 	DatabaseTotals totals;
 	totals.datasheets = -1;
 	totals.devices = -1;
 	totals.orderables = -1;
 	totals.packages = -1;
 
-	if ( sqlite3_prepare_v2(db, QUERY, -1, &stmt, NULL) != SQLITE_OK ) {
-		cout << "SQLite3 error " << sqlite3_errmsg(db) << endl;
-	} else {
-		if ( sqlite3_step(stmt) == SQLITE_ROW ) {
-			totals.datasheets = sqlite3_column_int(stmt, 1);
-		}
-		if ( sqlite3_step(stmt) == SQLITE_ROW ) {
-			totals.devices = sqlite3_column_int(stmt, 1);
-		}
-		if ( sqlite3_step(stmt) == SQLITE_ROW ) {
-			totals.orderables = sqlite3_column_int(stmt, 1);
-		}
-		if ( sqlite3_step(stmt) == SQLITE_ROW ) {
-			totals.packages = sqlite3_column_int(stmt, 1);
-		}
+	if ( sqlite3_step(stmt) == SQLITE_ROW ) {
+		totals.datasheets = sqlite3_column_int(stmt, 0);
+		totals.devices = sqlite3_column_int(stmt, 1);
+		totals.orderables = sqlite3_column_int(stmt, 2);
+		totals.packages = sqlite3_column_int(stmt, 3);
 	}
 
 	return totals;
 }
-
 }}} // namespace sjabloon430::tools::db
