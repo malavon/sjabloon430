@@ -62,4 +62,48 @@ void importDatabase(sqlite3 *db, std::function<void(const std::string &file, con
 	}
 }
 
+DatabaseTotals retrieveDBCounts(sqlite3 *db) {
+	// something tells me there is an easier method of
+	// aggregating these 4 counts in a single result row ...
+	const char *QUERY = "select 1, count(*) from datasheet\
+		union select 2, count(*) from device \
+		union select 3, count(*) from package \
+		union select 4, count(*) from orderable;";
+	// I remember doing at work (Oracle) something with some sort of dummy table
+
+	sqlite3_stmt *stmt;
+	DatabaseTotals totals;
+	totals.datasheets = -1;
+	totals.devices = -1;
+	totals.orderables = -1;
+	totals.packages = -1;
+
+	if ( sqlite3_prepare_v2(db, QUERY, -1, &stmt, NULL) != SQLITE_OK ) {
+		cout << "SQLite3 error " << sqlite3_errmsg(db) << endl;
+	} else {
+		while ( sqlite3_step(stmt) == SQLITE_ROW ) {
+			int det = sqlite3_column_int(stmt, 0);
+			int count = sqlite3_column_int(stmt, 1);
+			switch ( det ) {
+				case 1:
+					totals.datasheets = count;
+					break;
+				case 2:
+					totals.devices = count;
+					break;
+				case 3:
+					totals.packages = count;
+					break;
+				case 4:
+					totals.orderables = count;
+					break;
+				default:
+					cout << "ERROR: SQL result unknown: " << det << endl;
+			}
+		}
+	}
+
+	return totals;
+}
+
 }}} // namespace sjabloon430::tools::db
