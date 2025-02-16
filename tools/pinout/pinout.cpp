@@ -11,6 +11,7 @@
 
 using namespace cccurses;
 using namespace std::filesystem;
+using namespace sjabloon430::tools::db;
 
 void autofillDatasheet();
 void printShortcuts();
@@ -87,7 +88,7 @@ int main() {
 				statusWin.add(error);
 			}
 		});
-		DatabaseTotals totals = retrieveDBCounts(db);
+		DatabaseTotals totals = countTotals(db);
 
 		top.setTitle("Search");
 		top.add(1, 3, "Datasheet: SLAS942\t(c) 11/2015");
