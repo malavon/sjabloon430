@@ -9,6 +9,16 @@
 namespace cccurses {
 using namespace std;
 
+namespace inner {
+class Border { };
+
+class BorderTitle {
+  private:
+	string title;
+	// char pre, post;
+};
+}
+
 /**
  * @brief The Window class is a very simple wrapper around curses WINDOW. It's far from useful in all cases right now.
  */
@@ -20,33 +30,23 @@ class Window {
 	Window(unsigned int height, unsigned int width, unsigned int row, unsigned int col) {
 		ptr = newwin(height, width, row, col);
 		assert(nullptr != ptr);
+		inner = subwin(ptr, height - 2, width - 2, row + 1, col + 1);
+		assert(nullptr != ptr);
 	}
-
-	Window(WINDOW *win) : ptr(win) { }
 
 	Window(const Window &other) : ptr(other.ptr), title(other.title) { }
 
+	// shouldn't really be here, it only exists for wrapping stdscr
+	Window(WINDOW *win) : ptr(win), inner(win) { }
+
 	~Window() {
+		if ( inner != nullptr ) {
+			delwin(ptr);
+		}
 		if ( ptr != nullptr ) {
 			delwin(ptr); // might be dangerous with stdscr?
 		}
 	}
-
-	// TEMPORARY functions to keep compatibility in the pinout project
-
-	void addText(const int line, const int col, const string &text) {
-		add(line, col, text);
-	}
-
-	void addText(const string &text, const int attrs = 0) {
-		add(text, attrs);
-	}
-
-	void addCharacter(char kar) {
-		add(kar);
-	}
-
-	// end TEMPORARY functions
 
 	void add(const char character) {
 		int rc = waddch(ptr, character);
@@ -139,6 +139,8 @@ class Window {
 		wborder(ptr, 0, 0, 0, 0, 0, 0, 0, 0);
 		mvwaddnstr(ptr, 0, 2, title.c_str(), title.length());
 		wrefresh(ptr);
+		touchwin(ptr);
+		wrefresh(inner);
 	}
 
 	operator WINDOW *() const {
@@ -146,7 +148,11 @@ class Window {
 	}
 
   private:
+	/* Window pointer, including border */
 	WINDOW *ptr;
+	/* Inner window, inside border */
+	WINDOW *inner;
+
 	string title;
 
 	friend class Form;
