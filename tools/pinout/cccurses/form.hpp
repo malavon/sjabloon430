@@ -196,6 +196,7 @@ class Form {
 					break;
 			}
 		}
+		form_driver(ptr, REQ_VALIDATION); // also copies current field's value to buffer
 	}
 
 	// TEMPORARY?
