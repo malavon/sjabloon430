@@ -5,7 +5,10 @@
 
 #include <filesystem>
 #include <functional>
+#include <string>
 #include <vector>
+
+using namespace std;
 
 namespace sjabloon430 { namespace tools { namespace db {
 

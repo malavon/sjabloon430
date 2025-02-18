@@ -17,7 +17,7 @@ using namespace cccurses;
 using namespace sjabloon430::tools;
 using namespace std::filesystem;
 
-void drawTopWindow(cccurses::BorderedWindow &, const db::Datasheet &, db::DatabaseTotals &);
+void drawTopWindow(BorderedWindow &, const db::Datasheet &, db::DatabaseTotals &);
 db::Datasheet searchDatasheet(sqlite3 *db); // todo: return object containing dates as well
 void printShortcuts();
 
@@ -189,7 +189,7 @@ db::Datasheet searchDatasheet(sqlite3 *db) {
 	return ds;
 }
 
-void drawTopWindow(cccurses::BorderedWindow &win, const db::Datasheet &ds, db::DatabaseTotals &totals) {
+void drawTopWindow(BorderedWindow &win, const db::Datasheet &ds, db::DatabaseTotals &totals) {
 	int topLine = 0;
 	int topCol = 1;
 	win.setTitle("Search");

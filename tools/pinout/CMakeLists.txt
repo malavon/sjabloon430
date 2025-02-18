@@ -10,7 +10,7 @@ find_package (Curses)
 
 set(CCCURSES_HEADERS
     cccurses/cccurses.hpp
-    #cccurses/color-internal.hpp
+    cccurses/color-internal.hpp
     cccurses/colors.hpp
     cccurses/error.hpp
     cccurses/form.hpp
