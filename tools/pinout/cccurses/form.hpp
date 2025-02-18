@@ -100,7 +100,7 @@ class Form {
 			cout << "FORM ERROR " << printRC(errno) << endl;
 		}
 		set_form_win(ptr, win.ptr);
-		set_form_sub(ptr, win.inner);
+		set_form_sub(ptr, win.ptr);
 		post_form(ptr);
 	}
 
