@@ -32,6 +32,7 @@ class Window {
 		assert(nullptr != ptr);
 		inner = subwin(ptr, height - 2, width - 2, row + 1, col + 1);
 		assert(nullptr != ptr);
+		keypad(ptr, true);
 	}
 
 	Window(const Window &other) : ptr(other.ptr), title(other.title) { }
