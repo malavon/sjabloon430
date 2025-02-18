@@ -5,6 +5,7 @@
 #include <string>
 #include <vector>
 
+#include "colors.hpp"
 #include "error.hpp"
 #include "form.h"
 #include "window.hpp"
@@ -35,7 +36,9 @@ class Field {
   public:
 	// no idea what to do with offscreenLines or buffers...
 	Field(int height, int width, int row, int col, int offscreenLines = 0, int buffers = 0) {
-		ptr = new_field(height, width, col, row, offscreenLines, buffers);
+		ptr = new_field(height, width, row, col, offscreenLines, buffers);
+		set_field_fore(ptr, COLOR_PAIR(COLOR_PAIR_FORM_SELECTED));
+		set_field_back(ptr, COLOR_PAIR(COLOR_PAIR_FORM_VALID));
 	}
 
 	// OR options together?
@@ -76,34 +79,39 @@ class Field {
 
   private:
 	FIELD *ptr;
+
+	friend class Form;
+	friend class FormBuilder;
 };
 
 class Form {
   public:
-	Form(const Window &window) : window(window) {
-		ptr = new_form(NULL /* FIELDS */);
-		// post form
-		// TODO: win should know about? what happens when window is deleted?
-		set_form_win(ptr, window.ptr);
-	}
-
-	// wow, user-friendly :p
-	// just like all other line-col based things?
-	// also, following curses Y-first params
-	void addField(int height, int width, int row, int col) {
-		formFields.push_back(new_field(height, width, row, col, 0, 0));
-	}
-
-	void addField(const Field &field) {
-		fields.push_back(field);
-		window.paint();
+	Form(const Window &win, vector<Field> fields) : window(win) {
+		// man 3 form: ... (which must be NULL-terminated)
+		this->fields = new FIELD *[fields.size() + 1];
+		this->fields[fields.size()] = NULL;
+		for ( int i = fields.size() - 1; i >= 0; i-- ) {
+			this->fields[i] = fields[i].ptr;
+		}
+		// delegation doesn't work like this ...
+		// Form(win, cFields);
+		ptr = new_form(this->fields);
+		// how to communicate error? assert?
+		if ( errno != E_OK && errno != E_NOT_CONNECTED ) {
+			cout << "FORM ERROR " << printRC(errno) << endl;
+		}
+		set_form_win(ptr, win.ptr);
+		set_form_sub(ptr, win.inner);
+		post_form(ptr);
 	}
 
 	// LOL
 	// extremely re-usable code :p
 	void loop() {
+		// there is no automatic jump to first field after window paint
+		form_driver(ptr, REQ_FIRST_FIELD);
 		int ch;
-		while ( (ch = getch()) < KEY_F(1) || ch > KEY_F(12) ) {
+		while ( (ch = wgetch(window.ptr)) < KEY_F(1) || ch > KEY_F(12) ) {
 			switch ( ch ) {
 				case KEY_DOWN:
 				case 9:
@@ -157,15 +165,40 @@ class Form {
 	}
 
 	~Form() {
-		// set_form_win(ptr, nullptr);
+		// TODO
+		unpost_form(ptr);
 		free_form(ptr);
+		for ( unsigned int i = 0; fields[i] != nullptr; i++ ) {
+			free_field(fields[i]);
+		}
+	}
+
+	// TEMPORARY?
+	FORM *raw() const {
+		return ptr;
 	}
 
   private:
 	FORM *ptr;
 	const Window &window;
-	vector<FIELD *> formFields; // useful?
-	vector<Field> fields;		// useful? should be in another class? layout-type thingy?
+	FIELD **fields;
+
+	friend class FormBuilder;
+};
+
+// TODO: remove? post_form can happen outside of constructor
+class FormBuilder {
+  public:
+	void addField(const Field &field) {
+		fields.push_back(field);
+	}
+
+	Form build(Window &win) {
+		return Form(win, fields);
+	}
+
+  private:
+	vector<Field> fields; // useful? should be in another class? layout-type thingy?
 };
 
 } // namespace cccurses
