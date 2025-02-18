@@ -100,7 +100,7 @@ class Form {
 			cout << "FORM ERROR " << printRC(errno) << endl;
 		}
 		set_form_win(ptr, win.ptr);
-		set_form_sub(ptr, win.ptr);
+		set_form_sub(ptr, win.ptr); // TODO: this used to be inner for original 2-ptr Window
 		post_form(ptr);
 	}
 
