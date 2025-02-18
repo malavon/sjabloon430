@@ -33,12 +33,11 @@ int main() {
 	initCurses();
 
 	{
-		Window top(WIN_TOP_HEIGHT, COLS - WIN_CONFIGSET_WIDTH, 0, 0);
-
-		Window defaultSet(10, WIN_CONFIGSET_WIDTH, 0, COLS - WIN_CONFIGSET_WIDTH);
-		Window newSet(3, WIN_CONFIGSET_WIDTH, 10, COLS - WIN_CONFIGSET_WIDTH);
+		BorderedWindow top(WIN_TOP_HEIGHT, COLS - WIN_CONFIGSET_WIDTH, 0, 0);
+		BorderedWindow defaultSet(10, WIN_CONFIGSET_WIDTH, 0, COLS - WIN_CONFIGSET_WIDTH);
+		BorderedWindow newSet(3, WIN_CONFIGSET_WIDTH, 10, COLS - WIN_CONFIGSET_WIDTH);
 		// TODO: no border, separate with hline or something?
-		Window firstPin(WIN_TOP_HEIGHT + 1, COLS - WIN_CONFIGSET_WIDTH, WIN_TOP_HEIGHT + 1, 0);
+		Window firstPin(WIN_TOP_HEIGHT + 1, COLS - WIN_CONFIGSET_WIDTH, WIN_TOP_HEIGHT + 2, 0);
 		Window secondPin(5, COLS - WIN_CONFIGSET_WIDTH, 12, 0);
 
 		int lr = 0;
@@ -52,7 +51,7 @@ int main() {
 		defaultSet.add(lr++, 2, "RHB32, DA32,\n  RGE24, YQW24");
 
 		newSet.setTitle("Set F5");
-		newSet.add(1, 1, "F5: Create new set");
+		newSet.add(0, 1, "F5: Create new");
 
 		// note: 3 characters for pin number is enough (even for BGA)
 		firstPin.add(0, 1, " RHB32   DA32  RGE24  YQW24\tSignal\t\tDescription");
@@ -158,7 +157,7 @@ void searchDatasheet(sqlite3 *db) {
 	const int menuCol = fieldCol + WIDEST_MODEL_LENGTH + 2;
 
 	// TODO: doesn't care about resizing or too small a screen
-	Window center(MAX_HEIGHT, MAX_WIDTH, (LINES - MAX_HEIGHT) / 2, (COLS - MAX_WIDTH) / 2);
+	BorderedWindow center(MAX_HEIGHT, MAX_WIDTH, (LINES - MAX_HEIGHT) / 2, (COLS - MAX_WIDTH) / 2);
 	center.setTitle("Search");
 
 	FormBuilder fb;
