@@ -3,7 +3,11 @@
 
 #include <sqlite3.h>
 
+#include <string>
+
 namespace sjabloon430 { namespace tools { namespace db {
+
+using std::string;
 
 /** Support structs/classes */
 struct DatabaseTotals {
@@ -11,6 +15,14 @@ struct DatabaseTotals {
 	int devices;
 	int orderables;
 	int packages;
+};
+
+/* Simple data objects, no need for encapsulation in a privately used tool ... */
+struct Datasheet {
+	string id;
+	string rev;
+	string origDate;
+	string revDate;
 };
 
 /* SQLite 3 init & database import/export */
