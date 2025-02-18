@@ -29,6 +29,7 @@ class Window {
 	Window(unsigned int line, unsigned int col, unsigned int height, unsigned int width) {
 		ptr = newwin(height, width, line, col);
 		inner = subwin(ptr, height - 2, width - 2, line + 1, col + 1);
+		keypad(ptr, true);
 	}
 
 	Window(const Window &other) : ptr(other.ptr), title(other.title) { }
