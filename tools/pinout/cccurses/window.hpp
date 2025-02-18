@@ -9,16 +9,6 @@
 namespace cccurses {
 using namespace std;
 
-namespace inner {
-class Border { };
-
-class BorderTitle {
-  private:
-	string title;
-	// char pre, post;
-};
-}
-
 /**
  * @brief The Window class is a very simple wrapper around curses WINDOW. It's far from useful in all cases right now.
  */
@@ -30,20 +20,15 @@ class Window {
 	Window(unsigned int height, unsigned int width, unsigned int row, unsigned int col) {
 		ptr = newwin(height, width, row, col);
 		assert(nullptr != ptr);
-		inner = subwin(ptr, height - 2, width - 2, row + 1, col + 1);
-		assert(nullptr != ptr);
 		keypad(ptr, true);
 	}
 
-	Window(const Window &other) : ptr(other.ptr), title(other.title) { }
+	Window(const Window &other) : ptr(other.ptr) { }
 
 	// shouldn't really be here, it only exists for wrapping stdscr
-	Window(WINDOW *win) : ptr(win), inner(win) { }
+	Window(WINDOW *win) : ptr(win) { }
 
 	~Window() {
-		if ( inner != nullptr ) {
-			delwin(ptr);
-		}
 		if ( ptr != nullptr ) {
 			delwin(ptr); // might be dangerous with stdscr?
 		}
@@ -130,33 +115,68 @@ class Window {
 		assert(OK == rc);
 	}
 
-	void setTitle(const string &title) {
-		this->title = title;
-	}
-
 	void paint() const {
-		// border repaint each time? overwrites title unless written too ...
-		// not efficient?
-		wborder(ptr, 0, 0, 0, 0, 0, 0, 0, 0);
-		mvwaddnstr(ptr, 0, 2, title.c_str(), title.length());
 		wrefresh(ptr);
-		touchwin(ptr);
-		wrefresh(inner);
 	}
 
 	operator WINDOW *() const {
 		return ptr;
 	}
 
-  private:
-	/* Window pointer, including border */
+  protected:
 	WINDOW *ptr;
-	/* Inner window, inside border */
-	WINDOW *inner;
-
-	string title;
 
 	friend class Form;
+};
+
+// Window that keeps a separate subwindow (or derived window) pointer
+/* A Window that has a statically defined border which can be enabled/disabled when required.
+ * In order to fix wrapping a subwindow (or more correct: a derived window) is created as
+ * the target for everything to be added. */
+class BorderedWindow : public Window {
+  public:
+	BorderedWindow(unsigned int height, unsigned int width, unsigned int line, unsigned int col) :
+	    Window(height, width, line, col) {
+		outer = ptr;
+		// replace original pointer with the derived window inside the border
+		ptr = derwin(outer, height - 2, width - 2, 1, 1);
+		assert(nullptr != ptr);
+		keypad(ptr, true);
+	}
+
+	BorderedWindow(const BorderedWindow &o) : Window(o) {
+		outer = o.outer;
+		title = o.title;
+	}
+
+	~BorderedWindow() {
+		if ( outer != nullptr ) {
+			delete outer;
+		}
+	}
+
+	void setTitle(const string &title) {
+		this->title = title;
+	}
+
+	void paint() const {
+		int rc = wborder(outer, 0, 0, 0, 0, 0, 0, 0, 0);
+		assert(OK == rc);
+		if ( !title.empty() ) {
+			rc = mvwaddnstr(outer, 0, 2, title.c_str(), title.length());
+			assert(OK == rc);
+		}
+		rc = wrefresh(outer);
+		assert(OK == rc);
+		Window::paint();
+	}
+
+  private:
+	/* outer Window including the border;
+	 * Window::ptr is the inner because it's the main target */
+	WINDOW *outer;
+	string title;
+	// border chars?
 };
 
 } // namespace cccurses
