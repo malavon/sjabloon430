@@ -20,12 +20,14 @@ set(CCCURSES_HEADERS
 set(PINOUT_HEADERS
     database.hpp
     database-files.hpp
+    ui.hpp
 )
 
 add_executable(pinout
     database.cpp
     database-files.cpp
     pinout.cpp
+    ui.cpp
 
     # these are here only for QTCreator
     ${CCCURSES_HEADERS}
