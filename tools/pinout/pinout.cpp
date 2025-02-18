@@ -41,7 +41,7 @@ int main() {
 		BorderedWindow defaultSet(10, MAX_WIDTH, 0, COLS - MAX_WIDTH);
 		BorderedWindow newSet(3, MAX_WIDTH, 10, COLS - MAX_WIDTH);
 		// TODO: no border, separate with hline or something?
-		Window firstPin(6, COLS - MAX_WIDTH, 6, 0);
+		Window firstPin(6, COLS - MAX_WIDTH, 7, 0);
 		Window secondPin(5, COLS - MAX_WIDTH, 12, 0);
 
 		int lr = 0;
