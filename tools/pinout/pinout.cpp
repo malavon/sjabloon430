@@ -83,6 +83,7 @@ int main() {
 			}
 		});
 		db::DatabaseTotals totals = db::countTotals(db);
+		statusWin.paint();
 
 		int topLine = 0;
 		int topCol = 1;
@@ -111,61 +112,9 @@ int main() {
 		// initial state: open search window
 		searchDatasheet(db);
 
-		Form form(top);
-
-		form.addField(1, 20, 1, 20);
-		form.addField(1, 20, 2, 20);
-
-		Field datasheet(1, 20, 1, 20);
-		Field device(1, 20, 2, 20);
-
-		FIELD *field[3];
-		FORM *my_form;
-		int ch;
-
-		/* Initialize few color pairs */
-		// init_pair(1, COLOR_WHITE, COLOR_BLUE);
-		// init_pair(2, COLOR_WHITE, COLOR_BLUE);
-
-		/* Initialize the fields */
-		// field[0] = new_field(1, 20, 1, 20, 0, 0);
-		// field[1] = new_field(1, 20, 2, 20, 0, 0);
-		// field[2] = NULL;
-		field[0] = NULL;
-
-		/* Set field options */
-		// set_field_fore(field[0], COLOR_PAIR(1)); /* Put the field with blue background */
-		// set_field_back(field[0], COLOR_PAIR(2)); /* and white foreground (characters */
-		// /* are printed in white 	*/
-		// field_opts_off(field[0], O_AUTOSKIP); /* Don't go to next field when this */
-		// /* Field is filled up 		*/
-		// set_field_back(field[1], A_UNDERLINE);
-		// field_opts_off(field[1], O_AUTOSKIP | O_DYNAMIC_JUSTIFY);
-
 		// set_field_type(field[0], TYPE_ALNUM);
 		// set_field_type(field[1], TYPE_INTEGER);
-
-		/* Create the form and post it */
-		my_form = new_form(field);
-		post_form(my_form);
-		refresh();
-
-		// set_current_field(my_form, field[0]); /* Set focus to the colored field */
-		// mvprintw(1, 2, "Datasheet");
-		// mvprintw(2, 2, "Device");
-		// mvprintw(3, 2, "Package Drawings");
-		// mvprintw(LINES - 2, 0, "Use UP, DOWN arrow keys OR TAB/BTAB to switch between fields");
-		// refresh();
-
-		/* Loop through to get user requests */
-		form.loop();
 	}
-
-	/* Un post form and free the memory */
-	// unpost_form(my_form);
-	// free_form(my_form);
-	// free_field(field[0]);
-	// free_field(field[1]);
 
 	endwin(); // important: restores terminal
 
@@ -206,25 +155,35 @@ void searchDatasheet(sqlite3 *db) {
 	    1 + DATASHEET_HDR.length() + (WIDEST_MODEL_LENGTH + 1) * 2 + 1 /* space */ + 2 /* border */;
 	static const int MAX_HEIGHT = 6 + 2 /* border */;
 
-	// TODO: doesn't care about resizing or too small a screen
-	Window center(MAX_HEIGHT, MAX_WIDTH, (LINES - MAX_HEIGHT) / 2, (COLS - MAX_WIDTH) / 2);
-	center.setTitle("Search");
-
 	const int line = 1;
 	const int hdrCol = 1;
 	const int fieldCol = hdrCol + DATASHEET_HDR.length();
 	const int menuCol = fieldCol + WIDEST_MODEL_LENGTH + 2;
+
+	// TODO: doesn't care about resizing or too small a screen
+	Window center(MAX_HEIGHT, MAX_WIDTH, (LINES - MAX_HEIGHT) / 2, (COLS - MAX_WIDTH) / 2);
+	center.setTitle("Search");
+
+	FormBuilder fb;
+	// 7 is fixed; all datasheets are 7 wide
+	Field dsField(1, 7, line + 0, fieldCol);
+	dsField.optionAutoSkip(Toggle::OFF);
+	// from database or also hard-coded constant
+	Field mdField(1, WIDEST_MODEL_LENGTH, line + 2, fieldCol);
+	mdField.optionAutoSkip(Toggle::OFF);
+	fb.addField(dsField);
+	fb.addField(mdField);
+	Form form = fb.build(center);
 	center.add(line + 0, hdrCol, DATASHEET_HDR);
-	center.add(line + 0, fieldCol, "SLAS942", WA_STANDOUT);
 	center.add(line + 2, hdrCol, MODEL_HDR);
-	center.add(line + 2, fieldCol, "MSP430F645       ", WA_STANDOUT);
 	center.add(line + 0, menuCol - 1, '>');
 	center.add(line + 0, menuCol, "MSP430F6458");
 	center.add(line + 1, menuCol, "MSP430F6459");
 	center.add(line + 2, menuCol, "MSP430F6459-HIREL");
 
 	static const string BUTTON_TEXT = "[OPEN]";
-	center.add(MAX_HEIGHT - 3, (MAX_WIDTH - BUTTON_TEXT.length()) / 2, BUTTON_TEXT, COLOR_PAIR(3));
-
+	center.add(MAX_HEIGHT - 3, (MAX_WIDTH - BUTTON_TEXT.length()) / 2, BUTTON_TEXT, COLOR_PAIR(COLOR_PAIR_BUTTON_SELECTED));
 	center.paint();
+
+	form.loop();
 }
