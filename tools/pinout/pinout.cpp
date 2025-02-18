@@ -14,7 +14,7 @@ using namespace sjabloon430::tools::db;
 using namespace std::filesystem;
 
 void autofillDatasheet();
-void drawTopWindow(ccurses::BorderedWindow &, const Datasheet &, DatabaseTotals &);
+void drawTopWindow(BorderedWindow &, const Datasheet &, DatabaseTotals &);
 Datasheet searchDatasheet(sqlite3 *db); // todo: return object containing dates as well
 void printShortcuts();
 
@@ -194,7 +194,7 @@ Datasheet searchDatasheet(sqlite3 *db) {
 	return ds;
 }
 
-void drawTopWindow(ccurses::BorderedWindow &win, const Datasheet &ds, DatabaseTotals &totals) {
+void drawTopWindow(BorderedWindow &win, const Datasheet &ds, DatabaseTotals &totals) {
 	int topLine = 0;
 	int topCol = 1;
 	win.setTitle("Search");

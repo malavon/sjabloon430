@@ -1,7 +1,7 @@
 #ifndef CCURSES_HPP
 #define CCURSES_HPP
 
-#include "colors.hpp"
+#include "color-internal.hpp"
 #include "ncurses.h"
 #include "window.hpp"
 

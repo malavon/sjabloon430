@@ -14,6 +14,7 @@ add_executable(pinout
 
     # these are here only for QTCreator
     cccurses/cccurses.hpp
+    cccurses/color-internal.hpp
     cccurses/colors.hpp
     cccurses/error.hpp
     cccurses/form.hpp
