@@ -2,11 +2,12 @@
 #define CCURSES_FORM_HPP
 
 #include <cassert>
+#include <iostream>
 #include <string>
 #include <vector>
 
 #include "colors.hpp"
-#include "error.hpp"
+// #include "error.hpp"
 #include "form.h"
 #include "window.hpp"
 
@@ -39,6 +40,9 @@ class Field {
 		ptr = new_field(height, width, row, col, offscreenLines, buffers);
 		set_field_fore(ptr, COLOR_PAIR(COLOR_PAIR_FORM_SELECTED));
 		set_field_back(ptr, COLOR_PAIR(COLOR_PAIR_FORM_VALID));
+		/*pad character, display only, doesn't show up in buffer
+		 could this be useful for validation somehow? */
+		// set_field_pad(ptr, '0');
 	}
 
 	// OR options together?
@@ -71,10 +75,30 @@ class Field {
 		// can only move when NOT connected to form ...
 		int rc = move_field(ptr, row, col);
 		if ( rc != E_OK ) {
-			cout << "Error " << printRC(rc) << endl;
+			// std::cout << "Error " << printRC(rc) << endl;
 		}
 
 		assert(rc != E_OK);
+	}
+
+	template<class T>
+	const T buffer() const;
+
+	template<>
+	const string buffer<string>() const {
+		string str(field_buffer(ptr, 0));
+		// TODO: trim spaces?
+		str.shrink_to_fit();
+		return str;
+	}
+
+	// template<>
+	// const char *buffer<const char *>() {
+	// 	return field_buffer(ptr, 0);
+	// }
+
+	const char *rawBuffer() const {
+		return field_buffer(ptr, 0);
 	}
 
   private:
@@ -98,12 +122,23 @@ class Form {
 		ptr = new_form(this->fields);
 		// how to communicate error? assert?
 		if ( errno != E_OK && errno != E_NOT_CONNECTED ) {
-			cout << "FORM ERROR " << printRC(errno) << endl;
+			// cout << "FORM ERROR " << printRC(errno) << endl;
 		}
 		set_form_win(ptr, win.ptr);
 		set_form_sub(ptr, win.ptr); // TODO: this used to be inner for original 2-ptr Window
 		post_form(ptr);
 	}
+
+	~Form() {
+		// TODO
+		unpost_form(ptr);
+		free_form(ptr);
+		for ( unsigned int i = 0; fields[i] != nullptr; i++ ) {
+			free_field(fields[i]);
+		}
+	}
+
+	/*  */
 
 	// LOL
 	// extremely re-usable code :p
@@ -161,15 +196,6 @@ class Form {
 					cout << ch << ' '; // for debugging, print character numbers for now
 					break;
 			}
-		}
-	}
-
-	~Form() {
-		// TODO
-		unpost_form(ptr);
-		free_form(ptr);
-		for ( unsigned int i = 0; fields[i] != nullptr; i++ ) {
-			free_field(fields[i]);
 		}
 	}
 
