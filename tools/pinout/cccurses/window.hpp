@@ -8,16 +8,6 @@
 namespace cccurses {
 using namespace std;
 
-namespace inner {
-class Border { };
-
-class BorderTitle {
-  private:
-	string title;
-	char pre, post;
-};
-}
-
 /**
  * @brief The Window class is a very simple wrapper around curses WINDOW. It's far from useful in all cases right now.
  */
@@ -28,67 +18,63 @@ class Window {
   public:
 	Window(unsigned int line, unsigned int col, unsigned int height, unsigned int width) {
 		ptr = newwin(height, width, line, col);
-		inner = subwin(ptr, height - 2, width - 2, line + 1, col + 1);
 		keypad(ptr, true);
 	}
 
-	Window(const Window &other) : ptr(other.ptr), title(other.title) { }
+	Window(const Window &other) : ptr(other.ptr) { }
 
 	// shouldn't really be here, it only exists for wrapping stdscr
-	Window(WINDOW *win) : ptr(win), inner(win) { }
+	Window(WINDOW *win) : ptr(win) { }
 
 	~Window() {
-		if ( inner != nullptr ) {
-			delwin(ptr);
-		}
 		if ( ptr != nullptr ) {
 			delwin(ptr); // might be dangerous with stdscr?
 		}
 	}
 
 	void add(const char character) {
-		waddch(inner, character);
+		waddch(ptr, character);
 	}
 
 	void add(const int raw) {
-		waddch(inner, raw);
+		waddch(ptr, raw);
 	}
 
 	void add(const string &text) {
-		waddnstr(inner, text.c_str(), text.length());
+		waddnstr(ptr, text.c_str(), text.length());
 	}
 
 	void add(const char character, int attrs) {
-		waddch(inner, character | attrs);
+		waddch(ptr, character | attrs);
 	}
 
 	void add(const string &text, int attrs) {
-		wattron(inner, attrs);
+		wattron(ptr, attrs);
 		add(text);
-		wattroff(inner, attrs);
+		wattroff(ptr, attrs);
 	}
 
 	void add(const int line, const int col, const char character) {
-		mvwaddch(inner, line, col, character);
+		mvwaddch(ptr, line, col, character);
 	}
 
 	void add(const int line, const int col, const int raw) {
-		mvwaddch(inner, line, col, raw);
+		mvwaddch(ptr, line, col, raw);
 	}
 
 	void add(const int line, const int col, const string &text) {
-		// mvwaddstr(inner, line, col, text.c_str());
-		mvwaddnstr(inner, line, col, text.c_str(), text.length());
+		// mvwaddstr(ptr, line, col, text.c_str());
+		mvwaddnstr(ptr, line, col, text.c_str(), text.length());
 	}
 
 	void add(const int line, const int col, const char character, int attrs) {
-		mvwaddch(inner, line, col, character | attrs);
+		mvwaddch(ptr, line, col, character | attrs);
 	}
 
 	void add(const int line, const int col, const string &text, int attrs) {
-		wattron(inner, attrs);
+		wattron(ptr, attrs);
 		add(line, col, text);
-		wattroff(inner, attrs);
+		wattroff(ptr, attrs);
 	}
 
 	void enableAttributes(const int attrs) {
@@ -100,7 +86,7 @@ class Window {
 	}
 
 	void moveCursor(const int line, const int col) {
-		wmove(inner, line, col);
+		wmove(ptr, line, col);
 	}
 
 	// these don't work, need to pass the variadic argument somehow
@@ -113,18 +99,8 @@ class Window {
 	// 	wprintw(ptr, fmt);
 	// }
 
-	void setTitle(const string &title) {
-		this->title = title;
-	}
-
 	void paint() const {
-		// border repaint each time? overwrites title unless written too ...
-		// not efficient?
-		wborder(ptr, 0, 0, 0, 0, 0, 0, 0, 0);
-		mvwaddnstr(ptr, 0, 2, title.c_str(), title.length());
 		wrefresh(ptr);
-		touchwin(ptr);
-		wrefresh(inner);
 	}
 
 	// TEMPORARY?
@@ -132,15 +108,48 @@ class Window {
 		return ptr;
 	}
 
-  private:
-	/* Window pointer, including border */
+  protected:
 	WINDOW *ptr;
-	/* Inner window, inside border */
-	WINDOW *inner;
-
-	string title;
 
 	friend class Form;
+};
+
+// Window that keeps a separate subwindow (or derived window) pointer
+/* A Window that has a statically defined border which can be enabled/disabled when required.
+ * In order to fix wrapping a subwindow (or more correct: a derived window) is created as
+ * the target for everything to be added. */
+class BorderedWindow : public Window {
+  public:
+	BorderedWindow(unsigned int line, unsigned int col, unsigned int height, unsigned int width) : Window(line, col, height, width) {
+		outer = ptr;
+		// replace original pointer with the derived window inside the border
+		ptr = derwin(outer, height - 2, width - 2, 1, 1);
+		keypad(ptr, true);
+	}
+
+	~BorderedWindow() {
+		if ( outer != nullptr ) {
+			delete outer;
+		}
+	}
+
+	void setTitle(const string &title) {
+		this->title = title;
+	}
+
+	void paint() const {
+		wborder(outer, 0, 0, 0, 0, 0, 0, 0, 0);
+		mvwaddnstr(outer, 0, 2, title.c_str(), title.length());
+		wrefresh(outer);
+		Window::paint();
+	}
+
+  private:
+	/* outer Window including the border;
+	 * Window::ptr is the inner because it's the main target */
+	WINDOW *outer;
+	string title;
+	// border chars?
 };
 
 } // namespace cccurses
