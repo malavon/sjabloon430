@@ -80,18 +80,19 @@ DatabaseTotals countTotals(sqlite3 *db) {
 	return totals;
 }
 
-string findDatasheetByModel(sqlite3 *db, const string model) {
+Datasheet findDatasheetByModel(sqlite3 *db, const string model) {
 	static const string QUERY("SELECT datasheet FROM device WHERE model='");
 	string query = QUERY + model + "'";
 	sqlite3_stmt *stmt;
 	// assume only a single row
+	Datasheet ds;
 	if ( sqlite3_prepare_v2(db, query.c_str(), -1, &stmt, NULL) == SQLITE_OK && sqlite3_step(stmt) == SQLITE_ROW ) {
-		return reinterpret_cast<const char *>(sqlite3_column_text(stmt, 0));
+		ds.id = reinterpret_cast<const char *>(sqlite3_column_text(stmt, 0));
 	}
-	return "ERROR";
+	return ds;
 }
 
-vector<string> listDatasheets(sqlite3 *db, const string firstChars) {
+vector<string> listDatasheetIds(sqlite3 *db, const string firstChars) {
 	// maybe allow intermediate chars? % twice?
 	static const string QUERY("SELECT id FROM datasheet WHERE id ILIKE '");
 	string query = QUERY + firstChars + "%'";
