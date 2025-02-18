@@ -40,9 +40,9 @@ int main() {
 	static const int MAX_WIDTH = WIDEST.length() + MODEL_INDENT + 2 /*border*/;
 
 	{
-		Window top(0, 0, 5, COLS - MAX_WIDTH);
-		Window defaultSet(0, COLS - MAX_WIDTH, 10, MAX_WIDTH);
-		Window newSet(10, COLS - MAX_WIDTH, 3, MAX_WIDTH);
+		BorderedWindow top(0, 0, 5, COLS - MAX_WIDTH);
+		BorderedWindow defaultSet(0, COLS - MAX_WIDTH, 10, MAX_WIDTH);
+		BorderedWindow newSet(10, COLS - MAX_WIDTH, 3, MAX_WIDTH);
 		// TODO: no border, separate with hline or something?
 		Window firstPin(6, 0, 6, COLS - MAX_WIDTH);
 		Window secondPin(12, 0, 5, COLS - MAX_WIDTH);
@@ -167,7 +167,7 @@ void searchDatasheet(sqlite3 *db) {
 	const int menuCol = fieldCol + widestModelLength + 2;
 
 	// TODO: doesn't care about resizing or too small a screen
-	Window center((LINES - MAX_HEIGHT) / 2, (COLS - MAX_WIDTH) / 2, MAX_HEIGHT, MAX_WIDTH);
+	BorderedWindow center((LINES - MAX_HEIGHT) / 2, (COLS - MAX_WIDTH) / 2, MAX_HEIGHT, MAX_WIDTH);
 	center.setTitle("Search");
 
 	FormBuilder fb;
