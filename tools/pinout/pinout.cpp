@@ -12,7 +12,8 @@ using namespace cccurses;
 using namespace sjabloon430::tools::pinout;
 namespace dbf = sjabloon430::tools::db;
 
-void searchDatasheet(sqlite3 *db);
+void drawTopWindow(cccurses::BorderedWindow &, const db::Datasheet &, db::DatabaseTotals &);
+db::Datasheet searchDatasheet(sqlite3 *db); // todo: return object containing dates as well
 void printShortcuts();
 
 static const int WIDEST_MODEL_LENGTH = strlen("MSP430F6459-HIREL"); /* hardcoded longest model */
@@ -84,24 +85,6 @@ int main() {
 		db::DatabaseTotals totals = db::countTotals(db);
 		statusWin.paint();
 
-		int topLine = 0;
-		int topCol = 1;
-		top.setTitle("Search");
-		top.add(topLine + 0, topCol, "Datasheet: SLAS942\t(c) 11/2015");
-		top.add(topLine + 1, topCol, "Revision:  E\t\t(c) 12/2019");
-		// currently doesn't work
-		// top.print(4, 1, "DB contains: %i datasheets, %i devices, %d orderables, %i packages", totals.datasheets, totals.devices, totals.orderables,
-		// totals.packages);
-		top.add(topLine + 2, topCol, "DB contains: ");
-		top.add(std::to_string(totals.datasheets));
-		top.add(" datasheets, ");
-		top.add(std::to_string(totals.devices));
-		top.add(" devices, ");
-		top.add(std::to_string(totals.orderables));
-		top.add(" orderables, ");
-		top.add(std::to_string(totals.packages));
-		top.add(" packages");
-
 		top.paint();
 		defaultSet.paint();
 		newSet.paint();
@@ -109,7 +92,9 @@ int main() {
 		secondPin.paint();
 
 		// initial state: open search window
-		searchDatasheet(db);
+		db::Datasheet selectedDS = searchDatasheet(db);
+
+		drawTopWindow(top, selectedDS, totals);
 
 		// set_field_type(field[0], TYPE_ALNUM);
 		// set_field_type(field[1], TYPE_INTEGER);
@@ -146,7 +131,7 @@ void printShortcuts() {
 }
 
 // open a window in middle of screen, allow searching database; mock-up
-void searchDatasheet(sqlite3 *db) {
+db::Datasheet searchDatasheet(sqlite3 *db) {
 	// TODO: also add some help on this window/form fields using F1
 	static const string DATASHEET_HDR("Datasheet ");
 	static const string MODEL_HDR("Model ");
@@ -187,4 +172,47 @@ void searchDatasheet(sqlite3 *db) {
 	center.paint();
 
 	form.loop();
+
+	db::Datasheet ds;
+	// note: buffer is only filled AFTER leaving the field? this isn't useful for auto-completion and in-line validation
+	ds.id = dsField.buffer<string>();
+	ds.id += ' ';
+	ds.id += mdField.buffer<string>();
+	return ds;
+}
+
+void drawTopWindow(cccurses::BorderedWindow &win, const db::Datasheet &ds, db::DatabaseTotals &totals) {
+	int topLine = 0;
+	int topCol = 1;
+	win.setTitle("Search");
+	win.add(topLine + 0, topCol, "Datasheet: ");
+	win.add(ds.id);
+	win.add("\t\t(c)");
+	win.add(ds.origDate);
+	win.add(topLine + 1, topCol, "Revision:  ");
+	if ( ds.rev.empty() ) {
+		win.add("A"); // TODO: justify?
+	} else {
+		win.add(ds.rev); // TODO: justify?
+		win.add("\t\t(c)");
+		win.add(ds.revDate);
+	}
+
+	// currently doesn't work
+	// top.print(4, 1, "DB contains: %i datasheets, %i devices, %d orderables, %i packages", totals.datasheets, totals.devices, totals.orderables,
+	// totals.packages);
+	win.add(topLine + 2, topCol, "DB contains: ");
+	win.add(std::to_string(totals.datasheets));
+	win.add(" datasheets, ");
+	win.add(std::to_string(totals.devices));
+	win.add(" devices, ");
+	win.add(std::to_string(totals.orderables));
+	win.add(" orderables, ");
+	win.add(std::to_string(totals.packages));
+	win.add(" packages");
+
+	win.add(topLine + 0, topCol, "Datasheet: ");
+	win.add(ds.id);
+
+	win.paint();
 }
