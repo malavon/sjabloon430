@@ -55,7 +55,7 @@ int main() {
 		defaultSet.add(lr++, 2, "RHB32, DA32,\n  RGE24, YQW24");
 
 		newSet.setTitle("Set F5");
-		newSet.add(0, 1, "F5: Create new");
+		newSet.add(0, 0, "F5: Create new set");
 
 		// note: 3 characters for pin number is enough (even for BGA)
 		firstPin.add(0, 1, " RHB32   DA32  RGE24  YQW24\tSignal\t\tDescription");
@@ -152,40 +152,42 @@ void searchDatasheet(sqlite3 *db) {
 	static const string DATASHEET_HDR("Datasheet ");
 	static const string MODEL_HDR("Model ");
 	// would be from database; alternatively: justify columns right and maybe allow scroll?
-	static const int widestModelLength = WIDEST.length();
+	static const int WIDEST_LENGTH = WIDEST.length();
 
-	static const int MAX_WIDTH = 1 + DATASHEET_HDR.length() + (widestModelLength + 1) * 2 + 1 /* space */ + 2 /* border */;
-	static const int MAX_HEIGHT = 6 + 2 /* border */;
+	const int LINE = 1;
+	const int COL = 1;
+	const int ML_FIELD_COL = MODEL_HDR.length() + 1;
+	const int DS_FIELD_COL = max(static_cast<int>(DATASHEET_HDR.length()) + 1, ML_FIELD_COL + WIDEST_LENGTH - 7);
+	// 7 is fixed; all datasheets are 7 wide
+	const int MENU_COL = max(DS_FIELD_COL + 7, ML_FIELD_COL + WIDEST_LENGTH) + 2;
 
-	const int line = 1;
-	const int hdrCol = 1;
-	const int fieldCol = hdrCol + DATASHEET_HDR.length();
-	const int menuCol = fieldCol + widestModelLength + 2;
+	static const int WIN_WIDTH = MENU_COL + WIDEST_LENGTH + 1 + 2 /* border */;
+	static const int WIN_HEIGHT = 6 + 2 /* border */;
 
 	// TODO: doesn't care about resizing or too small a screen
-	BorderedWindow center(MAX_HEIGHT, MAX_WIDTH, (LINES - MAX_HEIGHT) / 2, (COLS - MAX_WIDTH) / 2);
+	BorderedWindow center(WIN_HEIGHT, WIN_WIDTH, (LINES - WIN_HEIGHT) / 2, (COLS - WIN_WIDTH) / 2);
 	center.setTitle("Search");
 
 	FormBuilder fb;
 	// 7 is fixed; all datasheets are 7 wide
-	Field dsField(1, 7, line + 0, fieldCol);
+	Field dsField(1, 7, LINE + 0, DS_FIELD_COL);
 	dsField.optionAutoSkip(Toggle::OFF);
-	// from database or also hard-coded constant
-	Field mdField(1, widestModelLength, line + 2, fieldCol);
-	mdField.optionAutoSkip(Toggle::OFF);
 	fb.addField(dsField);
+	// from database or also hard-coded constant
+	Field mdField(1, WIDEST_LENGTH, LINE + 2, ML_FIELD_COL);
+	mdField.optionAutoSkip(Toggle::OFF);
 	fb.addField(mdField);
 	Form form = fb.build(center);
 
-	center.add(line + 0, hdrCol, DATASHEET_HDR);
-	center.add(line + 2, hdrCol, MODEL_HDR);
-	center.add(line + 0, menuCol - 1, '>');
-	center.add(line + 0, menuCol, "MSP430F6458");
-	center.add(line + 1, menuCol, "MSP430F6459");
-	center.add(line + 2, menuCol, WIDEST);
+	center.add(LINE + 0, COL, DATASHEET_HDR);
+	center.add(LINE + 2, COL, MODEL_HDR);
+	center.add(LINE + 0, MENU_COL - 1, '>');
+	center.add(LINE + 0, MENU_COL, "MSP430F6458");
+	center.add(LINE + 1, MENU_COL, "MSP430F6459");
+	center.add(LINE + 2, MENU_COL, WIDEST);
 
 	static const string BUTTON_TEXT = "[OPEN]";
-	center.add(MAX_HEIGHT - 3, (MAX_WIDTH - BUTTON_TEXT.length()) / 2, BUTTON_TEXT, COLOR_PAIR(COLOR_PAIR_BUTTON_SELECTED));
+	center.add(WIN_HEIGHT - 3, (WIN_WIDTH - BUTTON_TEXT.length()) / 2, BUTTON_TEXT, COLOR_PAIR(COLOR_PAIR_BUTTON_SELECTED));
 	center.paint();
 
 	form.loop();
