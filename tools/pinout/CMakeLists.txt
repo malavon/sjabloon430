@@ -11,6 +11,11 @@ find_package (Curses)
 add_executable(pinout
     database.cpp
     pinout.cpp
+    ui.cpp
+
+    # these are here only for QTCreator formatting
+    database.hpp
+    ui.hpp
 
     # these are here only for QTCreator
     cccurses/cccurses.hpp
