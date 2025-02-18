@@ -9,12 +9,22 @@
 
 namespace sjabloon430 { namespace tools { namespace db {
 
+using namespace std;
+
 /** Support structs/classes */
 struct DatabaseTotals {
 	int datasheets;
 	int devices;
 	int orderables;
 	int packages;
+};
+
+/* Simple data objects, no need for encapsulation in a privately used tool ... */
+struct Datasheet {
+	string id;
+	string rev;
+	string origDate;
+	string revDate;
 };
 
 /* SQLite 3 init & database import/export */
@@ -24,7 +34,7 @@ void importDatabase(sqlite3 *db, std::function<void(const std::string &file, con
 /* Query DB */
 DatabaseTotals countTotals(sqlite3 *db);
 
-std::string findDatasheetByModel(sqlite3 *db, const std::string model);
+Datasheet findDatasheetByModel(sqlite3 *db, const string model);
 
 }}} // namespace sjabloon430::tools::db
 #endif // DATABASE_HPP

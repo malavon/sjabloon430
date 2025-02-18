@@ -101,7 +101,7 @@ DatabaseTotals countTotals(sqlite3 *db) {
 	return totals;
 }
 
-string findDatasheetByModel(sqlite3 *db, const string model) {
+Datasheet findDatasheetByModel(sqlite3 *db, const string model) {
 	static const char *QUERY = "SELECT datasheet FROM device WHERE model='?'";
 
 	static sqlite3_stmt *stmt;
@@ -119,10 +119,11 @@ string findDatasheetByModel(sqlite3 *db, const string model) {
 	sqlite3_bind_text(stmt, 1, model.c_str(), -1, SQLITE_STATIC);
 
 	// assume only a single row
+	Datasheet ds;
 	if ( sqlite3_step(stmt) == SQLITE_ROW ) {
-		return reinterpret_cast<const char *>(sqlite3_column_text(stmt, 0));
+		ds.id = reinterpret_cast<const char *>(sqlite3_column_text(stmt, 0));
 	}
-	return "ERROR";
+	return ds;
 }
 
 }}} // namespace sjabloon430::tools::db
