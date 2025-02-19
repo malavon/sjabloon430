@@ -4,10 +4,13 @@
 #include <sqlite3.h>
 
 #include <string>
+#include <unordered_map>
+#include <vector>
 
 namespace sjabloon430 { namespace tools { namespace db {
 
 using std::string;
+using std::unordered_map;
 
 /** Support structs/classes */
 struct DatabaseTotals {
@@ -21,7 +24,7 @@ struct DatabaseTotals {
 struct Datasheet {
 	string id;
 	string rev;
-	string origDate;
+	string issueDate;
 	string revDate;
 };
 
@@ -30,6 +33,9 @@ sqlite3 *createDatabase();
 
 /* Query DB */
 DatabaseTotals countTotals(sqlite3 *db);
+
+Datasheet findDatasheet(sqlite3 *db, const string id);
+unordered_map<string, string> listAllModelsAndDatasheets(sqlite3 *db);
 
 }}} // namespace sjabloon430::tools::db
 #endif // SJABLOON430_TOOLS_DATABASE_HPP

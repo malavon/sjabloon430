@@ -10,14 +10,14 @@ void drawTopWindow(BorderedWindow &win, const Datasheet &ds, DatabaseTotals &tot
 	win.setTitle("Search");
 	win.add(topLine + 0, topCol, "Datasheet: ");
 	win.add(ds.id);
-	win.add("\t\t(c)");
-	win.add(ds.origDate);
+	win.add(topLine + 0, topCol + 24, "(c) ");
+	win.add(ds.issueDate);
 	win.add(topLine + 1, topCol, "Revision:  ");
 	if ( ds.rev.empty() ) {
 		win.add("A"); // TODO: justify?
 	} else {
 		win.add(ds.rev); // TODO: justify?
-		win.add("\t\t(c)");
+		win.add(topLine + 1, topCol + 24, "(c) ");
 		win.add(ds.revDate);
 	}
 
@@ -40,11 +40,12 @@ void drawTopWindow(BorderedWindow &win, const Datasheet &ds, DatabaseTotals &tot
 	win.paint();
 }
 
-// open a window in middle of screen, allow searching database; mock-up
-Datasheet searchDatasheet(sqlite3 *db, const int widestModelLength) {
+// open a window in middle of screen, present all options to user; return chosen datasheet
+string searchDatasheet(const unordered_map<string, string> &dsModels, const int widestModelLength) {
 	// TODO: also add some help on this window/form fields using F1
 	static const string DATASHEET_HDR("Datasheet ");
 	static const string MODEL_HDR("Model ");
+	static const string MVP_DISCLAIMER("MVP: UPPERCASE & exact. No autocomplete.");
 
 	const int LINE = 1;
 	const int COL = 1;
@@ -71,25 +72,26 @@ Datasheet searchDatasheet(sqlite3 *db, const int widestModelLength) {
 	fb.addField(mdField);
 	SimpleForm form = fb.build<SimpleForm>(center);
 
+	center.add(LINE - 1, COL, MVP_DISCLAIMER);
 	center.add(LINE + 0, COL, DATASHEET_HDR);
 	center.add(LINE + 2, COL, MODEL_HDR);
-	center.add(LINE + 0, MENU_COL - 1, '>');
-	center.add(LINE + 0, MENU_COL, "MSP430F6458");
-	center.add(LINE + 1, MENU_COL, "MSP430F6459");
-	center.add(LINE + 2, MENU_COL, "MSP430F6459-HIREL");
 
-	static const string BUTTON_TEXT = "[OPEN]";
+	// static const string BUTTON_TEXT = "[OPEN]"; // button not part of MVP, enter works always
+	static const string BUTTON_TEXT = "[ENTER TO OPEN]"; // MVP
 	center.add(WIN_HEIGHT - 3, (WIN_WIDTH - BUTTON_TEXT.length()) / 2, BUTTON_TEXT, COLOR_PAIR(COLOR_PAIR_BUTTON_SELECTED));
 	center.paint();
 
 	form.loop();
 
-	Datasheet ds;
-	// note: buffer is only filled AFTER leaving the field? this isn't useful for auto-completion and in-line validation
-	ds.id = dsField.buffer<string>();
-	ds.id += ' ';
-	ds.id += mdField.buffer<string>();
-	return ds;
+	string dsId = dsField.buffer<string>();
+	string mdlId = mdField.buffer<string>();
+	if ( dsId.empty() ) {
+		assert(!mdlId.empty());
+		if ( dsModels.count(mdlId) > 0 ) {
+			dsId = dsModels.at(mdlId);
+		}
+	}
+	return dsId;
 }
 
 }}}} // namespace sjabloon430::tools::pinout::ui
