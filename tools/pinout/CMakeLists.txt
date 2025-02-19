@@ -14,6 +14,7 @@ set(CCCURSES_HEADERS
     cccurses/colors.hpp
     cccurses/error.hpp
     cccurses/form.hpp
+    cccurses/input.hpp
     cccurses/window.hpp
     cccurses/layout/layout.hpp
     cccurses/layout/absolute-layout.hpp
