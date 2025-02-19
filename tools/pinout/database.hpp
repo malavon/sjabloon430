@@ -6,6 +6,7 @@
 #include <filesystem>
 #include <functional>
 #include <string>
+#include <unordered_map>
 #include <vector>
 
 using namespace std;
@@ -26,7 +27,7 @@ struct DatabaseTotals {
 struct Datasheet {
 	string id;
 	string rev;
-	string origDate;
+	string issueDate;
 	string revDate;
 };
 
@@ -37,7 +38,8 @@ void importDatabase(sqlite3 *db, std::function<void(const std::string &file, con
 /* Query DB */
 DatabaseTotals countTotals(sqlite3 *db);
 
-Datasheet findDatasheetByModel(sqlite3 *db, const string model);
+Datasheet findDatasheet(sqlite3 *db, const string id);
+unordered_map<string, string> listAllModelsAndDatasheets(sqlite3 *db);
 
 }}} // namespace sjabloon430::tools::db
 #endif // DATABASE_HPP
