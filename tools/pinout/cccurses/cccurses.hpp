@@ -25,6 +25,10 @@ void initCurses() {
 	internal::initColors();
 }
 
+void endCurses() {
+	endwin(); // important: restores terminal but apparently only if windows are cleared?
+}
+
 Window &standardScreen() {
 	static Window standardScreen(stdscr);
 	return standardScreen;

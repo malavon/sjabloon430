@@ -1,5 +1,7 @@
 #include "ui.hpp"
 
+using namespace cccurses;
+
 namespace sjabloon430 { namespace tools { namespace pinout { namespace ui {
 
 using namespace cccurses;
@@ -69,7 +71,7 @@ Datasheet searchDatasheet(sqlite3 *db, const int widestModelLength) {
 	Field mdField(1, widestModelLength, LINE + 2, ML_FIELD_COL);
 	mdField.autoSkip(OFF);
 	fb.addField(mdField);
-	Form form = fb.build(center);
+	SimpleForm form = fb.build<SimpleForm>(center);
 
 	center.add(LINE + 0, COL, DATASHEET_HDR);
 	center.add(LINE + 2, COL, MODEL_HDR);

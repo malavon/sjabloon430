@@ -1,10 +1,9 @@
 #ifndef UI_HPP
 #define UI_HPP
 
+#include "database.hpp"
 #include "cccurses/form.hpp"
 #include "cccurses/window.hpp"
-
-#include "database.hpp"
 
 namespace sjabloon430 { namespace tools { namespace pinout { namespace ui {
 
