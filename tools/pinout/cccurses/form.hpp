@@ -9,6 +9,7 @@
 #include "colors.hpp"
 // #include "error.hpp"
 #include "form.h"
+#include "input.hpp"
 #include "window.hpp"
 
 namespace cccurses {
@@ -124,13 +125,82 @@ class Field {
 		return field_buffer(ptr, 0);
 	}
 
+	// TODO: shared with template Form
+	// TODO: friend class Form<T> instead
+	FIELD *raw() const {
+		return ptr;
+	}
+
   private:
 	FIELD *ptr;
 
-	friend class Form;
-	friend class FormBuilder;
+	// friend class Form<class>; // how to?
+	// friend class FormBuilder;
 };
 
+class DefaultFormKeyEventDelegate : public KeyEventDelegate<FORM *> {
+  public:
+	DefaultFormKeyEventDelegate(FORM *form) : ptr(form) { }
+
+	static KeyFeedback keyBackTab(FORM *ctx) {
+		/* Go to previous field */
+		form_driver(ctx, REQ_PREV_FIELD);
+		form_driver(ctx, REQ_END_LINE);
+		return FEEDBACK_CONTINUE;
+	}
+
+	static KeyFeedback keyBackspace(FORM *ctx) {
+		form_driver(ctx, REQ_DEL_PREV);
+		return FEEDBACK_CONTINUE;
+	}
+
+	static KeyFeedback keyCharacter(FORM *ctx, const char ch) {
+		form_driver(ctx, ch);
+		cout << ch << ' '; // for debugging, print character numbers for now
+		return FEEDBACK_CONTINUE;
+	}
+
+	static KeyFeedback keyDelete(FORM *ctx) {
+		form_driver(ctx, REQ_DEL_CHAR);
+		return FEEDBACK_CONTINUE;
+	}
+
+	// TODO: would be more logical to move to next field after validation?
+	static KeyFeedback keyEnter(FORM *ctx) {
+		form_driver(ctx, REQ_VALIDATION); // also copies current field's value to buffer
+		return FEEDBACK_STOP;
+	}
+
+	// KeyFeedback keyLeftArrow(FORM* ctx) {
+	// 	return FEEDBACK_CONTINUE;
+	// }
+
+	// allows moving through empty spaces in field, not really as expected
+	// maybe fixable with dynamic field?
+	// KeyFeedback keyRightArrow(FORM* ctx) {
+	// form_driver(ctx, REQ_NEXT_CHAR);
+	// 	return FEEDBACK_CONTINUE;
+	// }
+
+	static KeyFeedback keyTab(FORM *ctx) {
+		form_driver(ctx, REQ_NEXT_FIELD);
+		/* Go to the end of the present buffer */
+		/* Leaves nicely at the last character */
+		form_driver(ctx, REQ_END_LINE);
+		return FEEDBACK_CONTINUE;
+	}
+
+	static KeyFeedback keyWhitespace(FORM *ctx, const char ch) {
+		form_driver(ctx, ch);
+		cout << ch << ' '; // for debugging, print character numbers for now
+		return FEEDBACK_CONTINUE;
+	}
+
+  private:
+	FORM *ptr;
+};
+
+template<class KEY>
 class Form {
   public:
 	Form(const Window &win, vector<Field> fields) : window(win) {
@@ -138,7 +208,7 @@ class Form {
 		this->fields = new FIELD *[fields.size() + 1];
 		this->fields[fields.size()] = NULL;
 		for ( int i = fields.size() - 1; i >= 0; i-- ) {
-			this->fields[i] = fields[i].ptr;
+			this->fields[i] = fields[i].raw();
 		}
 		// delegation doesn't work like this ...
 		// Form(win, cFields);
@@ -147,8 +217,8 @@ class Form {
 		if ( errno != E_OK && errno != E_NOT_CONNECTED ) {
 			// cout << "FORM ERROR " << printRC(errno) << endl;
 		}
-		set_form_win(ptr, win.ptr);
-		set_form_sub(ptr, win.ptr); // TODO: this used to be inner for original 2-ptr Window
+		set_form_win(ptr, win.raw());
+		set_form_sub(ptr, win.raw()); // TODO: this used to be inner for original 2-ptr Window
 		post_form(ptr);
 	}
 
@@ -161,78 +231,10 @@ class Form {
 		}
 	}
 
-	/*  */
-
-	// LOL
-	// extremely re-usable code :p
 	void loop() {
-		// there is no automatic jump to first field after window paint
+		// there is no automatic jump to first field
 		form_driver(ptr, REQ_FIRST_FIELD);
-		int ch;
-		while ( (ch = wgetch(window.ptr)) ) {
-			// this either needs to be in the while() condition
-			// or here, it can't be in the switch because 2 break statements
-			// would be needed and this isn't possible
-			// anyway, this will be completely changed somewhere in the future anyway
-			if ( ch == KEY_ENTER || ch == 10 || ch == 27 /* escape */ ) {
-				break;
-			}
-			switch ( ch ) {
-				case KEY_DOWN:
-				case 9:
-					// TODO: TAB doesn't work, BTAB (back-tab does)...
-					// using code 9 does too, no key value? odd
-					// it's probably in some other file?
-					form_driver(ptr, REQ_NEXT_FIELD);
-					/* Go to the end of the present buffer */
-					/* Leaves nicely at the last character */
-					form_driver(ptr, REQ_END_LINE);
-					break;
-				case KEY_UP:
-				case KEY_BTAB:
-					/* Go to previous field */
-					form_driver(ptr, REQ_PREV_FIELD);
-					form_driver(ptr, REQ_END_LINE);
-					break;
-				// case KEY_LEFT:
-				// 	form_driver(ptr, REQ_PREV_CHAR);
-				// 	break;
-				// case KEY_RIGHT:
-				// 	// TODO: moves beyond contents as if moving in empty buffer
-				// 	// REQ_END_FIELD does it correctly though
-				// 	form_driver(ptr, REQ_RIGHT_CHAR);
-				// 	break;
-				case KEY_BACKSPACE:
-				case 127: // 127 = 0177; returned for backspace in Konsole? why?
-					// TODO: moves to next field if current field is empty ...
-					form_driver(ptr, REQ_DEL_PREV);
-					break;
-					// if no navigation (left/right), delete still needed for last character in field!
-				case KEY_DC: // delete character
-					// Konsole and VT
-					form_driver(ptr, REQ_DEL_CHAR);
-					break;
-					// case KEY_END:
-					// 	form_driver(ptr, REQ_END_FIELD);
-					// 	break;
-					// case KEY_HOME:
-					// 	form_driver(ptr, REQ_BEG_FIELD);
-					// 	break;
-				case ' ': // do not allow space
-					break;
-				default:
-					/* If this is a normal character, it gets Printed */
-					form_driver(ptr, ch);
-					cout << ch << ' '; // for debugging, print character numbers for now
-					break;
-			}
-		}
-		form_driver(ptr, REQ_VALIDATION); // also copies current field's value to buffer
-	}
-
-	// TEMPORARY?
-	FORM *raw() const {
-		return ptr;
+		KeyEventProducer<KEY, FORM *>::captureAndDelegate(window, ptr);
 	}
 
   private:
@@ -243,6 +245,12 @@ class Form {
 	friend class FormBuilder;
 };
 
+/** A simple pre-defined form that uses sensible key bindings for general use **/
+class SimpleForm : public Form<DefaultFormKeyEventDelegate> {
+  public:
+	SimpleForm(const Window &win, vector<Field> fields) : Form<DefaultFormKeyEventDelegate>(win, fields) { }
+};
+
 // TODO: remove? post_form can happen outside of constructor
 class FormBuilder {
   public:
@@ -250,8 +258,9 @@ class FormBuilder {
 		fields.push_back(field);
 	}
 
-	Form build(Window &win) {
-		return Form(win, fields);
+	template<class FORM_CLASS>
+	FORM_CLASS build(Window &win) {
+		return FORM_CLASS(win, fields);
 	}
 
   private:
