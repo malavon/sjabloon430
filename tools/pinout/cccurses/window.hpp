@@ -29,6 +29,7 @@ class Window {
 	Window(WINDOW *win) : ptr(win) { }
 
 	~Window() {
+		clear();
 		if ( ptr != nullptr ) {
 			delwin(ptr); // might be dangerous with stdscr?
 		}
@@ -119,6 +120,11 @@ class Window {
 		wrefresh(ptr);
 	}
 
+	void clear() {
+		wclear(ptr);
+		wrefresh(ptr);
+	}
+
 	operator WINDOW *() const {
 		return ptr;
 	}
@@ -150,6 +156,7 @@ class BorderedWindow : public Window {
 	}
 
 	~BorderedWindow() {
+		clear();
 		if ( outer != nullptr ) {
 			delete outer;
 		}
@@ -169,6 +176,12 @@ class BorderedWindow : public Window {
 		rc = wrefresh(outer);
 		assert(OK == rc);
 		Window::paint();
+	}
+
+	void clear() {
+		Window::clear();
+		wclear(outer);
+		wrefresh(outer);
 	}
 
   private:
