@@ -173,7 +173,7 @@ class Form {
 			// or here, it can't be in the switch because 2 break statements
 			// would be needed and this isn't possible
 			// anyway, this will be completely changed somewhere in the future anyway
-			if ( ch == KEY_ENTER || ch == 10 ) {
+			if ( ch == KEY_ENTER || ch == 10 || ch == 27 /* escape */ ) {
 				break;
 			}
 			switch ( ch ) {
