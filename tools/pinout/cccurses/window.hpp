@@ -131,8 +131,6 @@ class Window {
 
   protected:
 	WINDOW *ptr;
-
-	friend class Form;
 };
 
 // Window that keeps a separate subwindow (or derived window) pointer
