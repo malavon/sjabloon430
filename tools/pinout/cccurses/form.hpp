@@ -85,10 +85,33 @@ class Field {
 
 	template<>
 	const string buffer<string>() const {
-		string str(field_buffer(ptr, 0));
-		// TODO: trim spaces?
-		str.shrink_to_fit();
-		return str;
+		char *buffer = field_buffer(ptr, 0);
+		int first = -1, last = -1;
+		int len = strlen(buffer) - 1;
+		// find last non-whitespace character
+		for ( int i = len; i >= 0 && last < 0; i-- ) {
+			if ( buffer[i] != ' ' ) {
+				last = i;
+			}
+		}
+		// find first non-whitespace character
+		for ( int i = 0; i < len && first < 0; i++ ) {
+			if ( buffer[i] != ' ' ) {
+				first = i;
+			}
+		}
+		if ( -1 == first ) {
+			// if first == -1, last also == -1
+			// you, reader, do see this, right?
+			return "";
+		} else {
+			int real = last - first + 1;
+			// buffer will contain duplicates, but is trimmed in string creation
+			strncpy(buffer, buffer + first, real);
+			// no need to 0-terminate, real length will be used
+			string str(buffer, real);
+			return str;
+		}
 	}
 
 	// template<>
