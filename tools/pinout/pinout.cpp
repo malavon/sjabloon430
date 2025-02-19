@@ -100,15 +100,17 @@ int main() {
 		secondPin.paint();
 
 		// initial state: open search window
-		Datasheet selectedDS = searchDatasheet(db, WIDEST.length());
-
+		string selectedId = searchDatasheet(listAllModelsAndDatasheets(db), WIDEST.length());
+		Datasheet selectedDS = findDatasheet(db, selectedId);
 		drawTopWindow(top, selectedDS, totals);
 
 		// set_field_type(field[0], TYPE_ALNUM);
 		// set_field_type(field[1], TYPE_INTEGER);
+		SimpleForm dummy(top, vector<Field>());
+		dummy.loop();
 	}
 
-	endwin(); // important: restores terminal
+	endCurses();
 
 	return EXIT_SUCCESS;
 }

@@ -80,42 +80,33 @@ DatabaseTotals countTotals(sqlite3 *db) {
 	return totals;
 }
 
-Datasheet findDatasheetByModel(sqlite3 *db, const string model) {
-	static const string QUERY("SELECT datasheet FROM device WHERE model='");
-	string query = QUERY + model + "'";
+Datasheet findDatasheet(sqlite3 *db, const string id) {
+	static const string QUERY("SELECT id, revision, CONCAT(issue_month, '/', issue_year) issue_date,"
+							  "CONCAT(rev_month, '/', rev_year) rev_date FROM datasheet WHERE id='");
+	string query = QUERY + id + "'";
 	sqlite3_stmt *stmt;
 	// assume only a single row
 	Datasheet ds;
-	if ( sqlite3_prepare_v2(db, query.c_str(), -1, &stmt, NULL) == SQLITE_OK && sqlite3_step(stmt) == SQLITE_ROW ) {
+	int rc = sqlite3_prepare_v2(db, query.c_str(), -1, &stmt, NULL);
+	if ( rc == SQLITE_OK && sqlite3_step(stmt) == SQLITE_ROW ) {
 		ds.id = reinterpret_cast<const char *>(sqlite3_column_text(stmt, 0));
+		ds.rev = reinterpret_cast<const char *>(sqlite3_column_text(stmt, 1));
+		ds.issueDate = reinterpret_cast<const char *>(sqlite3_column_text(stmt, 2));
+		ds.revDate = reinterpret_cast<const char *>(sqlite3_column_text(stmt, 3));
 	}
 	return ds;
 }
 
-vector<string> listDatasheetIds(sqlite3 *db, const string firstChars) {
-	// maybe allow intermediate chars? % twice?
-	static const string QUERY("SELECT id FROM datasheet WHERE id ILIKE '");
-	string query = QUERY + firstChars + "%'";
+unordered_map<string, string> listAllModelsAndDatasheets(sqlite3 *db) {
+	static const string QUERY("SELECT model, datasheet_id FROM device");
 
-	vector<string> result;
 	sqlite3_stmt *stmt;
-	if ( sqlite3_prepare_v2(db, query.c_str(), -1, &stmt, NULL) == SQLITE_OK ) {
+	unordered_map<string, string> result;
+	if ( sqlite3_prepare_v2(db, QUERY.c_str(), -1, &stmt, NULL) == SQLITE_OK ) {
 		while ( sqlite3_step(stmt) == SQLITE_ROW ) {
-			result.push_back(string(reinterpret_cast<const char *>(sqlite3_column_text(stmt, 0))));
-		}
-	}
-	return result;
-}
-
-vector<string> listModels(sqlite3 *db, const string firstChars) {
-	static const string QUERY("SELECT model FROM device WHERE model ILIKE '");
-	string query = QUERY + firstChars + "%'";
-
-	vector<string> result;
-	sqlite3_stmt *stmt;
-	if ( sqlite3_prepare_v2(db, query.c_str(), -1, &stmt, NULL) == SQLITE_OK ) {
-		while ( sqlite3_step(stmt) == SQLITE_ROW ) {
-			result.push_back(string(reinterpret_cast<const char *>(sqlite3_column_text(stmt, 0))));
+			string model = string(reinterpret_cast<const char *>(sqlite3_column_text(stmt, 0)));
+			string datasheet = string(reinterpret_cast<const char *>(sqlite3_column_text(stmt, 1)));
+			result[model] = datasheet;
 		}
 	}
 	return result;

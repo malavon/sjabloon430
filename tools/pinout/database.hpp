@@ -5,6 +5,7 @@
 
 #include <filesystem>
 #include <functional>
+#include <unordered_map>
 #include <vector>
 
 namespace sjabloon430 { namespace tools { namespace db {
@@ -23,17 +24,15 @@ struct DatabaseTotals {
 struct Datasheet {
 	string id;
 	string rev;
-	string origDate;
+	string issueDate;
 	string revDate;
 };
 
 void importDatabase(sqlite3 *db, const filesystem::path &dbDir, function<void(const string &file, const char *error)> callback);
 
 /* Query DB */
-Datasheet findDatasheetByModel(sqlite3 *db, const string model);
-
-vector<string> listDatasheetIds(sqlite3 *db, const string firstChars);
-vector<string> listModels(sqlite3 *db, const string firstChars);
+Datasheet findDatasheet(sqlite3 *db, const string id);
+unordered_map<string, string> listAllModelsAndDatasheets(sqlite3 *db);
 
 DatabaseTotals countTotals(sqlite3 *db);
 
