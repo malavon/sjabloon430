@@ -61,4 +61,47 @@ DatabaseTotals countTotals(sqlite3 *db) {
 	return totals;
 }
 
+Datasheet findDatasheet(sqlite3 *db, const string id) {
+	static const char *QUERY = "SELECT id, revision,"
+				   "CONCAT(issue_month, '/', issue_year)	issue_date,"
+				   "CONCAT(rev_month, '/', rev_year)	rev_date "
+				   "FROM datasheet "
+				   "WHERE id=?";
+
+	static sqlite3_stmt *stmt;
+	if ( stmt == nullptr ) {
+		prepare(db, &stmt, QUERY);
+	}
+
+	sqlite3_reset(stmt);
+	sqlite3_bind_text(stmt, 1, id.c_str(), -1, SQLITE_STATIC);
+
+	// assume only a single row
+	Datasheet ds;
+	if ( sqlite3_step(stmt) == SQLITE_ROW ) {
+		ds.id = reinterpret_cast<const char *>(sqlite3_column_text(stmt, 0));
+		ds.rev = reinterpret_cast<const char *>(sqlite3_column_text(stmt, 1));
+		ds.issueDate = reinterpret_cast<const char *>(sqlite3_column_text(stmt, 2));
+		ds.revDate = reinterpret_cast<const char *>(sqlite3_column_text(stmt, 3));
+	}
+	return ds;
+}
+
+unordered_map<string, string> listAllModelsAndDatasheets(sqlite3 *db) {
+	static const char *QUERY = "SELECT model, datasheet_id FROM device";
+
+	static sqlite3_stmt *stmt;
+	if ( stmt == nullptr ) {
+		prepare(db, &stmt, QUERY);
+	}
+
+	unordered_map<string, string> result;
+	while ( sqlite3_step(stmt) == SQLITE_ROW ) {
+		string model = string(reinterpret_cast<const char *>(sqlite3_column_text(stmt, 0)));
+		string datasheet = string(reinterpret_cast<const char *>(sqlite3_column_text(stmt, 1)));
+		result[model] = datasheet;
+	}
+	return result;
+}
+
 }}}} // namespace sjabloon430::tools::pinout::db
