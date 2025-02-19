@@ -91,15 +91,17 @@ int main() {
 		secondPin.paint();
 
 		// initial state: open search window
-		db::Datasheet selectedDS = ui::searchDatasheet(db, WIDEST_MODEL_LENGTH);
-
+		string selectedId = ui::searchDatasheet(db::listAllModelsAndDatasheets(db), WIDEST_MODEL_LENGTH);
+		db::Datasheet selectedDS = db::findDatasheet(db, selectedId);
 		ui::drawTopWindow(top, selectedDS, totals);
 
 		// set_field_type(field[0], TYPE_ALNUM);
 		// set_field_type(field[1], TYPE_INTEGER);
+		SimpleForm dummy(top, vector<Field>());
+		dummy.loop();
 	}
 
-	endwin(); // important: restores terminal
+	endCurses();
 
 	return EXIT_SUCCESS;
 }
