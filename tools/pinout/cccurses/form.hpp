@@ -168,7 +168,14 @@ class Form {
 		// there is no automatic jump to first field after window paint
 		form_driver(ptr, REQ_FIRST_FIELD);
 		int ch;
-		while ( (ch = wgetch(window.ptr)) < KEY_F(1) || ch > KEY_F(12) ) {
+		while ( (ch = wgetch(window.ptr)) ) {
+			// this either needs to be in the while() condition
+			// or here, it can't be in the switch because 2 break statements
+			// would be needed and this isn't possible
+			// anyway, this will be completely changed somewhere in the future anyway
+			if ( ch == KEY_ENTER || ch == 10 ) {
+				break;
+			}
 			switch ( ch ) {
 				case KEY_DOWN:
 				case 9:
