@@ -11,6 +11,7 @@ namespace sjabloon430 { namespace tools { namespace pinout { namespace db {
 
 using std::string;
 using std::unordered_map;
+using std::vector;
 
 /** Support structs/classes */
 struct DatabaseTotals {
@@ -34,6 +35,8 @@ sqlite3 *createDatabase();
 /* Query DB */
 DatabaseTotals countTotals(sqlite3 *db);
 Datasheet findDatasheet(sqlite3 *db, const string id);
+vector<string> findModelsByDatasheet(sqlite3 *db, const string datasheetId);
+vector<string> findPackagesByDatasheet(sqlite3 *db, const string datasheetId);
 unordered_map<string, string> listAllModelsAndDatasheets(sqlite3 *db);
 
 }}}} // namespace sjabloon430::tools::pinout::db
