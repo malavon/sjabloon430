@@ -34,6 +34,8 @@ enum class FieldOpts : int {
 
 class Field {
   public:
+	Field() { }
+
 	// no idea what to do with offscreenLines or buffers...
 	Field(int height, int width, int row, int col, int offscreenLines = 0, int buffers = 0) {
 		ptr = new_field(height, width, row, col, offscreenLines, buffers);
@@ -68,6 +70,10 @@ class Field {
 		} else {
 			field_opts_off(ptr, O_AUTOSKIP);
 		}
+	}
+
+	void justify(const int justification) {
+		set_field_just(ptr, justification);
 	}
 
 	void paint(int row, int col) {
@@ -207,10 +213,10 @@ class Form {
 	~Form() {
 		// TODO
 		unpost_form(ptr);
-		free_form(ptr);
 		for ( unsigned int i = 0; fields[i] != nullptr; i++ ) {
 			free_field(fields[i]);
 		}
+		free_form(ptr);
 	}
 
 	void loop() {
