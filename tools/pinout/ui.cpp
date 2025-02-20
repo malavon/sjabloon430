@@ -7,6 +7,59 @@ using namespace cccurses;
 // 7 is fixed; all datasheets are 7 wide
 static const int FIELD_WIDTH_DATASHEET = 7;
 
+// TODO: be able to render more than first pin :)
+// TODO: edit/view
+// TODO: window should scroll working
+void drawPin(Window &win, const vector<string> &pkgs) {
+	// 3 characters is enough for pin numbers, even BGA
+	static const int PIN_FIELD_WIDTH = 3;
+	// packages (drawing + pins) are up to 6 wide, so always format them at 6
+	static const int HDR_WIDTH = 6;
+	// signal is max ... TODO=
+	static const int SGN_FIELD_WIDTH = 8;
+
+	static const string SIGNAL_HDR("SIGNAL");
+	static const string DESCRIPTION_HDR("DESCRIPTION");
+
+	// static int lastPinStart = 0, lastPinEnd = 0; // TODO: not good enough, need feedback from function
+	// win.moveCursor(0, 1); // TODO: based on pin #?
+	// Field *pinFields = new Field[pkgs.size()];
+	FormBuilder fb;
+	Field *pinFields = new Field[pkgs.size()]; // needed for data? why not From Form object
+	int hdrRow = 1;
+	int pinRow = 2;
+	int col = 0;
+	for ( size_t i = 0; i < pkgs.size(); i++ ) {
+		col += HDR_WIDTH + 1;
+
+		Field fld = Field(1, PIN_FIELD_WIDTH, pinRow, col - PIN_FIELD_WIDTH);
+		fld.justify(JUSTIFY_RIGHT);
+		fb.addField(fld);
+		pinFields[i] = fld;
+	}
+	col++;
+	// col += 1 + std::max(static_cast<int>(SIGNAL_HDR.length()), SGN_FIELD_WIDTH) - SIGNAL_HDR.length();
+	Field sgnField(1, SGN_FIELD_WIDTH, pinRow, col);
+	sgnField.justify(JUSTIFY_RIGHT);
+	fb.addField(sgnField);
+	col += SGN_FIELD_WIDTH + 1;
+	Field descField(1, 20 /*TODO*/, pinRow, col);
+	fb.addField(descField);
+	SimpleForm form = fb.build<SimpleForm>(win);
+
+	// HEADER, only once every X pins?
+	col = 0;
+	for ( const string &pkg : pkgs ) {
+		col += HDR_WIDTH + 1;
+		int len = pkg.length();
+		win.add(hdrRow, col - len, pkg);
+	}
+	win.add(hdrRow, col + SGN_FIELD_WIDTH - SIGNAL_HDR.length() + 1, SIGNAL_HDR);
+	win.paint();
+	form.loop();
+	// TODO: check deletion
+}
+
 void drawTopWindow(BorderedWindow &win, const Datasheet &ds, DatabaseTotals &totals) {
 	int topLine = 0;
 	int topCol = 1;
