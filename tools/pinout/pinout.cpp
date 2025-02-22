@@ -106,10 +106,10 @@ int main() {
 		 * V1.0
 		 * autocomplete signals from DB
 		 */
+
 		// set_field_type(field[0], TYPE_ALNUM);
 		// set_field_type(field[1], TYPE_INTEGER);
-		SimpleForm dummy(top, vector<Field>());
-		dummy.loop();
+		wgetch(pins); // just here to prevent application exit for partial mock-up
 	}
 
 	endCurses();
