@@ -29,7 +29,7 @@ class Window {
 	Window(WINDOW *win) : ptr(win) { }
 
 	~Window() {
-		clear();
+		erase();
 		if ( ptr != nullptr ) {
 			delwin(ptr); // might be dangerous with stdscr?
 		}
@@ -111,6 +111,18 @@ class Window {
 		assert(OK == rc);
 	}
 
+	Window deriveWindow(unsigned int height, unsigned int width, unsigned int line, unsigned int col) {
+		WINDOW *der = derwin(ptr, height, width, line, col);
+		// assert(der == nullptr);
+		keypad(der, true); // TODO? part of form? or not?
+		return Window(der);
+	}
+
+	void erase() {
+		werase(ptr);
+		wrefresh(ptr);
+	}
+
 	void moveCursor(const int line, const int col) {
 		int rc = wmove(ptr, line, col);
 		assert(OK == rc);
@@ -160,11 +172,15 @@ class BorderedWindow : public Window {
 		}
 	}
 
-	void setTitle(const string &title) {
-		this->title = title;
+	void erase() {
+		touchwin(outer);
+		Window::erase();
+		werase(outer);
+		wrefresh(outer);
 	}
 
 	void paint() const {
+		touchwin(outer);
 		int rc = wborder(outer, 0, 0, 0, 0, 0, 0, 0, 0);
 		assert(OK == rc);
 		if ( !title.empty() ) {
@@ -176,10 +192,8 @@ class BorderedWindow : public Window {
 		Window::paint();
 	}
 
-	void clear() {
-		Window::clear();
-		wclear(outer);
-		wrefresh(outer);
+	void setTitle(const string &title) {
+		this->title = title;
 	}
 
   private:
