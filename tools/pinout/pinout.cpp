@@ -40,11 +40,11 @@ int main() {
 	static const int MAX_WIDTH = WIDEST.length() + MODEL_INDENT + 2 /*border*/;
 
 	{
-		BorderedWindow top(0, 0, 5, COLS - MAX_WIDTH);
-		BorderedWindow defaultSet(0, COLS - MAX_WIDTH, 10, MAX_WIDTH);
-		BorderedWindow newSet(10, COLS - MAX_WIDTH, 3, MAX_WIDTH);
+		BorderedWindow top(5, COLS - MAX_WIDTH, 0, 0);
+		BorderedWindow defaultSet(10, MAX_WIDTH, 0, COLS - MAX_WIDTH);
+		BorderedWindow newSet(3, MAX_WIDTH, 10, COLS - MAX_WIDTH);
 		// TODO: no border, separate with hline or something?
-		Window pins(6, 0, LINES - 6, COLS - MAX_WIDTH);
+		Window pins(LINES - 6, COLS - MAX_WIDTH, 6, 0);
 
 		int lr = 0;
 		defaultSet.setTitle("Default");
@@ -113,10 +113,10 @@ int main() {
 		 * V1.0
 		 * autocomplete signals from DB
 		 */
+
 		// set_field_type(field[0], TYPE_ALNUM);
 		// set_field_type(field[1], TYPE_INTEGER);
-		SimpleForm dummy(top, vector<Field>());
-		dummy.loop();
+		wgetch(pins.raw()); // just here to prevent application exit for partial mock-up
 	}
 
 	endCurses();
