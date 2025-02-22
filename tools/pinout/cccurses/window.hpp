@@ -16,7 +16,7 @@ class Window {
 	Window() { }
 
   public:
-	Window(unsigned int line, unsigned int col, unsigned int height, unsigned int width) {
+	Window(unsigned int height, unsigned int width, unsigned int line, unsigned int col) {
 		ptr = newwin(height, width, line, col);
 		keypad(ptr, true);
 	}
@@ -27,7 +27,7 @@ class Window {
 	Window(WINDOW *win) : ptr(win) { }
 
 	~Window() {
-		clear();
+		erase();
 		if ( ptr != nullptr ) {
 			delwin(ptr); // might be dangerous with stdscr?
 		}
@@ -86,6 +86,18 @@ class Window {
 		wattroff(ptr, attrs);
 	}
 
+	Window deriveWindow(unsigned int height, unsigned int width, unsigned int line, unsigned int col) {
+		WINDOW *der = derwin(ptr, height, width, line, col);
+		// assert(der == nullptr);
+		keypad(der, true); // TODO? part of form? or not?
+		return Window(der);
+	}
+
+	void erase() {
+		werase(ptr);
+		wrefresh(ptr);
+	}
+
 	void moveCursor(const int line, const int col) {
 		wmove(ptr, line, col);
 	}
@@ -101,11 +113,6 @@ class Window {
 	// }
 
 	void paint() const {
-		wrefresh(ptr);
-	}
-
-	void clear() {
-		wclear(ptr);
 		wrefresh(ptr);
 	}
 
@@ -126,8 +133,8 @@ class Window {
  * the target for everything to be added. */
 class BorderedWindow : public Window {
   public:
-	BorderedWindow(unsigned int line, unsigned int col, unsigned int height, unsigned int width) :
-	    Window(line, col, height, width) {
+	BorderedWindow(unsigned int height, unsigned int width, unsigned int line, unsigned int col) :
+	    Window(height, width, line, col) {
 		outer = ptr;
 		// replace original pointer with the derived window inside the border
 		ptr = derwin(outer, height - 2, width - 2, 1, 1);
@@ -141,21 +148,23 @@ class BorderedWindow : public Window {
 		}
 	}
 
-	void setTitle(const string &title) {
-		this->title = title;
+	void erase() {
+		touchwin(outer);
+		Window::erase();
+		werase(outer);
+		wrefresh(outer);
 	}
 
 	void paint() const {
+		touchwin(outer);
 		wborder(outer, 0, 0, 0, 0, 0, 0, 0, 0);
 		mvwaddnstr(outer, 0, 2, title.c_str(), title.length());
 		wrefresh(outer);
 		Window::paint();
 	}
 
-	void clear() {
-		Window::clear();
-		wclear(outer);
-		wrefresh(outer);
+	void setTitle(const string &title) {
+		this->title = title;
 	}
 
   private:

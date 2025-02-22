@@ -34,6 +34,11 @@ enum class FieldOpts : int {
 	WRAP = O_WRAP,
 };
 
+struct FormSize {
+	int columns;
+	int rows;
+};
+
 class Field {
   public:
 	Field() { }
@@ -81,11 +86,18 @@ class Field {
 	void paint(int row, int col) {
 		// can only move when NOT connected to form ...
 		int rc = move_field(ptr, row, col);
-		if ( rc != E_OK ) {
-			// std::cout << "Error " << printRC(rc) << endl;
-		}
+		// if ( rc != E_OK ) {
+		// 	std::cout << "Error " << printRC(rc) << endl;
+		// }
 
 		assert(rc != E_OK);
+	}
+
+	// TODO: more than just a pair?
+	// TODO: also, fore & back are difficult to understand; empty/filled?
+	void setColors(int fore = COLOR_PAIR_FORM_SELECTED, int back = COLOR_PAIR_FORM_VALID) {
+		set_field_fore(ptr, COLOR_PAIR(fore));
+		set_field_back(ptr, COLOR_PAIR(back));
 	}
 
 	template<class T>
@@ -162,7 +174,7 @@ class DefaultFormKeyEventDelegate : public KeyEventDelegate<FORM *> {
 
 	static KeyFeedback keyCharacter(FORM *ctx, const char ch) {
 		form_driver(ctx, ch);
-		cout << ch << ' '; // for debugging, print character numbers for now
+		cout << static_cast<int>(ch) << ' '; // for debugging, print character numbers for now
 		return FEEDBACK_CONTINUE;
 	}
 
@@ -209,32 +221,58 @@ class DefaultFormKeyEventDelegate : public KeyEventDelegate<FORM *> {
 template<class KEY>
 class Form {
   public:
-	Form(const Window &win, vector<Field> fields) : window(win) {
+	/**
+	 * @brief Form constructor that posts form after construction
+	 * @param win
+	 * @param fields
+	 */
+	Form(const Window &win, const Window &subForm, vector<Field> fields) : window(win) {
+		fields.reserve(fields.size() + 1);
+		for ( Field &fld : fields ) {
+			fieldPtrs.push_back(fld.raw());
+		}
 		// man 3 form: ... (which must be NULL-terminated)
-		this->fields = new FIELD *[fields.size() + 1];
-		this->fields[fields.size()] = NULL;
-		for ( int i = fields.size() - 1; i >= 0; i-- ) {
-			this->fields[i] = fields[i].raw();
-		}
-		// delegation doesn't work like this ...
-		// Form(win, cFields);
-		ptr = new_form(this->fields);
-		// how to communicate error? assert?
-		if ( errno != E_OK && errno != E_NOT_CONNECTED ) {
-			// cout << "FORM ERROR " << printRC(errno) << endl;
-		}
-		set_form_win(ptr, win.raw());
-		set_form_sub(ptr, win.raw()); // TODO: this used to be inner for original 2-ptr Window
-		post_form(ptr);
+		fieldPtrs.push_back(nullptr);
+		int rc = E_OK;
+		ptr = new_form(fieldPtrs.data());
+		// how to communicate errors for runtime?
+		rc = errno;
+		assert(rc == E_OK || rc == E_NOT_CONNECTED);
+		rc = set_form_win(ptr, win.raw());
+		assert(rc == E_OK);
+		// TODO: this used to be inner for original 2-ptr Window
+		rc = set_form_sub(ptr, subForm.raw());
+		assert(rc == E_OK);
+		rc = post_form(ptr);
+		assert(rc == E_OK);
 	}
+
+	Form(const Window &win, vector<Field> fields) : Form(win, win, fields) { }
 
 	~Form() {
 		// TODO
 		unpost_form(ptr);
-		for ( unsigned int i = 0; fields[i] != nullptr; i++ ) {
-			free_field(fields[i]);
+		for ( FIELD *fldPtr : fieldPtrs ) {
+			free_field(fldPtr);
 		}
 		free_form(ptr);
+	}
+
+	/**
+	 * @brief addField adds a Field, requires a repost() call!
+	 * @param field
+	 */
+	void addField(const Field &field) {
+		// last element is to remain NULL/nullptr
+		fieldPtrs.insert(std::prev(fieldPtrs.end(), 1), field.raw());
+	}
+
+	// useless, form has been associated to Window/subwindow already :p
+	FormSize calcRequiredSize() {
+		FormSize size;
+		int rc = scale_form(ptr, &size.rows, &size.columns);
+		assert(rc == E_OK);
+		return size;
 	}
 
 	void loop() {
@@ -243,10 +281,22 @@ class Form {
 		KeyEventProducer<KEY, FORM *>::captureAndDelegate(window, ptr);
 	}
 
+	void repost() {
+		int uc = unpost_form(ptr);
+		assert(uc == E_OK);
+
+		// set form fields after unpost, may have changed
+		int fc = set_form_fields(ptr, fieldPtrs.data());
+		assert(fc == E_OK);
+
+		int pc = post_form(ptr);
+		assert(pc == E_OK);
+	}
+
   private:
 	FORM *ptr;
 	const Window &window;
-	FIELD **fields;
+	vector<FIELD *> fieldPtrs;
 
 	friend class FormBuilder;
 };
@@ -255,6 +305,9 @@ class Form {
 class SimpleForm : public Form<DefaultFormKeyEventDelegate> {
   public:
 	SimpleForm(const Window &win, vector<Field> fields) : Form<DefaultFormKeyEventDelegate>(win, fields) { }
+
+	SimpleForm(const Window &win, const Window &formSub, vector<Field> fields) :
+	    Form<DefaultFormKeyEventDelegate>(win, formSub, fields) { }
 };
 
 // TODO: remove? post_form can happen outside of constructor
@@ -267,6 +320,11 @@ class FormBuilder {
 	template<class FORM_CLASS>
 	FORM_CLASS build(Window &win) {
 		return FORM_CLASS(win, fields);
+	}
+
+	template<class FORM_CLASS>
+	FORM_CLASS build(Window &win, Window &formSub) {
+		return FORM_CLASS(win, formSub, fields);
 	}
 
   private:
