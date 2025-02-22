@@ -4,12 +4,19 @@ namespace sjabloon430 { namespace tools { namespace pinout { namespace ui {
 
 using namespace cccurses;
 
+class PinsetView {
+	vector<string> pins;
+	vector<string> signals;
+	vector<string> signalDescs;
+};
+
 // TODO: be able to render more than first pin :)
 // TODO: edit/view
 // TODO: window should scroll working
 void drawPin(Window &win, const vector<string> &pkgs) {
 	// 3 characters is enough for pin numbers, even BGA
-	static const int PIN_FIELD_WIDTH = 3;
+	// using 4 is however logical, esthetic purposes 1 empty character always
+	static const int PIN_FIELD_WIDTH = 4;
 	// packages (drawing + pins) are up to 6 wide, so always format them at 6
 	static const int HDR_WIDTH = 6;
 	// signal is max ... TODO=
@@ -18,43 +25,64 @@ void drawPin(Window &win, const vector<string> &pkgs) {
 	static const string SIGNAL_HDR("SIGNAL");
 	static const string DESCRIPTION_HDR("DESCRIPTION");
 
-	// static int lastPinStart = 0, lastPinEnd = 0; // TODO: not good enough, need feedback from function
-	// win.moveCursor(0, 1); // TODO: based on pin #?
-	// Field *pinFields = new Field[pkgs.size()];
 	FormBuilder fb;
 	Field pinFields[pkgs.size()]; // needed for data? why not From Form object
 	int hdrRow = 1;
-	int pinRow = 2;
+	int pinRow = 1; // confusing but correct; subwindow pin row
 	int col = 0;
 	for ( int i = 0; i < pkgs.size(); i++ ) {
 		col += HDR_WIDTH + 1;
-		string pkg = pkgs[i];
-		int len = pkg.length();
 
 		Field fld = Field(1, PIN_FIELD_WIDTH, pinRow, col - PIN_FIELD_WIDTH);
 		fld.justify(JUSTIFY_RIGHT);
 		fb.addField(fld);
 		pinFields[i] = fld;
 	}
-	col++;
-	// col += 1 + std::max(static_cast<int>(SIGNAL_HDR.length()), SGN_FIELD_WIDTH) - SIGNAL_HDR.length();
-	Field sgnField(1, SGN_FIELD_WIDTH, pinRow, col);
+	int sgnCol = col + 1;
+	int descCol = sgnCol + SGN_FIELD_WIDTH + 1;
+	// multiple signal & info fields? hidden or something until necessary?
+	// but form needs to fit inside of window AND using a subwindow may mean it's not cleared anymore?
+	// or 3 signals & scroll? but less useful as viewer then
+	Field sgnField(1, SGN_FIELD_WIDTH, pinRow, sgnCol);
 	sgnField.justify(JUSTIFY_RIGHT);
 	fb.addField(sgnField);
-	col += SGN_FIELD_WIDTH + 1;
-	Field descField(1, 20 /*TODO*/, pinRow, col);
+	Field descField(1, 20 /*TODO*/, pinRow, descCol);
 	fb.addField(descField);
-	SimpleForm form = fb.build<SimpleForm>(win);
+
+	// is there a benefit of creating this derived/subwindow for the form?
+	// clear on one is clear on the other ... useless?
+	Window formWin = win.deriveWindow(10, 0, 1, 0);
+	SimpleForm form = fb.build<SimpleForm>(formWin);
+
+	// mock to test what happens when adding a field ...repost clears window
+	Field sgnField2(1, SGN_FIELD_WIDTH, pinRow + 1, sgnCol);
+	sgnField2.justify(JUSTIFY_RIGHT);
+	sgnField2.setColors(COLOR_PAIR_FORM_SELECTED, COLOR_PAIR_ALTFORM_VALID);
+	Field sgnField3(1, SGN_FIELD_WIDTH, pinRow + 2, sgnCol);
+	sgnField3.justify(JUSTIFY_RIGHT);
+
+	Field dscField2(1, 20, pinRow + 1, descCol);
+	dscField2.setColors(COLOR_PAIR_FORM_SELECTED, COLOR_PAIR_ALTFORM_VALID);
+	Field dscField3(1, 20, pinRow + 2, descCol);
+
+	form.addField(sgnField2);
+	form.addField(dscField2);
+	form.addField(sgnField3);
+	form.addField(dscField3);
+	form.repost();
 
 	// HEADER, only once every X pins?
+	// entire window is cleared on form.repost!! should be built back up
 	col = 0;
 	for ( const string &pkg : pkgs ) {
 		col += HDR_WIDTH + 1;
 		int len = pkg.length();
 		win.add(hdrRow, col - len, pkg);
 	}
-	win.add(hdrRow, col + SGN_FIELD_WIDTH - SIGNAL_HDR.length() + 1, SIGNAL_HDR);
+	win.add(hdrRow, sgnCol, SIGNAL_HDR);
+	win.add(hdrRow, descCol, DESCRIPTION_HDR);
 	win.paint();
+
 	form.loop();
 	// TODO: check deletion
 }
