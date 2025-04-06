@@ -8,7 +8,9 @@ namespace cccurses {
 enum KeyFeedback { FEEDBACK_CONTINUE, FEEDBACK_STOP };
 
 template<class CTX>
-class KeyEventDelegate {
+class KeyEventConsumer {
+	/* Using CTX& still allows defining CTX as a pointer, however odd this may be.*/
+
   public:
 	static KeyFeedback keyBackTab(CTX &) {
 		return FEEDBACK_CONTINUE;
@@ -19,7 +21,7 @@ class KeyEventDelegate {
 	}
 
 	// TODO: char or int?
-	static KeyFeedback keyCharacter(CTX &, const char) {
+	static KeyFeedback keyCharacter(CTX &, const int) {
 		return FEEDBACK_CONTINUE;
 	}
 
@@ -68,15 +70,15 @@ class KeyEventDelegate {
 	}
 
 	// TODO: char or int?
-	static KeyFeedback keyWhitespace(CTX &, const char) {
+	static KeyFeedback keyWhitespace(CTX &, const int) {
 		return FEEDBACK_CONTINUE;
 	}
-};
+}; // namespace cccurses
 
-template<class DELEGATE, class CTX>
+template<class CONSUMER, class CTX>
 class KeyEventProducer {
   public:
-	static void captureAndDelegate(const Window &window, CTX &ctx) {
+	static void captureAndConsume(const Window &window, CTX ctx) {
 		int ch;
 		KeyFeedback fb = FEEDBACK_CONTINUE;
 		// check feedback first, otherwise won't be leaving form until pressed twice
@@ -85,46 +87,46 @@ class KeyEventProducer {
 				// TODO: TAB doesn't work, BTAB (back-tab does)...
 				// using code 9 does too, no key value? odd
 				case 9:
-					fb = DELEGATE::keyTab(ctx);
+					fb = CONSUMER::keyTab(ctx);
 					break;
 				case KEY_BTAB:
-					fb = DELEGATE::keyBackTab(ctx);
+					fb = CONSUMER::keyBackTab(ctx);
 					break;
 				case KEY_ENTER:
 				case 10:
-					fb = DELEGATE::keyEnter(ctx);
+					fb = CONSUMER::keyEnter(ctx);
 					break;
 				case 27 /* escape */:
-					fb = DELEGATE::keyEscape(ctx);
+					fb = CONSUMER::keyEscape(ctx);
 					break;
 				case KEY_DOWN:
-					fb = DELEGATE::keyDownArrow(ctx);
+					fb = CONSUMER::keyDownArrow(ctx);
 					break;
 				case KEY_UP:
-					fb = DELEGATE::keyUpArrow(ctx);
+					fb = CONSUMER::keyUpArrow(ctx);
 					break;
 				case KEY_LEFT:
-					fb = DELEGATE::keyLeftArrow(ctx);
+					fb = CONSUMER::keyLeftArrow(ctx);
 					break;
 				case KEY_RIGHT:
-					fb = DELEGATE::keyRightArrow(ctx);
+					fb = CONSUMER::keyRightArrow(ctx);
 					break;
 				case KEY_BACKSPACE:
 				case 127: // 127 = 0177; returned for backspace in Konsole? why?
-					fb = DELEGATE::keyBackspace(ctx);
+					fb = CONSUMER::keyBackspace(ctx);
 					break;
 					// if no navigation (left/right), delete still needed for last character in field!
 				case KEY_DC: // delete character
-					fb = DELEGATE::keyDelete(ctx);
+					fb = CONSUMER::keyDelete(ctx);
 					break;
 				case KEY_END:
-					fb = DELEGATE::keyEnd(ctx);
+					fb = CONSUMER::keyEnd(ctx);
 					break;
 				case KEY_HOME:
-					fb = DELEGATE::keyHome(ctx);
+					fb = CONSUMER::keyHome(ctx);
 					break;
 				case ' ': // do not allow space in some forms
-					fb = DELEGATE::keyWhitespace(ctx, ch);
+					fb = CONSUMER::keyWhitespace(ctx, ch);
 					break;
 				case KEY_F(1):
 				case KEY_F(2):
@@ -139,10 +141,10 @@ class KeyEventProducer {
 				case KEY_F(11):
 				case KEY_F(12):
 				case KEY_F(13):
-					fb = DELEGATE::keyFunctionN(ctx, ch - KEY_F0);
+					fb = CONSUMER::keyFunctionN(ctx, ch - KEY_F0);
 					break;
 				default:
-					fb = DELEGATE::keyCharacter(ctx, ch);
+					fb = CONSUMER::keyCharacter(ctx, ch);
 					break;
 			}
 		}
