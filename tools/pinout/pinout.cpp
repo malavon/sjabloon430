@@ -93,7 +93,16 @@ int main() {
 		ui::drawTopWindow(top, selectedDS, totals);
 
 		vector<string> pkgs = db::findPackagesByDatasheet(db, selectedDS.id);
-		ui::drawPin(pins, pkgs);
+		// TODO: really should be possible to re-order packages and possibly other things!
+		// other centered screen to quickly do this?
+		// idea: quick-n-dirt: input field with number, default numbers start from # pkgs+1 (not shown in fields though)
+		// i.e. 4 packages DA, N, RHB, YXW: "weight" 5,6,7,8; putting # in any field makes easy first/second etc?
+		// set N to 1, becomes N, DA, RHB, YXW; but what happens when setting to 2 instead of 1? NOT AS EXPECTED becomes first
+		// maybe just default indices and when filled, swap? dunno, also error-prone
+		ui::PinSetView vw = {pkgs};
+		// TODO: get pins & signals from DB
+		ui::drawPinSet(pins, vw);
+		// TODO: save new signals; allow changes to descs? maybe, maybe not? better manually?
 
 		// next step would be: get pinset, render to screen
 		// BUT: there are no pinsets in DB yet, so first thing is to add creation/editing code
