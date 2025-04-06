@@ -175,7 +175,7 @@ class FormEventHandlerWrapper {
 };
 }
 
-using namespace cccurses::internal;
+using namespace internal;
 
 class SimpleFormKeyEventConsumer : public KeyEventConsumer<FORM *> {
   public:

@@ -4,16 +4,21 @@ namespace sjabloon430 { namespace tools { namespace pinout { namespace ui {
 
 using namespace cccurses;
 
-class PinsetView {
-	vector<string> pins;
-	vector<string> signals;
-	vector<string> signalDescs;
+class PinsetEventer : public FormEventHandler {
+  public:
+	void onNextField() {
+		cout << " NEXT FIELD ";
+	}
+
+	void onPreviousField() {
+		cout << " PREVIOUS FIELD ";
+	}
 };
 
 // TODO: be able to render more than first pin :)
 // TODO: edit/view
 // TODO: window should scroll working
-void drawPin(Window &win, const vector<string> &pkgs) {
+void drawPinSet(Window &win, PinSetView vw) {
 	// 3 characters is enough for pin numbers, even BGA
 	// using 4 is however logical, esthetic purposes 1 empty character always
 	static const int PIN_FIELD_WIDTH = 4;
@@ -26,11 +31,11 @@ void drawPin(Window &win, const vector<string> &pkgs) {
 	static const string DESCRIPTION_HDR("DESCRIPTION");
 
 	FormBuilder fb;
-	Field pinFields[pkgs.size()]; // needed for data? why not From Form object
+	Field pinFields[vw.pkgs.size()]; // needed for data? why not From Form object
 	int hdrRow = 1;
 	int pinRow = 1; // confusing but correct; subwindow pin row
 	int col = 0;
-	for ( int i = 0; i < pkgs.size(); i++ ) {
+	for ( int i = 0; i < vw.pkgs.size(); i++ ) {
 		col += HDR_WIDTH + 1;
 
 		Field fld = Field(1, PIN_FIELD_WIDTH, pinRow, col - PIN_FIELD_WIDTH);
@@ -45,6 +50,10 @@ void drawPin(Window &win, const vector<string> &pkgs) {
 	// or 3 signals & scroll? but less useful as viewer then
 	Field sgnField(1, SGN_FIELD_WIDTH, pinRow, sgnCol);
 	sgnField.justify(JUSTIFY_RIGHT);
+	// test
+	// make field required for validation, shouldn't allow leaving the field?
+	// result; as-is empty field is allowed, BUT 3 means 2? etc wtf... odd; \0 included?
+	// set_field_type(sgnField.raw(), TYPE_ALNUM, 4);
 	fb.addField(sgnField);
 	Field descField(1, 20 /*TODO*/, pinRow, descCol);
 	fb.addField(descField);
@@ -52,7 +61,7 @@ void drawPin(Window &win, const vector<string> &pkgs) {
 	// is there a benefit of creating this derived/subwindow for the form?
 	// clear on one is clear on the other ... useless?
 	Window formWin = win.deriveWindow(10, 0, 1, 0);
-	SimpleForm form = fb.build<SimpleForm>(formWin);
+	EventEmittingForm<PinsetEventer> form = fb.build<EventEmittingForm<PinsetEventer>>(formWin);
 
 	// mock to test what happens when adding a field ...repost clears window
 	Field sgnField2(1, SGN_FIELD_WIDTH, pinRow + 1, sgnCol);
@@ -72,9 +81,13 @@ void drawPin(Window &win, const vector<string> &pkgs) {
 	form.repost();
 
 	// HEADER, only once every X pins?
+	// more logically, every X signals really
+	// or every pin, most pins have multiple signals; may be more useful
+	// or of course # of lines or something, only once basically
+	// but that would be a fixed header regardless of scrolling; maybe easiest?
 	// entire window is cleared on form.repost!! should be built back up
 	col = 0;
-	for ( const string &pkg : pkgs ) {
+	for ( const string &pkg : vw.pkgs ) {
 		col += HDR_WIDTH + 1;
 		int len = pkg.length();
 		win.add(hdrRow, col - len, pkg);
@@ -83,7 +96,10 @@ void drawPin(Window &win, const vector<string> &pkgs) {
 	win.add(hdrRow, descCol, DESCRIPTION_HDR);
 	win.paint();
 
-	form.loop();
+	PinsetEventer pev;
+
+	form.loop(pev);
+
 	// TODO: check deletion
 }
 
