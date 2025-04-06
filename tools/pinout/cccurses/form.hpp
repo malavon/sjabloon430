@@ -137,6 +137,10 @@ class Field {
 		return field_buffer(ptr, 0);
 	}
 
+	void setBuffer(const string newBuffer) {
+		set_field_buffer(ptr, 0, newBuffer.c_str());
+	}
+
 	operator FIELD *() const {
 		return ptr;
 	}
@@ -145,10 +149,31 @@ class Field {
 	FIELD *ptr;
 };
 
-class DefaultFormKeyEventDelegate : public KeyEventDelegate<FORM *> {
+/* Temporary very restrictive callback/event handler */
+class FormEventHandler {
   public:
-	DefaultFormKeyEventDelegate(FORM *form) : ptr(form) { }
+	// todo: return values or not?
+	void onNextField() { }
 
+	void onPreviousField() { }
+};
+
+namespace internal {
+template<class EH>
+class FormEventHandlerWrapper {
+  public:
+	FormEventHandlerWrapper(EH &eventHandler, FORM *cursesForm) : formptr(cursesForm), handler(eventHandler) { }
+
+  public:
+	FORM *formptr;
+	EH &handler;
+};
+}
+
+using namespace cccurses::internal;
+
+class SimpleFormKeyEventConsumer : public KeyEventConsumer<FORM *> {
+  public:
 	static KeyFeedback keyBackTab(FORM *ctx) {
 		/* Go to previous field */
 		form_driver(ctx, REQ_PREV_FIELD);
@@ -158,10 +183,13 @@ class DefaultFormKeyEventDelegate : public KeyEventDelegate<FORM *> {
 
 	static KeyFeedback keyBackspace(FORM *ctx) {
 		form_driver(ctx, REQ_DEL_PREV);
+		// TEST: if impossible to prevent REQ_DEL_PREV from changing to previous field
+		// second best is to jump to end of field then?
+		form_driver(ctx, REQ_END_FIELD);
 		return FEEDBACK_CONTINUE;
 	}
 
-	static KeyFeedback keyCharacter(FORM *ctx, const char ch) {
+	static KeyFeedback keyCharacter(FORM *ctx, const int ch) {
 		form_driver(ctx, ch);
 		return FEEDBACK_CONTINUE;
 	}
@@ -196,13 +224,60 @@ class DefaultFormKeyEventDelegate : public KeyEventDelegate<FORM *> {
 		return FEEDBACK_CONTINUE;
 	}
 
-	static KeyFeedback keyWhitespace(FORM *ctx, const char ch) {
+	static KeyFeedback keyWhitespace(FORM *ctx, const int ch) {
 		form_driver(ctx, ch);
 		return FEEDBACK_CONTINUE;
 	}
+};
 
-  private:
-	FORM *ptr;
+template<class EH>
+class EventingFormKeyEventConsumer
+    : public KeyEventConsumer<FormEventHandlerWrapper<EH>> /*, private SimpleFormKeyEventConsumer*/ {
+  public:
+	static KeyFeedback keyBackTab(FormEventHandlerWrapper<EH> &wrapper) {
+		KeyFeedback res = SimpleFormKeyEventConsumer::keyBackTab(wrapper.formptr);
+		// this needs to be AFTER the form handling, otherwise buffer is not changed!
+		wrapper.handler.onPreviousField();
+		return res;
+	}
+
+	static KeyFeedback keyBackspace(FormEventHandlerWrapper<EH> &wrapper) {
+		return SimpleFormKeyEventConsumer::keyBackspace(wrapper.formptr);
+	}
+
+	static KeyFeedback keyCharacter(FormEventHandlerWrapper<EH> &wrapper, const int ch) {
+		return SimpleFormKeyEventConsumer::keyCharacter(wrapper.formptr, ch);
+	}
+
+	static KeyFeedback keyDelete(FormEventHandlerWrapper<EH> &wrapper) {
+		return SimpleFormKeyEventConsumer::keyDelete(wrapper.formptr);
+	}
+
+	// TODO: would be more logical to move to next field after validation?
+	static KeyFeedback keyEnter(FormEventHandlerWrapper<EH> &wrapper) {
+		return SimpleFormKeyEventConsumer::keyEnter(wrapper.formptr);
+	}
+
+	// KeyFeedback keyLeftArrow(FORM* ctx) {
+	// 	return ;
+	// }
+
+	// allows moving through empty spaces in field, not really as expected
+	// maybe fixable with dynamic field?
+	// KeyFeedback keyRightArrow(FORM* ctx) {
+	// 	return ;
+	// }
+
+	static KeyFeedback keyTab(FormEventHandlerWrapper<EH> &wrapper) {
+		KeyFeedback res = SimpleFormKeyEventConsumer::keyTab(wrapper.formptr);
+		// this needs to be AFTER the form handling, otherwise buffer is not changed!
+		wrapper.handler.onNextField();
+		return res;
+	}
+
+	static KeyFeedback keyWhitespace(FormEventHandlerWrapper<EH> &wrapper, const int ch) {
+		return SimpleFormKeyEventConsumer::keyWhitespace(wrapper.formptr, ch);
+	}
 };
 
 template<class KEY>
@@ -262,12 +337,6 @@ class Form {
 		return size;
 	}
 
-	void loop() {
-		// there is no automatic jump to first field
-		form_driver(ptr, REQ_FIRST_FIELD);
-		KeyEventProducer<KEY, FORM *>::captureAndDelegate(window, ptr);
-	}
-
 	void repost() {
 		int uc = unpost_form(ptr);
 		assert(uc == E_OK);
@@ -280,7 +349,11 @@ class Form {
 		assert(pc == E_OK);
 	}
 
-  private:
+	operator FORM *() const {
+		return ptr;
+	}
+
+  protected:
 	FORM *ptr;
 	const Window &window;
 	vector<FIELD *> fieldPtrs;
@@ -289,12 +362,43 @@ class Form {
 };
 
 /** A simple pre-defined form that uses sensible key bindings for general use **/
-class SimpleForm : public Form<DefaultFormKeyEventDelegate> {
+template<class EH>
+class EventEmittingForm : public Form<EventingFormKeyEventConsumer<EH>> {
   public:
-	SimpleForm(const Window &win, vector<Field> fields) : Form<DefaultFormKeyEventDelegate>(win, fields) { }
+	EventEmittingForm(const Window &win, vector<Field> fields) : Form<EventingFormKeyEventConsumer<EH>>(win, fields) { }
+
+	EventEmittingForm(const Window &win, const Window &formSub, vector<Field> fields) :
+	    Form<EventingFormKeyEventConsumer<EH>>(win, formSub, fields) { }
+
+	/**
+	 * @brief loop template method to include a EH object
+	 * @param callback the callback
+	 */
+	void loop(EH &callback) {
+		// TODO: there is no automatic jump to first field, so that should be implemented as well on Form
+		// along with possibly a bunch of other things; not sure if a single function for each one
+		FORM *localPtr = Form<EventingFormKeyEventConsumer<EH>>::ptr;
+		const Window &localWin = Form<EventingFormKeyEventConsumer<EH>>::window;
+		form_driver(localPtr, REQ_FIRST_FIELD);
+		FormEventHandlerWrapper<EH> wrapper(callback, localPtr);
+		KeyEventProducer<EventingFormKeyEventConsumer<EH>, FormEventHandlerWrapper<EH> &>::captureAndConsume(localWin,
+														     wrapper);
+	}
+};
+
+class SimpleForm : public Form<SimpleFormKeyEventConsumer> {
+  public:
+	SimpleForm(const Window &win, vector<Field> fields) : Form<SimpleFormKeyEventConsumer>(win, fields) { }
 
 	SimpleForm(const Window &win, const Window &formSub, vector<Field> fields) :
-	    Form<DefaultFormKeyEventDelegate>(win, formSub, fields) { }
+	    Form<SimpleFormKeyEventConsumer>(win, formSub, fields) { }
+
+	void loop() {
+		// TODO: there is no automatic jump to first field, so that should be implemented as well on Form
+		// along with possibly a bunch of other things; not sure if a single function for each one
+		form_driver(ptr, REQ_FIRST_FIELD);
+		KeyEventProducer<SimpleFormKeyEventConsumer, FORM *>::captureAndConsume(window, ptr);
+	}
 };
 
 // TODO: remove? post_form can happen outside of constructor
@@ -310,8 +414,8 @@ class FormBuilder {
 	}
 
 	template<class FORM_CLASS>
-	FORM_CLASS build(Window &win, Window &formSub) {
-		return FORM_CLASS(win, formSub, fields);
+	FORM_CLASS build(Window &win, Window &subWin) {
+		return FORM_CLASS(win, subWin, fields);
 	}
 
   private:
