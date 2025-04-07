@@ -69,12 +69,30 @@ class Field {
 	// 	field_opts_off(ptr, result);
 	// }
 
-	void optionAutoSkip(const Toggle toggle) {
+  private:
+	void toggleOption(int option, const Toggle toggle) {
 		if ( toggle == Toggle::ON ) {
-			field_opts_on(ptr, O_AUTOSKIP);
+			field_opts_on(ptr, option);
 		} else {
-			field_opts_off(ptr, O_AUTOSKIP);
+			field_opts_off(ptr, option);
 		}
+	}
+
+  public:
+	void optionAutoSkip(const Toggle toggle) {
+		toggleOption(O_AUTOSKIP, toggle);
+	}
+
+	void optionActive(const Toggle toggle) {
+		toggleOption(O_ACTIVE, toggle);
+	}
+
+	void optionsActiveAndEditable(const Toggle toggle) {
+		toggleOption(O_ACTIVE | O_EDIT, toggle);
+	}
+
+	void optionEditable(const Toggle toggle) {
+		toggleOption(O_EDIT, toggle);
 	}
 
 	void justify(const int justification) {
@@ -307,6 +325,20 @@ class Form {
 		assert(rc == E_OK);
 		rc = post_form(ptr);
 		assert(rc == E_OK);
+
+		// from the man-page
+		// O_NL_OVERLOAD
+		// 	Overload the REQ_NEW_LINE forms driver request so that calling it
+		// 		at the end of a field goes to the next field.
+		// 	O_BS_OVERLOAD
+		// 		Overload the REQ_DEL_PREV forms driver request so that calling it
+		// 			at the beginning of a field goes to the previous field.
+
+		// these are on by default, both should be off?
+		// when deleting the last character in a field, it should not suddenly select previous field
+		// this is contrary to the usual "hold backspace till it's empty" behaviour
+		// same for O_NL_OVERLOAD, it's not logical? TODO
+		form_opts_off(ptr, O_NL_OVERLOAD | O_BS_OVERLOAD);
 	}
 
 	Form(const Window &win, vector<Field> fields) : Form(win, win, fields) { }
