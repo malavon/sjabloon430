@@ -22,9 +22,109 @@ typedef EventEmittingForm<class PinsetEventer, SimpleFormKeyEventConsumer> Pinse
 
 class PinsetEventer : public FormEventHandler {
   public:
-	void onNextField() { }
+	PinsetEventer(PinsetForm &form, unordered_map<string, string> &signals, int signalColumn, int descColumn) :
+		signalColumn(signalColumn), descColumn(descColumn), form(form), signalAndDescMap(signals) { }
 
-	void onPreviousField() { }
+  private:
+	void fieldHopped() {
+		int idx = 0;
+		bool repost = false;
+		bool lastFilledSignalDescEditable = false;
+
+		// if last signal field filled, add pair of fields to form
+		// size check just in case
+		int signals = signalAndDescFields.size();
+		if ( signals > 0 && signals < 9 /* hard-coded based on window size of 10 ... */ ) {
+			pair<Field, Field> lastSgn = signalAndDescFields[signalAndDescFields.size() - 1];
+			if ( !lastSgn.first.buffer<string>().empty() ) {
+				// TODO: constant usage etc for location
+				int nextLine = signals + 1;
+				Field sgnField(1, 8, nextLine, signalColumn);
+				sgnField.justify(JUSTIFY_RIGHT);
+				Field descField(1, 20, nextLine, descColumn);
+				descField.optionsActiveAndEditable(Toggle::OFF);
+				if ( signals % 2 == 1 ) {
+					sgnField.setColors(COLOR_PAIR_FORM_SELECTED, COLOR_PAIR_ALTFORM_VALID);
+					descField.setColors(COLOR_PAIR_FORM_SELECTED, COLOR_PAIR_ALTFORM_VALID);
+				}
+
+				form.addField(sgnField);
+				form.addField(descField);
+				addFields(sgnField, descField);
+				repost = true;
+			}
+		}
+
+		// all fields: if changed, check signal and set desc (un-)editable or
+		for ( pair<Field, Field> &pr : signalAndDescFields ) {
+			Field &sgn = pr.first;
+			Field &desc = pr.second;
+
+			string signalTxt = sgn.buffer<string>();
+			// only do anything IF the signal has changed
+			if ( signalTxt != previousSignals[idx] ) {
+				// this way it is set to false UNLESS the very last iteration sets it to true
+				lastFilledSignalDescEditable = false;
+
+				previousSignals[idx] = signalTxt;
+				repost = true;
+				// no description for empty signal, but not editable either
+				if ( signalTxt.empty() ) {
+					desc.optionsActiveAndEditable(Toggle::OFF);
+				} else {
+					if ( signalAndDescMap.find(signalTxt) == signalAndDescMap.end() ) {
+						desc.optionsActiveAndEditable(Toggle::ON);
+						lastFilledSignalDescEditable = true;
+						// also: required (todo: also in other branches)
+					} else {
+						// exists
+						desc.optionsActiveAndEditable(Toggle::OFF);
+						string description = signalAndDescMap[signalTxt];
+						// todo: implement on field
+						desc.setBuffer(description);
+					}
+				}
+			}
+			idx++;
+		}
+
+		if ( repost ) {
+			form.repost();
+			// using form_driver directly for now
+			// there are limited options, most logically a certain field should be focused
+			// instead of last or last by one field
+			// last field is the (empty) signal field
+			// last - 1 is the description field of the last filled signal
+			form_driver(form, REQ_LAST_FIELD);
+			if ( lastFilledSignalDescEditable ) {
+				form_driver(form, REQ_PREV_FIELD);
+			}
+
+			// TODO: redraw?
+		}
+	}
+
+  public:
+	void onNextField() {
+		fieldHopped();
+	}
+
+	void onPreviousField() {
+		fieldHopped();
+	}
+
+	void addFields(const Field &signalField, const Field &descField) {
+		signalAndDescFields.push_back(pair<Field, Field>(signalField, descField));
+		previousSignals.push_back(signalField.buffer<string>());
+	}
+
+  private:
+	// column to use for next signal & desc fields
+	int signalColumn, descColumn;
+	PinsetForm &form;
+	unordered_map<string, string> signalAndDescMap;
+	vector<pair<Field, Field>> signalAndDescFields;
+	vector<string> previousSignals;
 };
 
 // TODO: be able to render more than first pin :)
@@ -63,28 +163,16 @@ void drawPinSet(Window &win, PinSetView vw) {
 	// set_field_type(sgnField.raw(), TYPE_ALNUM, 4);
 	fb.addField(sgnField);
 	Field descField(1, 20 /*TODO*/, pinRow, descCol);
+	descField.optionsActiveAndEditable(Toggle::OFF);
 	fb.addField(descField);
 
 	// is there a benefit of creating this derived/subwindow for the form?
 	// clear on one is clear on the other ... useless?
+	// 10 - pinRow signals are maximum; above that repost() will result in assertion!!! CRASH
+	// also: draw of all pins should probably start after subwindow then? less redrawing
 	Window formWin = win.deriveWindow(10, 0, 1, 0);
 	PinsetForm form = fb.build<PinsetForm>(formWin);
 
-	// mock to test what happens when adding a field ...repost clears window
-	Field sgnField2(1, FIELD_WIDTH_SIGNAL, pinRow + 1, sgnCol);
-	sgnField2.justify(JUSTIFY_RIGHT);
-	sgnField2.setColors(COLOR_PAIR_FORM_SELECTED, COLOR_PAIR_ALTFORM_VALID);
-	Field sgnField3(1, FIELD_WIDTH_SIGNAL, pinRow + 2, sgnCol);
-	sgnField3.justify(JUSTIFY_RIGHT);
-
-	Field dscField2(1, 20, pinRow + 1, descCol);
-	dscField2.setColors(COLOR_PAIR_FORM_SELECTED, COLOR_PAIR_ALTFORM_VALID);
-	Field dscField3(1, 20, pinRow + 2, descCol);
-
-	form.addField(sgnField2);
-	form.addField(dscField2);
-	form.addField(sgnField3);
-	form.addField(dscField3);
 	form.repost();
 
 	// HEADER, only once every X pins?
@@ -103,7 +191,11 @@ void drawPinSet(Window &win, PinSetView vw) {
 	win.add(hdrRow, descCol, DESCRIPTION_HDR);
 	win.paint();
 
-	PinsetEventer pev;
+	// eventer knows form to add fields
+	unordered_map<string, string> map; // TODO
+	map["TEST"] = "TEST SIGNAL DESC";
+	PinsetEventer pev(form, map, sgnCol, descCol);
+	pev.addFields(sgnField, descField);
 
 	form.loop(pev);
 
