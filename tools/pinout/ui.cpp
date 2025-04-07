@@ -165,11 +165,11 @@ string searchDatasheet(const unordered_map<string, string> &dsModels, const int 
 	FormBuilder fb;
 	// 7 is fixed; all datasheets are 7 wide
 	Field dsField(1, 7, LINE + 0, DS_FIELD_COL);
-	dsField.autoSkip(OFF);
+	dsField.optionAutoSkip(OFF);
 	fb.addField(dsField);
 	// from database or also hard-coded constant
 	Field mdField(1, widestModelLength, LINE + 2, ML_FIELD_COL);
-	mdField.autoSkip(OFF);
+	mdField.optionAutoSkip(OFF);
 	fb.addField(mdField);
 	SimpleForm form = fb.build<SimpleForm>(center);
 
