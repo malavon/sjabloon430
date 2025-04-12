@@ -23,13 +23,10 @@ struct PinSetView {
 	PinSetView(const vector<string> p) : pkgs(p) { }
 	// fixed list of packages
 	const vector<string> pkgs;
-	// semi-fixed list of all existing signals
-	// new signals can be added
-	// TODO: set that doesn't allow deletion better? also vector not really best?
-	// maybe better map type?
-	vector<struct SignalView> signals;
+	// map of all existing signals & descriptions, can be modified (well, extended at least)!
+	unordered_map<string, string> signalDescs;
 	// each item on the screen
-	vector<PinView> pins;
+	vector<PinView> pinViews;
 	/*
 	 * index of pin that is edited
 	 * if higher than pins.size(), add at end
@@ -38,16 +35,11 @@ struct PinSetView {
 	int editIdx = -1;
 };
 
-struct SignalView {
-	string signal;
-	string desc;
-};
-
 // partial drawing functions
 // TODO: window should scroll working
 void drawPinSetHeader(Window &, const int row, const vector<string> &pkgs);
-void drawPinSet(Window &, int row, const vector<string> &pkgs, PinView &pv);
-void editPinSet(Window &, int row, const vector<string> &pkgs, PinView &pv);
+void drawPinSet(Window &, int &row, const vector<string> &pkgs, unordered_map<string, string> &signals, const PinView &pv);
+void editPinSet(Window &, int &row, const vector<string> &pkgs, unordered_map<string, string> &signals, PinView &pv);
 
 // Window drawing functions
 void drawPinSetEditingWindow(Window &win, PinSetView &pinView);

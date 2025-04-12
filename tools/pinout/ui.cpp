@@ -15,6 +15,9 @@ static const int FIELD_WIDTH_PKG = 6;
 static const int FIELD_WIDTH_SIGNAL = 11;
 static const int FIELD_WIDTH_DESC = 20;
 
+// hard-coded max # of signals required for window size
+static const int MAX_SIGNALS = 10;
+
 static const char *SIGNAL_HDR("SIGNAL");
 static const char *DESCRIPTION_HDR("DESCRIPTION");
 
@@ -28,13 +31,12 @@ typedef EventEmittingForm<class PinsetEventer, SimpleFormKeyEventConsumer> Pinse
 
 class PinsetEventer : public FormEventHandler {
   public:
-	PinsetEventer(Window &win, PinsetForm &form, const vector<string> &pkgs, unordered_map<string, string> &signals,
-			  int row, int sgnCol) :
-		row(row), signalColumn(sgnCol), form(form), window(win), packages(pkgs), signalAndDescMap(signals) {
+	PinsetEventer(PinsetForm &form, const vector<string> &pkgs, unordered_map<string, string> &signals, int sgnCol) :
+		signalColumn(sgnCol), form(form), packages(pkgs), signalAndDescMap(signals) {
+		row = 0; // row is locally inside the derived window!
 		descColumn = sgnCol + FIELD_WIDTH_SIGNAL + 1;
 		// add single set of fields, none exist yet
-		addExtraFieldPair(); // does a form.repost(), erasing window, requiring header
-		drawPinSetHeader(window, row, packages);
+		addExtraFieldPair();
 	}
 
   private:
@@ -72,7 +74,7 @@ class PinsetEventer : public FormEventHandler {
 		// if last signal field filled, add pair of fields to form
 		// size check just in case
 		int signals = signalAndDescFields.size();
-		if ( signals > 0 && signals < 9 /* hard-coded based on window size of 10 ... */ ) {
+		if ( signals > 0 && signals < MAX_SIGNALS ) {
 			pair<Field, Field> lastSgn = signalAndDescFields[signalAndDescFields.size() - 1];
 			if ( !lastSgn.first.buffer<string>().empty() ) {
 				addExtraFieldPair();
@@ -115,7 +117,6 @@ class PinsetEventer : public FormEventHandler {
 
 		if ( repost ) {
 			form.repost();
-			drawPinSetHeader(window, row - signalAndDescFields.size(), packages);
 
 			// using form_driver directly for now
 			// there are limited options, most logically a certain field should be focused
@@ -126,12 +127,14 @@ class PinsetEventer : public FormEventHandler {
 			if ( lastFilledSignalDescEditable ) {
 				form_driver(form, REQ_PREV_FIELD);
 			}
-
-			// drawPinSetHeader calls Window::paint() already
 		}
 	}
 
   public:
+	const vector<pair<Field, Field>> &getSignalsVector() const {
+		return signalAndDescFields;
+	}
+
 	void onNextField() {
 		fieldHopped();
 	}
@@ -145,7 +148,6 @@ class PinsetEventer : public FormEventHandler {
 	// column to use for next signal & desc fields
 	int signalColumn, descColumn;
 	PinsetForm &form;
-	Window &window;
 	vector<string> packages;
 	unordered_map<string, string> signalAndDescMap;
 
@@ -171,18 +173,25 @@ void drawPinSetHeader(Window &win, const int hdrRow, const vector<string> &pkgs)
 	win.paint();
 }
 
-void drawPinSet(Window &win, int row, const vector<string> &pkgs, PinView &pv) {
-	drawPinSetHeader(win, row++, pkgs);
-	// TODO
+void drawPinSet(Window &win, int &row, const vector<string> &, unordered_map<string, string> &signals, const PinView &pv) {
 	int col = 0;
 	for ( const string &pin : pv.pins ) {
 		col += FIELD_WIDTH_PKG + 1;
 		int len = pin.length();
 		win.add(row, col - len, pin);
 	}
+
+	col++;
+	for ( const string &sgn : pv.signals ) {
+		win.add(row, col, sgn);
+		win.add(row, col + FIELD_WIDTH_SIGNAL + 1, signals[sgn]);
+		row++;
+	}
 }
 
-void editPinSet(Window &win, const int row, const vector<string> &pkgs, PinView &) {
+void editPinSet(Window &win, int &row, const vector<string> &pkgs, unordered_map<string, string> &signals, PinView &pv) {
+	Window formWin = win.deriveWindow(MAX_SIGNALS, 0, row, 0);
+
 	FormBuilder fb;
 	Field *pinFields = new Field[pkgs.size()];
 
@@ -190,46 +199,79 @@ void editPinSet(Window &win, const int row, const vector<string> &pkgs, PinView 
 	for ( size_t i = 0; i < pkgs.size(); i++ ) {
 		col += FIELD_WIDTH_PKG + 1;
 
-		Field fld = Field(1, FIELD_WIDTH_PIN, row, col - FIELD_WIDTH_PIN);
+		Field fld = Field(1, FIELD_WIDTH_PIN, 0, col - FIELD_WIDTH_PIN);
 		fld.justify(JUSTIFY_RIGHT);
 		fld.optionAutoSkip(Toggle::OFF);
 		fb.addField(fld);
 		pinFields[i] = fld;
 	}
 
-	// is there a benefit of creating this derived/subwindow for the form?
-	// clear on one is clear on the other ... useless?
-	// 10 - pinRow signals are maximum; above that repost() will result in assertion!!! CRASH
-	// also: draw of all pins should probably start after subwindow then? less redrawing
-	Window formWin = win.deriveWindow(10, 0, 1, 0);
 	PinsetForm form = fb.build<PinsetForm>(formWin);
 
-	form.repost();
-	drawPinSetHeader(win, row, pkgs);
-
-	unordered_map<string, string> map; // TODO
-	map["TEST"] = "TEST SIGNAL DESC";
-
 	int sgnCol = col + 1;
-	PinsetEventer pev(win, form, pkgs, map, row, sgnCol);
-
+	PinsetEventer pev(form, pkgs, signals, sgnCol);
 	form.loop(pev);
-	// delete array, DO NOT delete the objects; they're attached to Form and will be deleted by its destructor
+
+	// after looping of edit, complete the pinview
+	pv.pins.clear();
+	for ( size_t i = 0; i < pkgs.size(); i++ ) {
+		pv.pins.push_back(pinFields[i].buffer<string>());
+	}
+
+	pv.signals.clear();
+	for ( const pair<Field, Field> &sgnAndDesc : pev.getSignalsVector() ) {
+		string sgn = sgnAndDesc.first.buffer<string>();
+		string desc = sgnAndDesc.second.buffer<string>();
+		if ( !sgn.empty() ) {
+			pv.signals.push_back(sgn);
+			// only allow editing if description is empty?
+			// actually, only allow addition?
+			if ( signals[sgn].empty() ) {
+				signals[sgn] = desc;
+			}
+		}
+	}
+
+	// delete array, DO NOT delete the Fields; they're attached to Form and will be deleted by its destructor
 	delete[] pinFields;
+
+	formWin.erase(); // important, erase only the form part of the window
 }
 
 // Window drawing functions
 
 // TODO: window should scroll working
 void drawPinSetEditingWindow(Window &win, PinSetView &vw) {
-	int row = 1;
-	for ( PinView &pv : vw.pins ) {
-		drawPinSet(win, row, vw.pkgs, pv);
+	win.erase(); // erase window necessary? erases hotkeys printed in main
+
+	int horizontalLineLength = vw.pkgs.size() * (FIELD_WIDTH_PKG + 1) + FIELD_WIDTH_SIGNAL + FIELD_WIDTH_DESC + 1;
+	int row = 0;
+	if ( !vw.pinViews.empty() ) {
+		drawPinSetHeader(win, row++, vw.pkgs);
 	}
+	for ( PinView &pv : vw.pinViews ) {
+		// drawPinSetHeader(win, row++, vw.pkgs);
+		// this line overwrites the header written for edit
+		mvwhline(win, row++, 1, 0, horizontalLineLength);
+		drawPinSet(win, row, vw.pkgs, vw.signalDescs, pv);
+	}
+	mvwhline(win, row++, 1, 0, horizontalLineLength);
+	// for now: edit new set at last position
+	drawPinSetHeader(win, row++, vw.pkgs); // editing field always gets a header?
 
 	PinView pv;
-	editPinSet(win, row, vw.pkgs, pv);
-	// TODO: check deletion
+	editPinSet(win, row, vw.pkgs, vw.signalDescs, pv);
+	// TODO: check deletion?
+
+	// only add pin view if at least one pin & one signal
+	// to verify: count pin sizes, since the vector itself is not empty!
+	int pinTotal = 0;
+	for ( auto it = pv.pins.begin(); it != pv.pins.end() && pinTotal == 0; it++ ) {
+		pinTotal += it->size();
+	}
+	if ( pinTotal > 0 && !pv.signals.empty() ) {
+		vw.pinViews.push_back(pv);
+	}
 }
 
 void drawSetConfigWindow(BorderedWindow &win, const vector<string> &models, const vector<string> &packages) {

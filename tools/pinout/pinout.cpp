@@ -86,9 +86,20 @@ int main() {
 		// i.e. 4 packages DA, N, RHB, YXW: "weight" 5,6,7,8; putting # in any field makes easy first/second etc?
 		// set N to 1, becomes N, DA, RHB, YXW; but what happens when setting to 2 instead of 1? NOT AS EXPECTED becomes first
 		// maybe just default indices and when filled, swap? dunno, also error-prone
-		ui::PinSetView vw(pkgs);
-		// TODO: get pins & signals from DB
-		ui::drawPinSetEditingWindow(pins, vw);
+		ui::PinSetView vw = {pkgs};
+		vw.signalDescs = db::listAllSignalDescriptions(db);
+		// TODO: get pins from DB
+
+		ui::PinView pv;
+		int tempChar = 0;
+		do {
+			ui::drawPinSetEditingWindow(pins, vw);
+		} while ( (tempChar = wgetch(pins)) != 27 ); // ESC key for exit
+
+		// TODO: input up/down & other hotkeys, basically the bulk of the application?
+		// or should this be in the main application?
+		// much more logical I think, since DB access is required for saving
+
 		// TODO: save new signals; allow changes to descs? maybe, maybe not? better manually?
 
 		// next step would be: get pinset, render to screen
@@ -109,10 +120,6 @@ int main() {
 		 * V1.0
 		 * autocomplete signals from DB
 		 */
-
-		// set_field_type(field[0], TYPE_ALNUM);
-		// set_field_type(field[1], TYPE_INTEGER);
-		wgetch(pins); // just here to prevent application exit for partial mock-up
 	}
 
 	endCurses();
