@@ -35,8 +35,9 @@ Datasheet findDatasheet(sqlite3 *db, const string id);
 vector<string> findModelsByDatasheet(sqlite3 *db, const string datasheetId);
 vector<string> findPackagesByDatasheet(sqlite3 *db, const string datasheetId);
 unordered_map<string, string> listAllModelsAndDatasheets(sqlite3 *db);
+unordered_map<string, string> listAllSignalDescriptions(sqlite3 *db);
 
 DatabaseTotals countTotals(sqlite3 *db);
 
-}}}
+}}} // namespace sjabloon430::tools::db
 #endif // DATABASE_HPP
