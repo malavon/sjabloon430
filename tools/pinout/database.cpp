@@ -139,4 +139,22 @@ unordered_map<string, string> listAllModelsAndDatasheets(sqlite3 *db) {
 	return result;
 }
 
+unordered_map<string, string> listAllSignalDescriptions(sqlite3 *db) {
+	static const char *QUERY = "SELECT id, desc FROM signal";
+
+	static sqlite3_stmt *stmt;
+	if ( stmt == nullptr ) {
+		prepare(db, &stmt, QUERY);
+	}
+	sqlite3_reset(stmt);
+
+	unordered_map<string, string> result;
+	while ( sqlite3_step(stmt) == SQLITE_ROW ) {
+		string name = string(reinterpret_cast<const char *>(sqlite3_column_text(stmt, 0)));
+		string desc = string(reinterpret_cast<const char *>(sqlite3_column_text(stmt, 1)));
+		result[name] = desc;
+	}
+	return result;
+}
+
 }}} // namespace sjabloon430::tools::db
