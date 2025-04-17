@@ -34,6 +34,7 @@ class PinsetEventer : public FormEventHandler {
 					descField.setColors(COLOR_PAIR_FORM_SELECTED, COLOR_PAIR_ALTFORM_VALID);
 				}
 
+				// TODO: adding form.addField calls to addFields doesn't work? :(
 				form.addField(sgnField);
 				form.addField(descField);
 				addFields(sgnField, descField);
@@ -193,6 +194,31 @@ void drawPinSet(Window &win, PinSetView vw) {
 	// TODO: check deletion
 }
 
+void drawSetConfigWindow(BorderedWindow &win, const vector<string> &models, const vector<string> &packages) {
+	const int MAX_PKG_LEN = 6;
+	const int COL_HDR = 1;
+	const int COL_DATA = 2;
+
+	int lr = 0;
+	win.add(lr++, COL_HDR, "Models:");
+	for ( const string &model : models ) {
+		win.add(lr++, COL_DATA, model);
+	}
+
+	win.add(lr++, COL_HDR, "Packages:");
+	for ( int i = 0; i < packages.size(); i++ ) {
+		string pkg = packages[i];
+		if ( i % 2 == 0 ) {
+			win.add(lr, COL_DATA, pkg);
+		} else {
+			win.add(lr, COL_DATA + MAX_PKG_LEN + 1 + (MAX_PKG_LEN - pkg.length()), pkg);
+			lr++;
+		}
+	}
+
+	win.paint();
+}
+
 void drawTopWindow(BorderedWindow &win, const Datasheet &ds, DatabaseTotals &totals) {
 	int topLine = 0;
 	int topCol = 1;
@@ -287,5 +313,4 @@ string searchDatasheet(const unordered_map<string, string> &dsModels, const int 
 	}
 	return dsId;
 }
-
 }}}} // namespace sjabloon430::tools::pinout::ui

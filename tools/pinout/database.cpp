@@ -99,7 +99,7 @@ Datasheet findDatasheet(sqlite3 *db, const string id) {
 
 vector<string> findModelsByDatasheet(sqlite3 *db, const string datasheetId) {
 	static const string QUERY("SELECT model FROM device WHERE datasheet_id = '");
-	string query = QUERY + datasheetId + "%'";
+	string query = QUERY + datasheetId + "'";
 
 	vector<string> result;
 	sqlite3_stmt *stmt;
