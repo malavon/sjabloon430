@@ -105,19 +105,24 @@ vector<string> findModelsByDatasheet(sqlite3 *db, const string datasheetId) {
 }
 
 vector<string> findPackagesByDatasheet(sqlite3 *db, const string datasheetId) {
-	static const string QUERY("SELECT CONCAT(o.drawing, o.pins) pkg FROM orderable o "
-				  "INNER JOIN device d ON (d.id = o.device_id) "
-				  "WHERE d.datasheet_id = '");
-	static const string QUERY2("' GROUP BY o.drawing, o.pins "
-				   "ORDER BY o.pins DESC;");
-	string query = QUERY + datasheetId + QUERY2;
+	static const char *QUERY = "SELECT CONCAT(o.drawing, o.pins) pkg "
+				   "FROM orderable o "
+				   "INNER JOIN device d ON (d.model = o.device_id) "
+				   "WHERE d.datasheet_id = ? "
+				   "GROUP BY o.drawing, o.pins "
+				   "ORDER BY o.pins DESC";
+
+	static sqlite3_stmt *stmt;
+	if ( stmt == nullptr ) {
+		prepare(db, &stmt, QUERY);
+	}
+
+	sqlite3_reset(stmt);
+	sqlite3_bind_text(stmt, 1, datasheetId.c_str(), -1, SQLITE_STATIC);
 
 	vector<string> result;
-	sqlite3_stmt *stmt;
-	if ( sqlite3_prepare_v2(db, query.c_str(), -1, &stmt, NULL) == SQLITE_OK ) {
-		while ( sqlite3_step(stmt) == SQLITE_ROW ) {
-			result.push_back(reinterpret_cast<const char *>(sqlite3_column_text(stmt, 0)));
-		}
+	while ( sqlite3_step(stmt) == SQLITE_ROW ) {
+		result.push_back(reinterpret_cast<const char *>(sqlite3_column_text(stmt, 0)));
 	}
 	return result;
 }
