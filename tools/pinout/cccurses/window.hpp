@@ -94,8 +94,10 @@ class Window {
 	}
 
 	void erase() {
-		werase(ptr);
-		wrefresh(ptr);
+		int re = werase(ptr);
+		assert(re != ERR);
+		int rr = wrefresh(ptr);
+		assert(rr != ERR);
 	}
 
 	void moveCursor(const int line, const int col) {
@@ -113,7 +115,8 @@ class Window {
 	// }
 
 	void paint() const {
-		wrefresh(ptr);
+		int rr = wrefresh(ptr);
+		assert(rr != ERR);
 	}
 
 	// TEMPORARY?
@@ -142,24 +145,27 @@ class BorderedWindow : public Window {
 	}
 
 	~BorderedWindow() {
-		clear();
+		erase();
 		if ( outer != nullptr ) {
-			delete outer;
+			delwin(outer);
 		}
 	}
 
 	void erase() {
 		touchwin(outer);
 		Window::erase();
-		werase(outer);
-		wrefresh(outer);
+		int re = werase(outer);
+		assert(re != ERR);
+		int rr = wrefresh(outer);
+		assert(rr != ERR);
 	}
 
 	void paint() const {
 		touchwin(outer);
 		wborder(outer, 0, 0, 0, 0, 0, 0, 0, 0);
 		mvwaddnstr(outer, 0, 2, title.c_str(), title.length());
-		wrefresh(outer);
+		int rr = wrefresh(outer);
+		assert(rr != ERR);
 		Window::paint();
 	}
 
