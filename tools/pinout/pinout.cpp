@@ -18,7 +18,7 @@ using namespace cccurses;
 using namespace sjabloon430::tools;
 using namespace sjabloon430::tools::pinout;
 
-void printShortcuts();
+void printShortcuts(Window &win);
 
 static const string WIDEST("MSP430F6459-HIREL");
 
@@ -41,34 +41,11 @@ int main() {
 
 	{
 		BorderedWindow top(5, COLS - MAX_WIDTH, 0, 0);
-		BorderedWindow defaultSet(10, MAX_WIDTH, 0, COLS - MAX_WIDTH);
-		BorderedWindow newSet(3, MAX_WIDTH, 10, COLS - MAX_WIDTH);
 		// TODO: no border, separate with hline or something?
 		Window pins(LINES - 6, COLS - MAX_WIDTH, 6, 0);
 
-		int lr = 0;
-		defaultSet.setTitle("Default");
-		defaultSet.add(lr++, 1, "Models: MOCK UP!");
-		defaultSet.add(lr++, 2, "MSP430FR2532");
-		defaultSet.add(lr++, 2, "MSP430FR2533");
-		defaultSet.add(lr++, 2, "MSP430FR2632");
-		defaultSet.add(lr++, 2, "MSP430FR2633");
-		defaultSet.add(lr++, 1, "Packages:");
-		defaultSet.add(lr++, 2, "RHB32, DA32,\n  RGE24, YQW24");
-
-		newSet.setTitle("Set F5");
-		newSet.add(0, 1, "F5: Create new set");
-
-		// note: 3 characters for pin number is enough (even for BGA)
-		// firstPin.add(0, 1, " RHB32   DA32  RGE24  YQW24\tSignal\t\tDescription");
-		// firstPin.add(1, 1, "     1      5      1     E1\t~RST\t\tActive-low reset input");
-		// firstPin.add(2, 1, "                           \tNMI\t\tNonmaskable interrupt input");
-		// firstPin.add(3, 1, "                           \tSBWTDIO\t\tSpy-Bi-Wire data input/output");
-
-		printShortcuts();
-
 		int l = 20;
-		Window &statusWin = standardScreen();
+		Window &statusWin = pins;
 		statusWin.add(l++, 0, "Imported SQLite DB from files:");
 		db::importDatabase(db, [&](const string &filename, const char *error) {
 			statusWin.add(l++, 2, '"');
@@ -83,16 +60,33 @@ int main() {
 		db::DatabaseTotals totals = db::countTotals(db);
 		statusWin.paint();
 
-		top.paint();
-		defaultSet.paint();
-		newSet.paint();
-
 		// initial state: open search window
 		string selectedId = ui::searchDatasheet(db::listAllModelsAndDatasheets(db), WIDEST.length());
 		db::Datasheet selectedDS = db::findDatasheet(db, selectedId);
 		ui::drawTopWindow(top, selectedDS, totals);
 
+		printShortcuts(pins);
+
+		vector<string> models = db::findModelsByDatasheet(db, selectedId);
+		// models are used for (default) set
+		// TODO: other sets have to be retrieved from pinset & calculated
+
 		vector<string> pkgs = db::findPackagesByDatasheet(db, selectedDS.id);
+		// packages are also used for sets
+
+		int defaultSetHeight = models.size()   /* one line per model */
+				     + pkgs.size() / 2 /* packages are max 5 wide, 2 pkgs/line */
+				     + pkgs.size() % 2 /* when odd, 1 extra pkg, 1 extra line */
+				     + 2 /* headers */ + 2 /* borders */;
+		BorderedWindow defaultSet(defaultSetHeight, MAX_WIDTH, 0, COLS - MAX_WIDTH);
+		defaultSet.setTitle("Default");
+		ui::drawSetConfigWindow(defaultSet, models, pkgs);
+
+		BorderedWindow newSet(6, MAX_WIDTH, defaultSetHeight, COLS - MAX_WIDTH);
+		newSet.setTitle("Set F5");
+		// newSet.add(0, 1, "F5: Create new set");
+		ui::drawSetConfigWindow(newSet, {"MOCKUP"}, {"MOCKUP"});
+
 		// TODO: really should be possible to re-order packages and possibly other things!
 		// other centered screen to quickly do this?
 		// idea: quick-n-dirt: input field with number, default numbers start from # pkgs+1 (not shown in fields though)
@@ -142,12 +136,8 @@ void printShortcut(Window &window, const string &key, const string &text) {
 }
 
 // print shortcuts to wrapper now
-void printShortcuts() {
-	const int LINE = 5;
-
-	// TODO C++ knowledge: will only work as reference, not copy; WHY?????
-	// Window has a copy constructor, do I need move as well??
-	Window &hotkeyWin = standardScreen();
+void printShortcuts(Window &hotkeyWin) {
+	const int LINE = 0;
 
 	hotkeyWin.moveCursor(LINE, 0);
 	printShortcut(hotkeyWin, "ESC", "QUIT");

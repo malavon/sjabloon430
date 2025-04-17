@@ -132,33 +132,50 @@ Datasheet findDatasheet(sqlite3 *db, const string id) {
 }
 
 vector<string> findModelsByDatasheet(sqlite3 *db, const string datasheetId) {
-	static const string QUERY("SELECT model FROM device WHERE datasheet_id = '");
-	string query = QUERY + datasheetId + "%'";
+	static const char *QUERY = "SELECT model FROM device WHERE datasheet_id = ?";
+
+	static sqlite3_stmt *stmt;
+	if ( stmt == nullptr ) {
+		int rc = sqlite3_prepare_v2(db, QUERY, -1, &stmt, NULL);
+		if ( rc != SQLITE_OK ) {
+			cerr << "SQLite3 error " << sqlite3_errmsg(db) << endl;
+		}
+		assert(rc == SQLITE_OK);
+	}
+
+	sqlite3_reset(stmt);
+	sqlite3_bind_text(stmt, 1, datasheetId.c_str(), -1, SQLITE_STATIC);
 
 	vector<string> result;
-	sqlite3_stmt *stmt;
-	if ( sqlite3_prepare_v2(db, query.c_str(), -1, &stmt, NULL) == SQLITE_OK ) {
-		while ( sqlite3_step(stmt) == SQLITE_ROW ) {
-			result.push_back(string(reinterpret_cast<const char *>(sqlite3_column_text(stmt, 0))));
-		}
+	while ( sqlite3_step(stmt) == SQLITE_ROW ) {
+		result.push_back(string(reinterpret_cast<const char *>(sqlite3_column_text(stmt, 0))));
 	}
 	return result;
 }
 
 vector<string> findPackagesByDatasheet(sqlite3 *db, const string datasheetId) {
-	static const string QUERY("SELECT CONCAT(o.drawing, o.pins) pkg FROM orderable o "
-				  "INNER JOIN device d ON (d.id = o.device_id) "
-				  "WHERE d.datasheet_id = '");
-	static const string QUERY2("' GROUP BY o.drawing, o.pins "
-				   "ORDER BY o.pins DESC;");
-	string query = QUERY + datasheetId + QUERY2;
+	static const char *QUERY = "SELECT CONCAT(o.drawing, o.pins) pkg "
+				   "FROM orderable o "
+				   "INNER JOIN device d ON (d.id = o.device_id) "
+				   "WHERE d.datasheet_id = ? "
+				   "GROUP BY o.drawing, o.pins "
+				   "ORDER BY o.pins DESC;";
+
+	static sqlite3_stmt *stmt;
+	if ( stmt == nullptr ) {
+		int rc = sqlite3_prepare_v2(db, QUERY, -1, &stmt, NULL);
+		if ( rc != SQLITE_OK ) {
+			cerr << "SQLite3 error " << sqlite3_errmsg(db) << endl;
+		}
+		assert(rc == SQLITE_OK);
+	}
+
+	sqlite3_reset(stmt);
+	sqlite3_bind_text(stmt, 1, datasheetId.c_str(), -1, SQLITE_STATIC);
 
 	vector<string> result;
-	sqlite3_stmt *stmt;
-	if ( sqlite3_prepare_v2(db, query.c_str(), -1, &stmt, NULL) == SQLITE_OK ) {
-		while ( sqlite3_step(stmt) == SQLITE_ROW ) {
-			result.push_back(reinterpret_cast<const char *>(sqlite3_column_text(stmt, 0)));
-		}
+	while ( sqlite3_step(stmt) == SQLITE_ROW ) {
+		result.push_back(reinterpret_cast<const char *>(sqlite3_column_text(stmt, 0)));
 	}
 	return result;
 }
