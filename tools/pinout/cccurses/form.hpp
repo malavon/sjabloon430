@@ -1,6 +1,7 @@
 #ifndef CCURSES_FORM_HPP
 #define CCURSES_FORM_HPP
 
+#include <algorithm>
 #include <cassert>
 #include <string>
 #include <vector>
@@ -306,14 +307,20 @@ class Form {
 	 * @param fields
 	 */
 	Form(const Window &win, const Window &subForm, vector<Field> fields) : window(win) {
-		fields.reserve(fields.size() + 1);
+		fields.reserve(fields.size());
 		for ( Field &fld : fields ) {
 			fieldPtrs.push_back(fld);
 		}
 		// man 3 form: ... (which must be NULL-terminated)
-		fieldPtrs.push_back(nullptr);
+		// fieldPtrs.push_back(nullptr);
 		int rc = E_OK;
-		ptr = new_form(fieldPtrs.data());
+		// copy array into a new one, duplication is important
+		// since it can be modified after posting, curses doesn't like that
+		// also null-terminate
+		FIELD **dest = new FIELD *[fieldPtrs.size() + 1];
+		std::copy(fieldPtrs.begin(), fieldPtrs.end(), dest);
+		dest[fieldPtrs.size()] = nullptr;
+		ptr = new_form(dest);
 		// how to communicate errors for runtime?
 		rc = errno;
 		assert(rc == E_OK || rc == E_NOT_CONNECTED);
@@ -356,8 +363,7 @@ class Form {
 	 * @param field
 	 */
 	void addField(const Field &field) {
-		// last element is to remain NULL/nullptr
-		fieldPtrs.insert(std::prev(fieldPtrs.end(), 1), field);
+		fieldPtrs.push_back(field);
 	}
 
 	// useless, form has been associated to Window/subwindow already :p
@@ -373,7 +379,14 @@ class Form {
 		assert(uc == E_OK);
 
 		// set form fields after unpost, may have changed
-		int fc = set_form_fields(ptr, fieldPtrs.data());
+		// copy array into a new one, duplication is important
+		// since it can be modified after posting, curses doesn't like that
+		// also null-terminate
+		FIELD **dest = new FIELD *[fieldPtrs.size() + 1];
+		std::copy(fieldPtrs.begin(), fieldPtrs.end(), dest);
+		dest[fieldPtrs.size()] = nullptr;
+		int fc = set_form_fields(ptr, dest);
+		// TODO: shouldn't previous form fields be deleted? I think so
 		assert(fc == E_OK);
 
 		int pc = post_form(ptr);
