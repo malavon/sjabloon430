@@ -47,6 +47,7 @@ struct SignalView {
 // TODO: edit/view
 // TODO: window should scroll working
 void drawPinSet(Window &win, PinSetView pinView);
+void drawSetConfigWindow(BorderedWindow &, const vector<string> &models, const vector<string> &packages);
 void drawTopWindow(BorderedWindow &, const Datasheet &, DatabaseTotals &);
 string searchDatasheet(const unordered_map<string, string> &dsModels, const int modelFieldWidth);
 
