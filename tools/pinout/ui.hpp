@@ -43,10 +43,14 @@ struct SignalView {
 	string desc;
 };
 
-// TODO: be able to render more than first pin :)
-// TODO: edit/view
+// partial drawing functions
 // TODO: window should scroll working
-void drawPinSet(Window &win, PinSetView pinView);
+void drawPinSetHeader(Window &, const int row, const vector<string> &pkgs);
+void drawPinSet(Window &, int row, const vector<string> &pkgs, PinView &pv);
+void editPinSet(Window &, int row, const vector<string> &pkgs, PinView &pv);
+
+// Window drawing functions
+void drawPinSetEditingWindow(Window &win, PinSetView &pinView);
 void drawSetConfigWindow(BorderedWindow &, const vector<string> &models, const vector<string> &packages);
 void drawTopWindow(BorderedWindow &, const Datasheet &, DatabaseTotals &);
 string searchDatasheet(const unordered_map<string, string> &dsModels, const int modelFieldWidth);

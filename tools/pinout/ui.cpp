@@ -9,8 +9,14 @@ static const int FIELD_WIDTH_DATASHEET = 7;
 // 3 characters is enough for pin numbers, even BGA
 // using 4 is however logical, esthetic purposes 1 empty character always
 static const int FIELD_WIDTH_PIN = 4;
+// packages (drawing + pins) are up to 6 wide, so always format them at 6
+static const int FIELD_WIDTH_PKG = 6;
 // as far as I know, signal is max 8 EXCEPT for PM_<signal> signals; then it's 11
 static const int FIELD_WIDTH_SIGNAL = 11;
+static const int FIELD_WIDTH_DESC = 20;
+
+static const char *SIGNAL_HDR("SIGNAL");
+static const char *DESCRIPTION_HDR("DESCRIPTION");
 
 class PinsetView {
 	vector<string> pins;
@@ -22,10 +28,42 @@ typedef EventEmittingForm<class PinsetEventer, SimpleFormKeyEventConsumer> Pinse
 
 class PinsetEventer : public FormEventHandler {
   public:
-	PinsetEventer(PinsetForm &form, unordered_map<string, string> &signals, int signalColumn, int descColumn) :
-		signalColumn(signalColumn), descColumn(descColumn), form(form), signalAndDescMap(signals) { }
+	PinsetEventer(Window &win, PinsetForm &form, const vector<string> &pkgs, unordered_map<string, string> &signals,
+			  int row, int sgnCol) :
+		row(row), signalColumn(sgnCol), form(form), window(win), packages(pkgs), signalAndDescMap(signals) {
+		descColumn = sgnCol + FIELD_WIDTH_SIGNAL + 1;
+		// add single set of fields, none exist yet
+		addExtraFieldPair(); // does a form.repost(), erasing window, requiring header
+		drawPinSetHeader(window, row, packages);
+	}
 
   private:
+	void addExtraFieldPair() {
+		Field sgnField(1, FIELD_WIDTH_SIGNAL, row, signalColumn);
+		sgnField.justify(JUSTIFY_RIGHT);
+		sgnField.optionAutoSkip(Toggle::OFF);
+		// test
+		// make field required for validation, shouldn't allow leaving the field?
+		// result; as-is empty field is allowed, BUT 3 means 2? etc wtf... odd; \0 included?
+		// set_field_type(sgnField.raw(), TYPE_ALNUM, 4);
+		Field descField(1, FIELD_WIDTH_DESC, row, descColumn);
+		descField.optionsActiveAndEditable(Toggle::OFF);
+		descField.optionAutoSkip(Toggle::OFF);
+
+		if ( signalAndDescFields.size() % 2 == 1 ) {
+			sgnField.setColors(COLOR_PAIR_FORM_SELECTED, COLOR_PAIR_ALTFORM_VALID);
+			descField.setColors(COLOR_PAIR_FORM_SELECTED, COLOR_PAIR_ALTFORM_VALID);
+		}
+
+		form.addField(sgnField);
+		form.addField(descField);
+		signalAndDescFields.push_back(pair<Field, Field>(sgnField, descField));
+		previousSignals.push_back("");
+
+		form.repost();
+		row++;
+	}
+
 	void fieldHopped() {
 		int idx = 0;
 		bool repost = false;
@@ -37,21 +75,7 @@ class PinsetEventer : public FormEventHandler {
 		if ( signals > 0 && signals < 9 /* hard-coded based on window size of 10 ... */ ) {
 			pair<Field, Field> lastSgn = signalAndDescFields[signalAndDescFields.size() - 1];
 			if ( !lastSgn.first.buffer<string>().empty() ) {
-				// TODO: constant usage etc for location
-				int nextLine = signals + 1;
-				Field sgnField(1, 8, nextLine, signalColumn);
-				sgnField.justify(JUSTIFY_RIGHT);
-				Field descField(1, 20, nextLine, descColumn);
-				descField.optionsActiveAndEditable(Toggle::OFF);
-				if ( signals % 2 == 1 ) {
-					sgnField.setColors(COLOR_PAIR_FORM_SELECTED, COLOR_PAIR_ALTFORM_VALID);
-					descField.setColors(COLOR_PAIR_FORM_SELECTED, COLOR_PAIR_ALTFORM_VALID);
-				}
-
-				// TODO: adding form.addField calls to addFields doesn't work? :(
-				form.addField(sgnField);
-				form.addField(descField);
-				addFields(sgnField, descField);
+				addExtraFieldPair();
 				repost = true;
 			}
 		}
@@ -91,6 +115,8 @@ class PinsetEventer : public FormEventHandler {
 
 		if ( repost ) {
 			form.repost();
+			drawPinSetHeader(window, row - signalAndDescFields.size(), packages);
+
 			// using form_driver directly for now
 			// there are limited options, most logically a certain field should be focused
 			// instead of last or last by one field
@@ -101,7 +127,7 @@ class PinsetEventer : public FormEventHandler {
 				form_driver(form, REQ_PREV_FIELD);
 			}
 
-			// TODO: redraw?
+			// drawPinSetHeader calls Window::paint() already
 		}
 	}
 
@@ -114,58 +140,62 @@ class PinsetEventer : public FormEventHandler {
 		fieldHopped();
 	}
 
-	void addFields(const Field &signalField, const Field &descField) {
-		signalAndDescFields.push_back(pair<Field, Field>(signalField, descField));
-		previousSignals.push_back(signalField.buffer<string>());
-	}
-
   private:
+	int row;
 	// column to use for next signal & desc fields
 	int signalColumn, descColumn;
 	PinsetForm &form;
+	Window &window;
+	vector<string> packages;
 	unordered_map<string, string> signalAndDescMap;
+
 	vector<pair<Field, Field>> signalAndDescFields;
 	vector<string> previousSignals;
 };
 
-// TODO: be able to render more than first pin :)
-// TODO: edit/view
-// TODO: window should scroll working
-void drawPinSet(Window &win, PinSetView vw) {
-	// packages (drawing + pins) are up to 6 wide, so always format them at 6
-	static const int HDR_WIDTH = 6;
-
-	static const string SIGNAL_HDR("SIGNAL");
-	static const string DESCRIPTION_HDR("DESCRIPTION");
-
-	FormBuilder fb;
-	Field *pinFields = new Field[vw.pkgs.size()]; // needed for data? why not From Form object
-	int hdrRow = 1;
-	int pinRow = 1; // confusing but correct; subwindow pin row
+void drawPinSetHeader(Window &win, const int hdrRow, const vector<string> &pkgs) {
 	int col = 0;
-	for ( size_t i = 0; i < vw.pkgs.size(); i++ ) {
-		col += HDR_WIDTH + 1;
 
-		Field fld = Field(1, FIELD_WIDTH_PIN, pinRow, col - FIELD_WIDTH_PIN);
+	col = 0;
+	for ( const string &pkg : pkgs ) {
+		col += FIELD_WIDTH_PKG + 1;
+		int len = pkg.length();
+		win.add(hdrRow, col - len, pkg);
+	}
+
+	int sgnCol = col + 1;
+	int descCol = sgnCol + FIELD_WIDTH_SIGNAL + 1;
+
+	win.add(hdrRow, sgnCol, SIGNAL_HDR);
+	win.add(hdrRow, descCol, DESCRIPTION_HDR);
+	win.paint();
+}
+
+void drawPinSet(Window &win, int row, const vector<string> &pkgs, PinView &pv) {
+	drawPinSetHeader(win, row++, pkgs);
+	// TODO
+	int col = 0;
+	for ( const string &pin : pv.pins ) {
+		col += FIELD_WIDTH_PKG + 1;
+		int len = pin.length();
+		win.add(row, col - len, pin);
+	}
+}
+
+void editPinSet(Window &win, const int row, const vector<string> &pkgs, PinView &) {
+	FormBuilder fb;
+	Field *pinFields = new Field[pkgs.size()];
+
+	int col = 0;
+	for ( size_t i = 0; i < pkgs.size(); i++ ) {
+		col += FIELD_WIDTH_PKG + 1;
+
+		Field fld = Field(1, FIELD_WIDTH_PIN, row, col - FIELD_WIDTH_PIN);
 		fld.justify(JUSTIFY_RIGHT);
+		fld.optionAutoSkip(Toggle::OFF);
 		fb.addField(fld);
 		pinFields[i] = fld;
 	}
-	int sgnCol = col + 1;
-	int descCol = sgnCol + FIELD_WIDTH_SIGNAL + 1;
-	// multiple signal & info fields? hidden or something until necessary?
-	// but form needs to fit inside of window AND using a subwindow may mean it's not cleared anymore?
-	// or 3 signals & scroll? but less useful as viewer then
-	Field sgnField(1, FIELD_WIDTH_SIGNAL, pinRow, sgnCol);
-	sgnField.justify(JUSTIFY_RIGHT);
-	// test
-	// make field required for validation, shouldn't allow leaving the field?
-	// result; as-is empty field is allowed, BUT 3 means 2? etc wtf... odd; \0 included?
-	// set_field_type(sgnField.raw(), TYPE_ALNUM, 4);
-	fb.addField(sgnField);
-	Field descField(1, 20 /*TODO*/, pinRow, descCol);
-	descField.optionsActiveAndEditable(Toggle::OFF);
-	fb.addField(descField);
 
 	// is there a benefit of creating this derived/subwindow for the form?
 	// clear on one is clear on the other ... useless?
@@ -175,31 +205,30 @@ void drawPinSet(Window &win, PinSetView vw) {
 	PinsetForm form = fb.build<PinsetForm>(formWin);
 
 	form.repost();
+	drawPinSetHeader(win, row, pkgs);
 
-	// HEADER, only once every X pins?
-	// more logically, every X signals really
-	// or every pin, most pins have multiple signals; may be more useful
-	// or of course # of lines or something, only once basically
-	// but that would be a fixed header regardless of scrolling; maybe easiest?
-	// entire window is cleared on form.repost!! should be built back up
-	col = 0;
-	for ( const string &pkg : vw.pkgs ) {
-		col += HDR_WIDTH + 1;
-		int len = pkg.length();
-		win.add(hdrRow, col - len, pkg);
-	}
-	win.add(hdrRow, sgnCol, SIGNAL_HDR);
-	win.add(hdrRow, descCol, DESCRIPTION_HDR);
-	win.paint();
-
-	// eventer knows form to add fields
 	unordered_map<string, string> map; // TODO
 	map["TEST"] = "TEST SIGNAL DESC";
-	PinsetEventer pev(form, map, sgnCol, descCol);
-	pev.addFields(sgnField, descField);
+
+	int sgnCol = col + 1;
+	PinsetEventer pev(win, form, pkgs, map, row, sgnCol);
 
 	form.loop(pev);
+	// delete array, DO NOT delete the objects; they're attached to Form and will be deleted by its destructor
+	delete[] pinFields;
+}
 
+// Window drawing functions
+
+// TODO: window should scroll working
+void drawPinSetEditingWindow(Window &win, PinSetView &vw) {
+	int row = 1;
+	for ( PinView &pv : vw.pins ) {
+		drawPinSet(win, row, vw.pkgs, pv);
+	}
+
+	PinView pv;
+	editPinSet(win, row, vw.pkgs, pv);
 	// TODO: check deletion
 }
 
