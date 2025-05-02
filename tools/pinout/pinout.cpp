@@ -95,7 +95,7 @@ int main() {
 		// maybe just default indices and when filled, swap? dunno, also error-prone
 		ui::PinSetView vw = {pkgs};
 		// TODO: get pins & signals from DB
-		ui::drawPinSet(pins, vw);
+		ui::drawPinSetEditingWindow(pins, vw);
 		// TODO: save new signals; allow changes to descs? maybe, maybe not? better manually?
 
 		// next step would be: get pinset, render to screen
