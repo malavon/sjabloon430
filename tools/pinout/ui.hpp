@@ -12,6 +12,18 @@ namespace sjabloon430 { namespace tools { namespace pinout { namespace ui {
 using namespace cccurses;
 using namespace sjabloon430::tools::db;
 
+// 3 characters is enough for pin numbers, even BGA
+// using 4 is however logical, esthetic purposes 1 empty character always
+static const int PIN_FIELD_WIDTH = 4;
+// packages (drawing + pins) are up to 6 wide, so always format them at 6
+static const int PKG_HDR_WIDTH = 6;
+// signal is max ... TODO=
+static const int FIELD_WIDTH_SIGNAL = 8;
+static const int FIELD_WIDTH_DESC = 20;
+
+static const char *SIGNAL_HDR("SIGNAL");
+static const char *DESCRIPTION_HDR("DESCRIPTION");
+
 struct PinView {
 	// one pin per package
 	vector<string> pins;
@@ -42,10 +54,14 @@ struct SignalView {
 	string desc;
 };
 
-// TODO: be able to render more than first pin :)
-// TODO: edit/view
+// partial drawing functions
 // TODO: window should scroll working
-void drawPinSet(Window &win, PinSetView pinView);
+void drawPinSetHeader(Window &, const int row, const vector<string> &pkgs);
+void drawPinSet(Window &, int row, const vector<string> &pkgs, PinView &pv);
+void editPinSet(Window &, int row, const vector<string> &pkgs, PinView &pv);
+
+// Window drawing functions
+void drawPinSetEditingWindow(Window &win, PinSetView &pinView);
 void drawSetConfigWindow(BorderedWindow &, const vector<string> &models, const vector<string> &packages);
 void drawTopWindow(BorderedWindow &, const Datasheet &, DatabaseTotals &);
 string searchDatasheet(const unordered_map<string, string> &dsModels, const int widestModelLength);
