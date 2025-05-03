@@ -17,7 +17,7 @@ STRICT;
 CREATE TABLE IF NOT EXISTS pinset_signal (
     pinset_id   INTEGER REFERENCES pinset (id) ON DELETE RESTRICT
                         NOT NULL,
-    signal_id   INTEGER NOT NULL
+    signal_id   TEXT    NOT NULL
                         REFERENCES signal (id) ON DELETE RESTRICT
                                                ON UPDATE RESTRICT,
     idx         INTEGER CONSTRAINT NN_SIGNAL_SET_INDEX NOT NULL,
