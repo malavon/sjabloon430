@@ -11,8 +11,8 @@
 #include "cccurses/window.hpp"
 
 using namespace cccurses;
-using namespace sjabloon430::tools::db;
-using namespace sjabloon430::tools::pinout::ui;
+using namespace sjabloon430::tools;
+using namespace sjabloon430::tools::pinout;
 
 void autofillDatasheet();
 void printShortcuts(Window &win);
@@ -52,7 +52,7 @@ int main() {
 		int l = 20;
 		Window &statusWin = pins;
 		statusWin.add(l++, 0, "Imported SQLite DB from files:");
-		importDatabase(db, dbDir, [&](const string &filename, const char *error) {
+		db::importDatabase(db, dbDir, [&](const string &filename, const char *error) {
 			statusWin.add(l++, 2, '"');
 			statusWin.add(filename);
 			statusWin.add('"');
@@ -62,33 +62,35 @@ int main() {
 				statusWin.add(error);
 			}
 		});
-		DatabaseTotals totals = countTotals(db);
+		db::DatabaseTotals totals = db::countTotals(db);
 		statusWin.paint();
 
 		// initial state: open search window
-		string selectedId = searchDatasheet(listAllModelsAndDatasheets(db), WIDEST.length());
-		Datasheet selectedDS = findDatasheet(db, selectedId);
-		drawTopWindow(top, selectedDS, totals);
+		string selectedId = ui::searchDatasheet(db::listAllModelsAndDatasheets(db), WIDEST.length());
+		db::Datasheet selectedDS = db::findDatasheet(db, selectedId);
+		ui::drawTopWindow(top, selectedDS, totals);
 
 		printShortcuts(pins);
 
-		vector<string> models = findModelsByDatasheet(db, selectedId);
+		vector<string> models = db::findModelsByDatasheet(db, selectedId);
 		// models are used for (default) set
 		// TODO: other sets have to be retrieved from pinset & calculated
 
-		vector<string> pkgs = findPackagesByDatasheet(db, selectedDS.id);
+		vector<string> pkgs = db::findPackagesByDatasheet(db, selectedDS.id);
 		// packages are also used for sets
+
+		ui::reorderPackages(pkgs);
 
 		int defaultSetHeight = models.size() + pkgs.size() / 2 /* packages are max 5 wide */ + pkgs.size() % 2 /* when odd, add 1 */
 							 + 2 /* headers */ + 2 /* borders */;
 		BorderedWindow defaultSet(defaultSetHeight, MAX_WIDTH, 0, COLS - MAX_WIDTH);
 		defaultSet.setTitle("Default");
-		drawSetConfigWindow(defaultSet, models, pkgs);
+		ui::drawSetConfigWindow(defaultSet, models, pkgs);
 
 		BorderedWindow newSet(6, MAX_WIDTH, defaultSetHeight, COLS - MAX_WIDTH);
 		newSet.setTitle("Set F5");
 		// newSet.add(0, 1, "F5: Create new set");
-		drawSetConfigWindow(newSet, {"MOCKUP"}, {"MOCKUP"});
+		ui::drawSetConfigWindow(newSet, {"MOCKUP"}, {"MOCKUP"});
 
 		// TODO: really should be possible to re-order packages and possibly other things!
 		// other centered screen to quickly do this?
@@ -96,12 +98,12 @@ int main() {
 		// i.e. 4 packages DA, N, RHB, YXW: "weight" 5,6,7,8; putting # in any field makes easy first/second etc?
 		// set N to 1, becomes N, DA, RHB, YXW; but what happens when setting to 2 instead of 1? NOT AS EXPECTED becomes first
 		// maybe just default indices and when filled, swap? dunno, also error-prone
-		PinSetView vw = {pkgs};
+		ui::PinSetView vw = {pkgs};
 		// TODO: just a test signal
 		vw.signalDescs["TEST"] = "TEST SIGNAL DESC";
 		// TODO: get pins & signals from DB
 
-		PinView pv;
+		ui::PinView pv;
 		int tempChar = 0;
 		do {
 			drawPinSetEditingWindow(pins, vw);
