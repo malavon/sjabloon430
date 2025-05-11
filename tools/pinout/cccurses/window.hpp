@@ -78,6 +78,22 @@ class Window {
 		wattroff(ptr, attrs);
 	}
 
+	/*
+	 * Clears an entire line from the start, moves the cursor to do so.
+	 */
+	void clearLine(const int line) {
+		int rm = wmove(ptr, line, 0);
+		wclrtoeol(ptr);
+	}
+
+	void clearToEndOfLine() {
+		wclrtoeol(ptr);
+	}
+
+	void clearToEndOfScreen() {
+		wclrtobot(ptr);
+	}
+
 	void enableAttributes(const int attrs) {
 		wattron(ptr, attrs);
 	}
