@@ -153,7 +153,8 @@ void drawPinSetHeader(Window &win, const int hdrRow, const vector<string> &pkgs)
 
 void drawPinSet(Window &win, int &row, const vector<string> &pkgs, unordered_map<string, string> &signals, const PinView &pv) {
 	int col = 0;
-	for ( const string &pin : pv.pins ) {
+	for ( const string &pkg : pkgs ) {
+		const string pin = pv.pkgPins.at(pkg);
 		col += HEADER_WIDTH_PKG + 1;
 		int len = pin.length();
 		win.add(row, col - len, pin);
@@ -192,9 +193,9 @@ void editPinSet(Window &win, int &row, const vector<string> &pkgs, unordered_map
 	form.loop(pev);
 
 	// after looping of edit, complete the pinview
-	pv.pins.clear();
-	for ( const Field &pinField : pinFields ) {
-		pv.pins.push_back(pinField.buffer<string>());
+	for ( int i = 0; i < pkgs.size(); i++ ) {
+		const string pkg = pkgs[i]; // packages have the same ordering as the fields
+		pv.pkgPins[pkg] = pinFields[i].buffer<string>();
 	}
 
 	pv.signals.clear();
@@ -239,10 +240,10 @@ void drawPinSetEditingWindow(Window &win, PinSetView &vw) {
 	// TODO: check deletion?
 
 	// only add pin view if at least one pin & one signal
-	// to verify: count pin sizes, since the vector itself is not empty!
+	// to verify: count pin (string) length, since the map itself is not empty!
 	int pinTotal = 0;
-	for ( auto it = pv.pins.begin(); it != pv.pins.end() && pinTotal == 0; it++ ) {
-		pinTotal += it->size();
+	for ( auto it = pv.pkgPins.begin(); it != pv.pkgPins.end() && pinTotal == 0; it++ ) {
+		pinTotal += it->second.length();
 	}
 	if ( pinTotal > 0 && !pv.signals.empty() ) {
 		vw.pinViews.push_back(pv);
