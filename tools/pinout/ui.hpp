@@ -45,6 +45,7 @@ void editPinSet(Window &, int &row, const vector<string> &pkgs, unordered_map<st
 void drawPinSetEditingWindow(Window &win, PinSetView &pinView);
 void drawSetConfigWindow(BorderedWindow &, const vector<string> &models, const vector<string> &packages);
 void drawTopWindow(BorderedWindow &, const Datasheet &, DatabaseTotals &);
+void reorderPackages(vector<string> &pkgs); // given vector is reordered in-place
 string searchDatasheet(const unordered_map<string, string> &dsModels, const int modelFieldWidth);
 
 }}}} // namespace sjabloon430::tools::pinout::ui
