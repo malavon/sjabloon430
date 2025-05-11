@@ -14,7 +14,7 @@ using namespace sjabloon430::tools::pinout::db;
 
 struct PinView {
 	// one pin per package
-	vector<string> pins;
+	unordered_map<string, string> pkgPins;
 	// multiple signals are common; indexed! begin/first = default
 	vector<string> signals;
 };

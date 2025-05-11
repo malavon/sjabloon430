@@ -173,9 +173,10 @@ void drawPinSetHeader(Window &win, const int hdrRow, const vector<string> &pkgs)
 	win.paint();
 }
 
-void drawPinSet(Window &win, int &row, const vector<string> &, unordered_map<string, string> &signals, const PinView &pv) {
+void drawPinSet(Window &win, int &row, const vector<string> &pkgs, unordered_map<string, string> &signals, const PinView &pv) {
 	int col = 0;
-	for ( const string &pin : pv.pins ) {
+	for ( const string &pkg : pkgs ) {
+		const string pin = pv.pkgPins.at(pkg);
 		col += FIELD_WIDTH_PKG + 1;
 		int len = pin.length();
 		win.add(row, col - len, pin);
@@ -213,9 +214,9 @@ void editPinSet(Window &win, int &row, const vector<string> &pkgs, unordered_map
 	form.loop(pev);
 
 	// after looping of edit, complete the pinview
-	pv.pins.clear();
 	for ( size_t i = 0; i < pkgs.size(); i++ ) {
-		pv.pins.push_back(pinFields[i].buffer<string>());
+		const string pkg = pkgs[i]; // packages have the same ordering as the fields
+		pv.pkgPins[pkg] = pinFields[i].buffer<string>();
 	}
 
 	pv.signals.clear();
@@ -264,10 +265,10 @@ void drawPinSetEditingWindow(Window &win, PinSetView &vw) {
 	// TODO: check deletion?
 
 	// only add pin view if at least one pin & one signal
-	// to verify: count pin sizes, since the vector itself is not empty!
+	// to verify: count pin (string) length, since the map itself is not empty!
 	int pinTotal = 0;
-	for ( auto it = pv.pins.begin(); it != pv.pins.end() && pinTotal == 0; it++ ) {
-		pinTotal += it->size();
+	for ( auto it = pv.pkgPins.begin(); it != pv.pkgPins.end() && pinTotal == 0; it++ ) {
+		pinTotal += it->second.length();
 	}
 	if ( pinTotal > 0 && !pv.signals.empty() ) {
 		vw.pinViews.push_back(pv);
@@ -362,8 +363,8 @@ void reorderPackages(vector<string> &pkgs) {
 	// simple manual key detection
 	// cccurses should have a good way to capture these without checking key codes etc
 	// current KeyEventProducer might be too much for this purpose? should try it out really
-	int slIdx = 0;
-	int maxIdx = pkgs.size() - 1;
+	size_t slIdx = 0;
+	size_t maxIdx = pkgs.size() - 1;
 	int pressedKey = 0;
 	do {
 		switch ( pressedKey ) {
@@ -394,7 +395,7 @@ void reorderPackages(vector<string> &pkgs) {
 		int col = (WIN_WIDTH - 4 - totalPkgsLength) / 2;
 		center.clearLine(3);
 		for ( size_t i = 0; i < pkgs.size(); i++ ) {
-			center.add(3, col, pkgs[i], static_cast<int>(i) == slIdx ? A_STANDOUT : A_NORMAL);
+			center.add(3, col, pkgs[i], i == slIdx ? A_STANDOUT : A_NORMAL);
 			col += pkgs[i].length() + 1;
 		}
 
