@@ -309,6 +309,75 @@ void drawTopWindow(BorderedWindow &win, const Datasheet &ds, DatabaseTotals &tot
 	win.paint();
 }
 
+// reordering packages, given vector is reordered
+void reorderPackages(vector<string> &pkgs) {
+	static const string TEXT = "Reorder packages as they are in the datasheet";
+	static const string KEYS = "TAB: Select | Arrow Left/Right: Move | Enter: Confirm";
+	static const int TEXT_WIDTH = max(TEXT.length(), KEYS.length());
+
+	int PKGS_WIDTH = pkgs.size() * (HEADER_WIDTH_PKG + 1) - 1;
+
+	int WIN_WIDTH = max(TEXT_WIDTH, PKGS_WIDTH) + 2 /* Whitespace Left/right  */ + 2 /* border */;
+	int WIN_HEIGHT = 3 /* text & empty line */ + 1 /* line with packages */ + 1 /* empty line */ + 2 /* border */;
+
+	// TODO: doesn't care about resizing or too small a screen
+	BorderedWindow center(WIN_HEIGHT, WIN_WIDTH, (LINES - WIN_HEIGHT) / 2, (COLS - WIN_WIDTH) / 2);
+	center.setTitle("Ordering");
+	center.add(0, (WIN_WIDTH - TEXT.length()) / 2 - 1, TEXT);
+	center.add(1, (WIN_WIDTH - KEYS.length()) / 2 - 1, KEYS);
+
+	int totalPkgsLength = -1;
+	for ( const string &pkg : pkgs ) {
+		totalPkgsLength += pkg.length() + 1;
+	}
+
+	center.paint();
+
+	// simple manual key detection
+	// cccurses should have a good way to capture these without checking key codes etc
+	// current KeyEventProducer might be too much for this purpose? should try it out really
+	int slIdx = 0;
+	int maxIdx = pkgs.size() - 1;
+	int pressedKey = 0;
+	do {
+		switch ( pressedKey ) {
+			case 9 /* tab */:
+				// allow rollover during selection
+				slIdx = (slIdx == maxIdx) ? 0 : slIdx + 1;
+				break;
+			case KEY_BTAB:
+				slIdx = (slIdx == 0) ? maxIdx : slIdx - 1;
+				break;
+			case KEY_LEFT:
+				// no roll-over during move
+				if ( slIdx > 0 ) {
+					string temp = pkgs[slIdx];
+					pkgs[slIdx] = pkgs[slIdx - 1];
+					pkgs[--slIdx] = temp; // hehe²
+				}
+				break;
+			case KEY_RIGHT:
+				if ( slIdx < maxIdx ) {
+					string temp = pkgs[slIdx];
+					pkgs[slIdx] = pkgs[slIdx + 1];
+					pkgs[++slIdx] = temp; // hehe²
+				}
+				break;
+		}
+
+		int col = (WIN_WIDTH - 4 - totalPkgsLength) / 2;
+		center.clearLine(3);
+		for ( int i = 0; i < pkgs.size(); i++ ) {
+			center.add(3, col, pkgs[i], i == slIdx ? A_STANDOUT : A_NORMAL);
+			col += pkgs[i].length() + 1;
+		}
+
+		// naive way of moving cursor where it doesn't bother as much, should hide it somehow TODO
+		center.moveCursor(WIN_HEIGHT - 3, WIN_WIDTH - 3);
+		center.paint();
+	} while ( (pressedKey = wgetch(center)) != KEY_ENTER && pressedKey != 10 );
+}
+
 // open a window in middle of screen, present all options to user; return chosen datasheet
 string searchDatasheet(const unordered_map<string, string> &dsModels, const int widestModelLength) {
 	// TODO: also add some help on this window/form fields using F1
