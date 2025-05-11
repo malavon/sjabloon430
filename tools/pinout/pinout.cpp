@@ -71,6 +71,8 @@ int main() {
 		vector<string> pkgs = db::findPackagesByDatasheet(db, selectedDS.id);
 		// packages are also used for sets
 
+		ui::reorderPackages(pkgs);
+
 		int defaultSetHeight = models.size()   /* one line per model */
 				     + pkgs.size() / 2 /* packages are max 5 wide, 2 pkgs/line */
 				     + pkgs.size() % 2 /* when odd, 1 extra pkg, 1 extra line */
@@ -84,12 +86,6 @@ int main() {
 		// newSet.add(0, 1, "F5: Create new set");
 		ui::drawSetConfigWindow(newSet, {"MOCKUP"}, {"MOCKUP"});
 
-		// TODO: really should be possible to re-order packages and possibly other things!
-		// other centered screen to quickly do this?
-		// idea: quick-n-dirt: input field with number, default numbers start from # pkgs+1 (not shown in fields though)
-		// i.e. 4 packages DA, N, RHB, YXW: "weight" 5,6,7,8; putting # in any field makes easy first/second etc?
-		// set N to 1, becomes N, DA, RHB, YXW; but what happens when setting to 2 instead of 1? NOT AS EXPECTED becomes first
-		// maybe just default indices and when filled, swap? dunno, also error-prone
 		ui::PinSetView vw = {pkgs};
 		vw.signalDescs = db::listAllSignalDescriptions(db);
 		// TODO: get pins from DB
@@ -110,6 +106,7 @@ int main() {
 		// BUT: there are no pinsets in DB yet, so first thing is to add creation/editing code
 		/* MVP sequence:
 		 * 1. get packages & pins for datasheet, get models (models from vector? more difficult)
+		 * 1a. user orders packages according to datasheet
 		 * 2. print header (assume all packages are added in one go, type 1 datasheets)
 		 * 3. add form for pins under each package + 1 signal, on signal field 1 tab:
 		 * 3a. lookup signal (none in DB yet), show description
@@ -119,7 +116,6 @@ int main() {
 		 * 4. add new pin, go to 3 (or 2? maybe every X pins?)
 		 */
 		/* MVP+1:
-		 * adds package ordering? on hotkey? on menu item? not sure -> almost REQUIRED for ease of use ... + correctness
 		 * uppercase input only?
 		 * V1.0
 		 * autocomplete signals from DB
