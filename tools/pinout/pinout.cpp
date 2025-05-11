@@ -74,6 +74,8 @@ int main() {
 		vector<string> pkgs = db::findPackagesByDatasheet(db, selectedDS.id);
 		// packages are also used for sets
 
+		ui::reorderPackages(pkgs);
+
 		int defaultSetHeight = models.size()   /* one line per model */
 				     + pkgs.size() / 2 /* packages are max 5 wide, 2 pkgs/line */
 				     + pkgs.size() % 2 /* when odd, 1 extra pkg, 1 extra line */
