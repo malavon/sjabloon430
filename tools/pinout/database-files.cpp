@@ -1,10 +1,13 @@
 #include "database-files.hpp"
 
+#include <cassert>
 #include <filesystem>
 #include <fstream>
 #include <functional>
 #include <iostream>
 #include <set>
+
+#include "database.hpp"
 
 #ifndef DB_DIRECTORY
   #error "add -DDB_DIRECTORY=\"...\" to the compiler command line"
@@ -14,6 +17,21 @@ using namespace std;
 using namespace std::filesystem;
 
 namespace sjabloon430 { namespace tools { namespace db {
+
+// privately used functions forward declarations
+
+// export from a simple query, cannot export joined tables etc
+void exportFromPrepStmt(sqlite3_stmt *statement, const string fileName, const ExportConfig &config = ExportConfig{});
+string insertStringFromResultSet(sqlite3_stmt *stmt);
+
+// helper functions
+void prepare(sqlite3 *db, sqlite3_stmt **stmt, const char *query) {
+	int rc = sqlite3_prepare_v2(db, query, -1, stmt, NULL);
+	if ( rc != SQLITE_OK ) {
+		std::cerr << "SQLite3 error " << sqlite3_errmsg(db) << std::endl;
+	}
+	assert(rc == SQLITE_OK);
+}
 
 string insertStringFromResultSet(sqlite3_stmt *stmt) {
 	const int columns = sqlite3_column_count(stmt);
@@ -91,6 +109,23 @@ void exportFromPrepStmt(sqlite3_stmt *stmt, const string fileName, const ExportC
 		out << "COMMIT TRANSACTION;" << endl;
 	}
 	out.close();
+}
+
+void exportSignals(sqlite3 *db) {
+	static const char *GROUPS = "SELECT * "
+				    "FROM signalgroup "
+				    "ORDER BY name";
+	static const char *SIGNALS = "SELECT signalgroup, id, desc "
+				     "FROM signal "
+				     "ORDER BY signalgroup ASC, id ASC";
+	static sqlite3_stmt *grpStmt, *sgnStmt;
+	if ( sgnStmt == nullptr ) {
+		prepare(db, &grpStmt, GROUPS);
+		prepare(db, &sgnStmt, SIGNALS);
+	}
+
+	exportFromPrepStmt(grpStmt, "24_signal.sql", ExportConfig{.tx = ExportConfig::Tx::BEGIN});
+	exportFromPrepStmt(sgnStmt, "24_signal.sql", ExportConfig{.appendFile = true, .tx = ExportConfig::Tx::COMMIT});
 }
 
 // maybe this should be a function shared with other programs
