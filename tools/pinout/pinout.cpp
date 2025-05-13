@@ -99,6 +99,7 @@ int main() {
 			drawPinSetEditingWindow(pins, vw);
 		} while ( (tempChar = wgetch(pins.raw())) != 27 ); // ESC key for exit
 
+		db::tempExport(db, "temp.sql");
 		// TODO: input up/down & other hotkeys, basically the bulk of the application?
 		// or should this be in the main application?
 		// much more logical I think, since DB access is required for saving

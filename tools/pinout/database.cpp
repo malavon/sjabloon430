@@ -30,6 +30,75 @@ sqlite3 *createDatabase() {
 	return db;
 }
 
+string insertStringFromResultSet(sqlite3_stmt *stmt) {
+	int columns = sqlite3_column_count(stmt);
+	if ( columns == 0 ) {
+		return "ERROR NO COLUMNS";
+	}
+
+	const char *table = sqlite3_column_table_name(stmt, 0);
+	string insert = "INSERT INTO ";
+	insert += table;
+	insert += "( ";
+	for ( int c = 0; c < columns; c++ ) {
+		const char *origin = sqlite3_column_origin_name(stmt, c); // column name from DB
+		if ( origin == nullptr ) {
+			const char *col = sqlite3_column_name(stmt, c); // column name from AS-statement
+			insert += col == nullptr ? "ERROR_NO_COL_NAME" : col;
+		} else {
+			insert += origin;
+		}
+		insert += ", ";
+	}
+	insert.erase(insert.size() - strlen(", ")); // remove last ", "
+	insert += " ) VALUES (";
+
+	columns = sqlite3_data_count(stmt); // let's hope it's the same as before ...
+	// TODO: values
+	for ( int c = 0; c < columns; c++ ) {
+		const char *type = sqlite3_column_decltype(stmt, c);
+		string typeStr = type == nullptr ? "NULL" : type;
+		if ( typeStr.compare("INTEGER") == 0 || typeStr.compare("FLOAT") == 0 ) {
+			insert += reinterpret_cast<const char *>(sqlite3_column_text(stmt, c));
+		} else {
+			insert += "'";
+			insert += reinterpret_cast<const char *>(sqlite3_column_text(stmt, c));
+			insert += "'";
+		}
+		insert += ", ";
+	}
+	insert.erase(insert.size() - strlen(", ")); // remove last ", "
+	insert += ");";
+
+	// const char *sqlite3_column_database_name(sqlite3_stmt *, int);
+	// const char *sqlite3_column_table_name(sqlite3_stmt *, int);
+	// const char *sqlite3_column_decltype(sqlite3_stmt *, int);
+
+	return insert;
+}
+
+void exportFromPrepStmt(sqlite3_stmt *stmt, const string fileName) {
+	std::filesystem::path outFile(DB_DIRECTORY);
+	outFile /= fileName;
+	std::ofstream out(outFile, ios::out | ios::ate); // output & append (todo)
+	while ( SQLITE_ROW == sqlite3_step(stmt) ) {
+		out << insertStringFromResultSet(stmt);
+	}
+}
+
+void tempExport(sqlite3 *db, const string fileName) {
+	static const char *QUERY = "SELECT id, revision, rev_month, rev_year, CONCAT(issue_month, '/', issue_year) issue_date,"
+							   "CONCAT(rev_month, '/', rev_year) rev_date FROM datasheet WHERE id='SLAS942'";
+	sqlite3_stmt *stmt;
+	// assume only a single row
+	Datasheet ds;
+	int rc = sqlite3_prepare_v2(db, QUERY, -1, &stmt, NULL);
+	if ( rc == SQLITE_OK ) {
+		exportFromPrepStmt(stmt, fileName);
+	}
+	sqlite3_finalize(stmt);
+}
+
 // maybe this should be a function shared with other programs
 void importDatabase(sqlite3 *db, std::function<void(const std::string &file, const char *error)> callback) {
 	std::filesystem::path dbDir(DB_DIRECTORY);
@@ -172,5 +241,4 @@ unordered_map<string, string> listAllSignalDescriptions(sqlite3 *db) {
 	}
 	return result;
 }
-
 }}} // namespace sjabloon430::tools::db
