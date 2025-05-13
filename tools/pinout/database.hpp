@@ -41,6 +41,7 @@ sqlite3 *createDatabase();
 
 // export from a simple query, cannot export joined tables etc
 void exportFromPrepStmt(sqlite3_stmt *statement, const string fileName);
+void exportSignals(sqlite3 *db);
 void importDatabase(sqlite3 *db, std::function<void(const std::string &file, const char *error)> callback);
 
 /* Query DB */

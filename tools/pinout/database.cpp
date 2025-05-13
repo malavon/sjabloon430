@@ -98,6 +98,16 @@ void exportFromPrepStmt(sqlite3_stmt *stmt, const string fileName) {
 	sqlite3_finalize(stmt);
 }
 
+void exportSignals(sqlite3 *db) {
+	static sqlite3_stmt *stmt;
+	if ( stmt == nullptr ) {
+		static const char *QUERY = "SELECT * FROM signal ORDER BY id ASC";
+		assert(SQLITE_OK == sqlite3_prepare_v2(db, QUERY, -1, &stmt, NULL));
+	}
+
+	exportFromPrepStmt(stmt, "24_signal.sql");
+}
+
 // maybe this should be a function shared with other programs
 void importDatabase(sqlite3 *db, std::function<void(const std::string &file, const char *error)> callback) {
 	std::filesystem::path dbDir(DB_DIRECTORY);
