@@ -23,17 +23,7 @@ int main() {
 	setlocale(LC_ALL, "");
 
 	// SQLite3 in-memory DB
-	sqlite3 *db;
-	// const char *database = "sjabloon430.db";
-	// in-memory is preferred, but exporting should be simple, formatted and not DIY
-	// if not, use a file database?
-	unsigned int rc = sqlite3_open("file::memory:", &db);
-	std::filesystem::path dbDir(DB_DIRECTORY);
-
-	if ( rc != 0 ) {
-		sqlite3_close(db);
-		return 1;
-	}
+	sqlite3 *db = db::createDatabase();
 
 	// importing database happens after curses setup, showing which files are read
 
@@ -52,7 +42,7 @@ int main() {
 		int l = 20;
 		Window &statusWin = pins;
 		statusWin.add(l++, 0, "Imported SQLite DB from files:");
-		db::importDatabase(db, dbDir, [&](const string &filename, const char *error) {
+		db::importDatabase(db, [&](const string &filename, const char *error) {
 			statusWin.add(l++, 2, '"');
 			statusWin.add(filename);
 			statusWin.add('"');

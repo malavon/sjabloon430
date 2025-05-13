@@ -17,8 +17,22 @@ using namespace std::filesystem;
 
 namespace sjabloon430 { namespace tools { namespace db {
 
+sqlite3 *createDatabase() {
+	sqlite3 *db;
+	// in-memory is preferred, but exporting should be simple, formatted and not DIY
+	// if not, use a file database?
+	unsigned int rc = sqlite3_open("file::memory:", &db);
+
+	if ( rc != 0 ) {
+		sqlite3_close(db);
+		db = nullptr;
+	}
+	return db;
+}
+
 // maybe this should be a function shared with other programs
-void importDatabase(sqlite3 *db, const path &dbDir, std::function<void(const std::string &file, const char *error)> callback) {
+void importDatabase(sqlite3 *db, std::function<void(const std::string &file, const char *error)> callback) {
+	std::filesystem::path dbDir(DB_DIRECTORY);
 	// iterate all files, sort alphabetically/numerically and check if it's actually a (SQL) file
 	// TODO: recursive, should also include pinout per device later, simplifies files
 	set<path> files;
