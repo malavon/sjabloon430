@@ -99,6 +99,7 @@ int main() {
 		} while ( (tempChar = wgetch(pins)) != 27 ); // ESC key for exit
 
 		db::saveSignals(db, vw.signalDescs);
+		db::exportSignals(db);
 
 		// TODO: input up/down & other hotkeys, basically the bulk of the application?
 		// or should this be in the main application?

@@ -6,6 +6,8 @@
 #include <iostream>
 #include <set>
 
+#include "database.hpp"
+
 #ifndef DB_DIRECTORY
   #error "add -DDB_DIRECTORY=\"...\" to the compiler command line"
 #endif
@@ -88,6 +90,16 @@ void exportFromPrepStmt(sqlite3_stmt *stmt, const string fileName, const ExportC
 		out << endl << "COMMIT TRANSACTION;" << endl;
 	}
 	sqlite3_finalize(stmt);
+}
+
+void exportSignals(sqlite3 *db) {
+	static const char *QUERY = "SELECT signalgroup, id, desc FROM signal ORDER BY signalgroup ASC, id ASC";
+	static sqlite3_stmt *stmt;
+	if ( stmt == nullptr ) {
+		prepare(db, &stmt, QUERY);
+	}
+
+	exportFromPrepStmt(stmt, "24_signal.sql");
 }
 
 // maybe this should be a function shared with other programs

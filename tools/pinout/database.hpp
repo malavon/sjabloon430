@@ -36,6 +36,7 @@ struct Package {
 
 /* SQLite 3 init & database import/export */
 sqlite3 *createDatabase();
+void prepare(sqlite3 *db, sqlite3_stmt **stmt, const char *query); // helper function to prepare a sqlite3 statement
 
 /* Query DB */
 DatabaseTotals countTotals(sqlite3 *db);
