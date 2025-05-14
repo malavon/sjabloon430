@@ -4,6 +4,8 @@
 -- Text encoding used: UTF-8
 --
 
+PRAGMA foreign_keys = off;
+
 BEGIN TRANSACTION;
 
 INSERT INTO feature (id, param1_description, param2_description, param3_description, comment, family_text, family_group, signal_group) VALUES ('ADC_SAR10', 'External channels', 'Internal channels', NULL, '10-bit SAR ADC', '10-bit SAR', 'ADC', 'ADC_SAR');
@@ -46,3 +48,5 @@ INSERT INTO feature (id, param1_description, param2_description, param3_descript
 INSERT INTO feature (id, param1_description, param2_description, param3_description, comment, family_text, family_group, signal_group) VALUES ('WTD+', NULL, NULL, NULL, NULL, 'Watchdog timer', 'Features', NULL);
 
 COMMIT TRANSACTION;
+
+PRAGMA foreign_keys = on;

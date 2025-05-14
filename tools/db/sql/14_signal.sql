@@ -9,6 +9,12 @@ CREATE TABLE IF NOT EXISTS signalgroup (
     name TEXT PRIMARY KEY
 );
 
+-- SQLite doesn't understand ALTER TABLE x ALTER COLUMN ...
+
+ALTER TABLE feature DROP COLUMN signal_group;
+ALTER TABLE feature ADD signal_group TEXT REFERENCES signalgroup (name) ON DELETE RESTRICT
+                                                                        ON UPDATE CASCADE;
+
 -- Table: signal
 CREATE TABLE IF NOT EXISTS signal (
     id          TEXT PRIMARY KEY ON CONFLICT ROLLBACK
