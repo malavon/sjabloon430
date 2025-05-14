@@ -31,6 +31,11 @@ struct Datasheet {
 	string revDate;
 };
 
+struct Package {
+	string drawing;
+	int pins;
+};
+
 /* SQLite 3 init & database import/export */
 sqlite3 *createDatabase();
 void importDatabase(sqlite3 *db, std::function<void(const std::string &file, const char *error)> callback);
@@ -40,7 +45,7 @@ DatabaseTotals countTotals(sqlite3 *db);
 
 Datasheet findDatasheet(sqlite3 *db, const string id);
 vector<string> findModelsByDatasheet(sqlite3 *db, const string datasheetId);
-vector<string> findPackagesByDatasheet(sqlite3 *db, const string datasheetId);
+vector<Package> findPackagesByDatasheet(sqlite3 *db, const string datasheetId);
 unordered_map<string, string> listAllModelsAndDatasheets(sqlite3 *db);
 unordered_map<string, string> listAllSignalDescriptions(sqlite3 *db);
 
