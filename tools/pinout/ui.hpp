@@ -20,9 +20,9 @@ struct PinView {
 };
 
 struct PinSetView {
-	PinSetView(const vector<string> p) : pkgs(p) { }
+	PinSetView(const vector<Package> p) : pkgs(p) { }
 	// fixed list of packages
-	const vector<string> pkgs;
+	const vector<Package> pkgs;
 	// map of all existing signals & descriptions, can be modified (well, extended at least)!
 	unordered_map<string, string> signalDescs;
 	// each item on the screen
@@ -43,9 +43,9 @@ void editPinSet(Window &, int &row, const vector<string> &pkgs, unordered_map<st
 
 // Window drawing functions
 void drawPinSetEditingWindow(Window &win, PinSetView &pinView);
-void drawSetConfigWindow(BorderedWindow &, const vector<string> &models, const vector<string> &packages);
+void drawSetConfigWindow(BorderedWindow &, const vector<string> &models, const vector<Package> &packages);
 void drawTopWindow(BorderedWindow &, const Datasheet &, DatabaseTotals &);
-void reorderPackages(vector<string> &pkgs); // given vector is reordered in-place
+void reorderPackages(vector<Package> &pkgs); // given vector is reordered in-place
 string searchDatasheet(const unordered_map<string, string> &dsModels, const int modelFieldWidth);
 
 }}}} // namespace sjabloon430::tools::pinout::ui
