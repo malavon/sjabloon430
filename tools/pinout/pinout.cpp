@@ -68,7 +68,7 @@ int main() {
 		// models are used for (default) set
 		// TODO: other sets have to be retrieved from pinset & calculated
 
-		vector<string> pkgs = db::findPackagesByDatasheet(db, selectedDS.id);
+		vector<db::Package> pkgs = db::findPackagesByDatasheet(db, selectedDS.id);
 		// packages are also used for sets
 
 		ui::reorderPackages(pkgs);
@@ -84,7 +84,9 @@ int main() {
 		BorderedWindow newSet(6, MAX_WIDTH, defaultSetHeight, COLS - MAX_WIDTH);
 		newSet.setTitle("Set F5");
 		// newSet.add(0, 1, "F5: Create new set");
-		ui::drawSetConfigWindow(newSet, {"MOCKUP"}, {"MOCKUP"});
+		/* clang-format off */ // does not format, TODO
+		ui::drawSetConfigWindow(newSet, {"MOCKUP"}, {db::Package{"MOCKUP", 22}});
+		/* clang-format on */
 
 		ui::PinSetView vw = {pkgs};
 		vw.signalDescs = db::listAllSignalDescriptions(db);

@@ -104,8 +104,8 @@ vector<string> findModelsByDatasheet(sqlite3 *db, const string datasheetId) {
 	return result;
 }
 
-vector<string> findPackagesByDatasheet(sqlite3 *db, const string datasheetId) {
-	static const char *QUERY = "SELECT CONCAT(o.drawing, o.pins) pkg "
+vector<Package> findPackagesByDatasheet(sqlite3 *db, const string datasheetId) {
+	static const char *QUERY = "SELECT o.drawing, o.pins "
 				   "FROM orderable o "
 				   "INNER JOIN device d ON (d.model = o.device_id) "
 				   "WHERE d.datasheet_id = ? "
@@ -118,12 +118,17 @@ vector<string> findPackagesByDatasheet(sqlite3 *db, const string datasheetId) {
 	}
 
 	sqlite3_reset(stmt);
-	sqlite3_bind_text(stmt, 1, datasheetId.c_str(), -1, SQLITE_STATIC);
+	int rc = sqlite3_bind_text(stmt, 1, datasheetId.c_str(), -1, SQLITE_STATIC);
+	assert(SQLITE_OK == rc);
 
-	vector<string> result;
+	vector<Package> result;
 	while ( sqlite3_step(stmt) == SQLITE_ROW ) {
-		result.push_back(reinterpret_cast<const char *>(sqlite3_column_text(stmt, 0)));
+		string drw = reinterpret_cast<const char *>(sqlite3_column_text(stmt, 0));
+		int pins = sqlite3_column_int(stmt, 1);
+		result.push_back(Package{drw, pins});
 	}
+	sqlite3_reset(stmt);
+
 	return result;
 }
 
@@ -161,5 +166,4 @@ unordered_map<string, string> listAllSignalDescriptions(sqlite3 *db) {
 	}
 	return result;
 }
-
 }}} // namespace sjabloon430::tools::db

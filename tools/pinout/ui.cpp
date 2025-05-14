@@ -6,7 +6,7 @@ using namespace cccurses;
 
 class PinsetEventer : public FormEventHandler {
   public:
-	PinsetEventer(Window &win, EventEmittingForm<PinsetEventer> &form, const vector<string> &pkgs,
+	PinsetEventer(Window &win, EventEmittingForm<PinsetEventer> &form, const vector<Package> &pkgs,
 		      unordered_map<string, string> &signals, int sgnCol) :
 	    window(win), form(form), packages(pkgs), signalAndDescMap(signals), signalColumn(sgnCol) {
 		row = 0; // row is locally inside the derived window!
@@ -125,21 +125,21 @@ class PinsetEventer : public FormEventHandler {
 	int signalColumn, descColumn;
 	EventEmittingForm<PinsetEventer> &form;
 	Window &window;
-	vector<string> packages;
+	vector<Package> packages;
 	unordered_map<string, string> signalAndDescMap;
 
 	vector<pair<Field, Field>> signalAndDescFields;
 	vector<string> previousSignals;
 };
 
-void drawPinSetHeader(Window &win, const int hdrRow, const vector<string> &pkgs) {
+void drawPinSetHeader(Window &win, const int hdrRow, const vector<Package> &pkgs) {
 	int col = 0;
 
 	col = 0;
-	for ( const string &pkg : pkgs ) {
+	for ( const Package &pkg : pkgs ) {
 		col += HEADER_WIDTH_PKG + 1;
-		int len = pkg.length();
-		win.add(hdrRow, col - len, pkg);
+		string conc = pkg.drawing + to_string(pkg.pins);
+		win.add(hdrRow, col - conc.length(), conc);
 	}
 
 	int sgnCol = col + 1;
@@ -150,10 +150,10 @@ void drawPinSetHeader(Window &win, const int hdrRow, const vector<string> &pkgs)
 	win.paint();
 }
 
-void drawPinSet(Window &win, int &row, const vector<string> &pkgs, unordered_map<string, string> &signals, const PinView &pv) {
+void drawPinSet(Window &win, int &row, const vector<Package> &pkgs, unordered_map<string, string> &signals, const PinView &pv) {
 	int col = 0;
-	for ( const string &pkg : pkgs ) {
-		const string pin = pv.pkgPins.at(pkg);
+	for ( const Package &pkg : pkgs ) {
+		const string pin = pv.pkgPins.at(pkg.drawing + to_string(pkg.pins)); // string concat
 		col += HEADER_WIDTH_PKG + 1;
 		int len = pin.length();
 		win.add(row, col - len, pin);
@@ -167,7 +167,7 @@ void drawPinSet(Window &win, int &row, const vector<string> &pkgs, unordered_map
 	}
 }
 
-void editPinSet(Window &win, int &row, const vector<string> &pkgs, unordered_map<string, string> &signals, PinView &pv) {
+void editPinSet(Window &win, int &row, const vector<Package> &pkgs, unordered_map<string, string> &signals, PinView &pv) {
 	Window formWin = win.deriveWindow(MAX_SIGNALS, 0, row, 0);
 
 	FormBuilder fb;
@@ -193,7 +193,8 @@ void editPinSet(Window &win, int &row, const vector<string> &pkgs, unordered_map
 
 	// after looping of edit, complete the pinview
 	for ( int i = 0; i < pkgs.size(); i++ ) {
-		const string pkg = pkgs[i]; // packages have the same ordering as the fields
+		// packages have the same ordering as the fields
+		const string pkg = pkgs[i].drawing + to_string(pkgs[i].pins);
 		pv.pkgPins[pkg] = pinFields[i].buffer<string>();
 	}
 
@@ -249,7 +250,7 @@ void drawPinSetEditingWindow(Window &win, PinSetView &vw) {
 	}
 }
 
-void drawSetConfigWindow(BorderedWindow &win, const vector<string> &models, const vector<string> &packages) {
+void drawSetConfigWindow(BorderedWindow &win, const vector<string> &models, const vector<Package> &packages) {
 	const int MAX_PKG_LEN = 6;
 	const int COL_HDR = 1;
 	const int COL_DATA = 2;
@@ -262,7 +263,7 @@ void drawSetConfigWindow(BorderedWindow &win, const vector<string> &models, cons
 
 	win.add(lr++, COL_HDR, "Packages:");
 	for ( int i = 0; i < packages.size(); i++ ) {
-		string pkg = packages[i];
+		const string pkg = packages[i].drawing + to_string(packages[i].pins);
 		if ( i % 2 == 0 ) {
 			win.add(lr, COL_DATA, pkg);
 		} else {
@@ -310,7 +311,7 @@ void drawTopWindow(BorderedWindow &win, const Datasheet &ds, DatabaseTotals &tot
 	win.paint();
 }
 
-void reorderPackages(vector<string> &pkgs) {
+void reorderPackages(vector<Package> &pkgs) {
 	static const string TEXT = "Reorder packages as they are in the datasheet";
 	static const string KEYS = "TAB: Select | Arrow Left/Right: Move | Enter: Confirm";
 	static const int TEXT_WIDTH = max(TEXT.length(), KEYS.length());
@@ -327,8 +328,8 @@ void reorderPackages(vector<string> &pkgs) {
 	center.add(1, (WIN_WIDTH - KEYS.length()) / 2 - 1, KEYS);
 
 	int totalPkgsLength = -1;
-	for ( const string &pkg : pkgs ) {
-		totalPkgsLength += pkg.length() + 1;
+	for ( const Package &pkg : pkgs ) {
+		totalPkgsLength += pkg.drawing.length() + to_string(pkg.pins).length() + 1;
 	}
 
 	center.paint();
@@ -351,14 +352,14 @@ void reorderPackages(vector<string> &pkgs) {
 			case KEY_LEFT:
 				// no roll-over during move
 				if ( slIdx > 0 ) {
-					string temp = pkgs[slIdx];
+					Package temp = pkgs[slIdx];
 					pkgs[slIdx] = pkgs[slIdx - 1];
 					pkgs[--slIdx] = temp; // hehe²
 				}
 				break;
 			case KEY_RIGHT:
 				if ( slIdx < maxIdx ) {
-					string temp = pkgs[slIdx];
+					Package temp = pkgs[slIdx];
 					pkgs[slIdx] = pkgs[slIdx + 1];
 					pkgs[++slIdx] = temp; // hehe²
 				}
@@ -368,8 +369,9 @@ void reorderPackages(vector<string> &pkgs) {
 		int col = (WIN_WIDTH - 4 - totalPkgsLength) / 2;
 		center.clearLine(3);
 		for ( int i = 0; i < pkgs.size(); i++ ) {
-			center.add(3, col, pkgs[i], i == slIdx ? A_STANDOUT : A_NORMAL);
-			col += pkgs[i].length() + 1;
+			const string pkg = pkgs[i].drawing + to_string(pkgs[i].pins);
+			center.add(3, col, pkg, i == slIdx ? A_STANDOUT : A_NORMAL);
+			col += pkg.length() + 1;
 		}
 
 		center.moveCursor(WIN_HEIGHT - 3, WIN_WIDTH - 3); // naive way of moving cursor where it doesn't bother as much
