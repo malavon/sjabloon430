@@ -166,4 +166,31 @@ unordered_map<string, string> listAllSignalDescriptions(sqlite3 *db) {
 	}
 	return result;
 }
+
+int saveSignals(sqlite3 *db, unordered_map<string, string> signals) {
+	static const char *QUERY = "INSERT INTO SIGNAL(id, desc) VALUES (?1, ?2);";
+
+	static sqlite3_stmt *stmt;
+	if ( stmt == nullptr ) {
+		int rc = sqlite3_prepare_v2(db, QUERY, -1, &stmt, NULL);
+		assert(SQLITE_OK == rc);
+	}
+
+	int insertedRows = 0, rc;
+	for ( const std::pair<string, string> &signal : signals ) {
+		sqlite3_reset(stmt);
+		rc = sqlite3_bind_text(stmt, 1, signal.first.c_str(), -1, SQLITE_STATIC);
+		assert(SQLITE_OK == rc);
+		rc = sqlite3_bind_text(stmt, 2, signal.second.c_str(), -1, SQLITE_STATIC);
+		assert(SQLITE_OK == rc);
+
+		// execute, ignore errors for duplicates but reset statement (no longer mandatory, but good practice)
+		if ( SQLITE_ROW == sqlite3_step(stmt) ) {
+			insertedRows++;
+		}
+	}
+
+	return insertedRows;
+}
+
 }}} // namespace sjabloon430::tools::db
