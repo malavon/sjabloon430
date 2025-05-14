@@ -96,6 +96,8 @@ int main() {
 			ui::drawPinSetEditingWindow(pins, vw);
 		} while ( (tempChar = wgetch(pins)) != 27 ); // ESC key for exit
 
+		db::saveSignals(db, vw.signalDescs);
+
 		// TODO: input up/down & other hotkeys, basically the bulk of the application?
 		// or should this be in the main application?
 		// much more logical I think, since DB access is required for saving
