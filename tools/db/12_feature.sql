@@ -13,7 +13,7 @@ CREATE TABLE IF NOT EXISTS feature (
     comment            TEXT,
     family_text        TEXT,
     family_group       TEXT,
-    signal_group       TEXT
+    signal_group       TEXT CONSTRAINT FK_FEATURE_SIGNALGROUP REFERENCES signalgroup (name) 
 )
 WITHOUT ROWID,
 STRICT;
