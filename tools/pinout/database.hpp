@@ -49,5 +49,8 @@ vector<Package> findPackagesByDatasheet(sqlite3 *db, const string datasheetId);
 unordered_map<string, string> listAllModelsAndDatasheets(sqlite3 *db);
 unordered_map<string, string> listAllSignalDescriptions(sqlite3 *db);
 
+/* Modify DB, inserts return inserted rows */
+int saveSignals(sqlite3 *db, unordered_map<string, string> signals);
+
 }}} // namespace sjabloon430::tools::db
 #endif // DATABASE_HPP
