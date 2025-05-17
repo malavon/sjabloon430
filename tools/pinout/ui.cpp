@@ -13,6 +13,7 @@ class PinsetEventer : public FormEventHandler {
 	    window(win), form(form), packages(pkgs), signalAndDescMap(signals), signalColumn(sgnCol) {
 		row = 0; // row is locally inside the derived window!
 		descColumn = sgnCol + FIELD_WIDTH_SIGNAL + 1;
+
 		// add single set of fields, none exist yet
 		addExtraFieldPair();
 	}
@@ -26,9 +27,17 @@ class PinsetEventer : public FormEventHandler {
 		// make field required for validation, shouldn't allow leaving the field?
 		// result; as-is empty field is allowed, BUT 3 means 2? etc wtf... odd; \0 included?
 		// set_field_type(sgnField.raw(), TYPE_ALNUM, 4);
-		Field descField(1, FIELD_WIDTH_DESC, row, descColumn);
+
+		// calculate description field to reach column 80, with a sensible minimum width
+		// but ensure that the window can fit it (although application requires 80 cols minimum)
+		int maxX, maxY;
+		getmaxyx(window.raw(), maxY, maxX);
+		int descFieldWidth = max(FIELD_WIDTH_DESC, min(80, maxX) - descColumn - 1);
+
+		Field descField(1, descFieldWidth, row, descColumn);
 		descField.optionsActiveAndEditable(OFF);
 		descField.optionAutoSkip(OFF);
+		descField.makeDynamic(0); // make it dynamic without size restriction; trust the user ...
 
 		if ( signalAndDescFields.size() % 2 == 1 ) {
 			sgnField.setColors(COLOR_PAIR_FORM_SELECTED, COLOR_PAIR_ALTFORM_VALID);
@@ -220,7 +229,8 @@ void editPinSet(Window &win, int &row, const vector<Package> &pkgs, unordered_ma
 void drawPinSetEditingWindow(Window &win, PinSetView &vw) {
 	win.erase(); // erase window necessary? erases hotkeys printed in main
 
-	int horizontalLineLength = vw.pkgs.size() * (HEADER_WIDTH_PKG + 1) + FIELD_WIDTH_SIGNAL + FIELD_WIDTH_DESC + 1;
+	// vw.pkgs.size() * (HEADER_WIDTH_PKG + 1) + FIELD_WIDTH_SIGNAL + FIELD_WIDTH_DESC + 1;
+	int horizontalLineLength = 80 - 1; // -1: start @ col 1
 	int row = 0;
 	if ( !vw.pinViews.empty() ) {
 		drawPinSetHeader(win, row++, vw.pkgs);
@@ -375,7 +385,7 @@ void reorderPackages(vector<Package> &pkgs) {
 		}
 
 		center.moveCursor(WIN_HEIGHT - 3, WIN_WIDTH - 3); // naive way of moving cursor where it doesn't bother as much
-								  // should hide it somehow TODO
+		    // should hide it somehow TODO
 		center.paint();
 	} while ( (pressedKey = wgetch(center.raw())) != KEY_ENTER && pressedKey != 10 );
 }
