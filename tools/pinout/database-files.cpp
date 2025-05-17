@@ -7,8 +7,6 @@
 #include <iostream>
 #include <set>
 
-#include "database.hpp"
-
 #ifndef DB_DIRECTORY
   #error "add -DDB_DIRECTORY=\"...\" to the compiler command line"
 #endif
