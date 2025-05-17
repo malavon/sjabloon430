@@ -80,10 +80,6 @@ class Field {
 	}
 
   public:
-	void optionAutoSkip(const Toggle toggle) {
-		toggleOption(O_AUTOSKIP, toggle);
-	}
-
 	void optionActive(const Toggle toggle) {
 		toggleOption(O_ACTIVE, toggle);
 	}
@@ -92,8 +88,25 @@ class Field {
 		toggleOption(O_ACTIVE | O_EDIT, toggle);
 	}
 
+	void optionAutoSkip(const Toggle toggle) {
+		toggleOption(O_AUTOSKIP, toggle);
+	}
+
+	void optionBlankAtFirstChar(const Toggle toggle) {
+		toggleOption(O_BLANK, toggle);
+	}
+
 	void optionEditable(const Toggle toggle) {
 		toggleOption(O_EDIT, toggle);
+	}
+
+	void optionStatic(const Toggle toggle) {
+		toggleOption(O_STATIC, toggle);
+	}
+
+	void makeDynamic(int maxSize) {
+		toggleOption(O_STATIC, Toggle::OFF);
+		set_max_field(ptr, maxSize);
 	}
 
 	void justify(const int justification) {
