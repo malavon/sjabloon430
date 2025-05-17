@@ -155,10 +155,9 @@ void drawPinSetHeader(Window &win, const int hdrRow, const vector<Package> &pkgs
 void drawPinSet(Window &win, int &row, const vector<Package> &pkgs, unordered_map<string, string> &signals, const PinView &pv) {
 	int col = 0;
 	for ( const Package &pkg : pkgs ) {
-		const string pin = pv.pkgPins.at(pkg.drawing + to_string(pkg.pins)); // string concat
 		col += HEADER_WIDTH_PKG + 1;
-		int len = pin.length();
-		win.add(row, col - len, pin);
+		const string pin = pv.pkgPins.at(pkg);
+		win.add(row, col - pin.length(), pin);
 	}
 
 	col++;
@@ -196,8 +195,7 @@ void editPinSet(Window &win, int &row, const vector<Package> &pkgs, unordered_ma
 	// after looping of edit, complete the pinview
 	for ( int i = 0; i < pkgs.size(); i++ ) {
 		// packages have the same ordering as the fields
-		const string pkg = pkgs[i].drawing + to_string(pkgs[i].pins);
-		pv.pkgPins[pkg] = pinFields[i].buffer<string>();
+		pv.pkgPins[pkgs[i]] = pinFields[i].buffer<string>();
 	}
 
 	pv.signals.clear();

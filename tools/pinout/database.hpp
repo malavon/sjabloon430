@@ -34,6 +34,9 @@ struct Datasheet {
 struct Package {
 	string drawing;
 	int pins;
+	bool operator==(const Package &o) const {
+		return drawing == o.drawing && pins == o.pins;
+	}
 };
 
 /* SQLite 3 init & database import/export */
@@ -57,4 +60,14 @@ unordered_map<string, string> listAllSignalDescriptions(sqlite3 *db);
 int saveSignals(sqlite3 *db, unordered_map<string, string> signals);
 
 }}} // namespace sjabloon430::tools::db
+
+template<>
+struct std::hash<sjabloon430::tools::db::Package> {
+	std::size_t operator()(const sjabloon430::tools::db::Package &p) const noexcept {
+		std::size_t h1 = std::hash<std::string>{}(p.drawing);
+		std::size_t h2 = p.pins;
+		return h1 ^ (h2 << 1); // or use boost::hash_combine
+	}
+};
+
 #endif // DATABASE_HPP
