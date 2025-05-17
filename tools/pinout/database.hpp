@@ -32,11 +32,16 @@ struct Datasheet {
 struct Package {
 	string drawing;
 	int pins;
+
+	bool operator==(const Package &o) const {
+		return drawing == o.drawing && pins == o.pins;
+	}
 };
 
 /* SQLite 3 init & database import/export */
 sqlite3 *createDatabase();
-void prepare(sqlite3 *db, sqlite3_stmt **stmt, const char *query); // helper function to prepare a sqlite3 statement
+// helper function to prepare a sqlite3 statement
+void prepare(sqlite3 *db, sqlite3_stmt **stmt, const char *query);
 
 /* Query DB */
 DatabaseTotals countTotals(sqlite3 *db);
@@ -50,4 +55,14 @@ unordered_map<string, string> listAllSignalDescriptions(sqlite3 *db);
 int saveSignals(sqlite3 *db, unordered_map<string, string> signals);
 
 }}}} // namespace sjabloon430::tools::pinout::db
+
+template<>
+struct std::hash<sjabloon430::tools::pinout::db::Package> {
+	std::size_t operator()(const sjabloon430::tools::pinout::db::Package &p) const noexcept {
+		std::size_t h1 = std::hash<std::string>{}(p.drawing);
+		std::size_t h2 = p.pins;
+		return h1 ^ (h2 << 1); // or use boost::hash_combine
+	}
+};
+
 #endif // SJABLOON430_TOOLS_PINOUT_DATABASE_HPP
