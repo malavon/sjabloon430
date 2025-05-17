@@ -6,7 +6,7 @@
 #include <iostream>
 #include <set>
 
-#include "database.hpp"
+#include "database.hpp" // included for db::prepare(), preparing sqlite3 statement
 
 #ifndef DB_DIRECTORY
   #error "add -DDB_DIRECTORY=\"...\" to the compiler command line"
