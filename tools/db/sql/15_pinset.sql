@@ -14,29 +14,26 @@ CREATE TABLE IF NOT EXISTS pinset (
 )
 STRICT;
 
--- Table: pinset_signal
-CREATE TABLE IF NOT EXISTS pinset_signal (
+-- Table: pinset_signalset
+CREATE TABLE IF NOT EXISTS pinset_signalset (
     pinset_id   INTEGER NOT NULL
                         REFERENCES pinset (id) ON DELETE RESTRICT
                                                ON UPDATE CASCADE,
-    signal_id   TEXT    NOT NULL
-                        REFERENCES signal (id) ON DELETE RESTRICT
-                                               ON UPDATE CASCADE,
-    idx         INTEGER NOT NULL,
-    pin_row_bga TEXT,
-    pin_number  INTEGER NOT NULL,
-    comment     TEXT,
-    CONSTRAINT PK_PACKAGE_SIGNAL PRIMARY KEY (
+    signalset_id INTEGER NOT NULL
+                         REFERENCES signalset (id) ON DELETE RESTRICT
+                                                   ON UPDATE CASCADE,
+    pin_bga_row  TEXT,
+    pin_number   INTEGER NOT NULL,
+    CONSTRAINT PK_PINSET_SIGNALSET PRIMARY KEY (
         pinset_id,
-        signal_id
+        signalset_id
     )
     ON CONFLICT FAIL,
-    CONSTRAINT UQ_SIGNAL_SET_PK_INDEX UNIQUE (
+    CONSTRAINT UQ_SIGNAL_SET_PK UNIQUE (
         pinset_id,
-        signal_id,
-        idx ASC
+        signalset_id
     )
-    ON CONFLICT ROLLBACK
+    ON CONFLICT FAIL
 )
 WITHOUT ROWID,
 STRICT;

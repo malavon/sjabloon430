@@ -6,8 +6,9 @@
 
 -- Table: signalgroup
 CREATE TABLE IF NOT EXISTS signalgroup (
-    name TEXT PRIMARY KEY
-);
+    name TEXT PRIMARY KEY ON CONFLICT FAIL
+)
+WITHOUT ROWID;
 
 -- SQLite doesn't understand ALTER TABLE x ALTER COLUMN ...
 
@@ -22,4 +23,28 @@ CREATE TABLE IF NOT EXISTS signal (
     desc        TEXT NOT NULL,
     signalgroup TEXT REFERENCES signalgroup (name) 
 )
+WITHOUT ROWID,
 STRICT;
+
+-- Table: signalset
+CREATE TABLE IF NOT EXISTS signalset (
+    id        INTEGER PRIMARY KEY AUTOINCREMENT,
+    parent_id INTEGER REFERENCES signalset (id) ON DELETE RESTRICT
+                                                ON UPDATE CASCADE
+);
+
+-- Table: signalset_signal
+CREATE TABLE IF NOT EXISTS signalset_signal (
+    signalset_id INTEGER REFERENCES signalset (id) ON DELETE RESTRICT
+                                                   ON UPDATE CASCADE
+                         NOT NULL,
+    signal_id    TEXT    REFERENCES signal (id) ON DELETE RESTRICT
+                                                ON UPDATE CASCADE
+                         NOT NULL,
+    idx          INTEGER NOT NULL,
+    PRIMARY KEY (
+        signalset_id,
+        signal_id
+    )
+);
+
