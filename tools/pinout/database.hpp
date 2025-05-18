@@ -39,6 +39,14 @@ struct Package {
 	}
 };
 
+struct PinsetKey {
+	int deviceId;
+	Package pkg;
+	bool operator==(const PinsetKey &o) const {
+		return deviceId == o.deviceId && pkg == o.pkg;
+	}
+};
+
 /* SQLite 3 init & database import/export */
 sqlite3 *createDatabase();
 
@@ -53,6 +61,7 @@ DatabaseTotals countTotals(sqlite3 *db);
 Datasheet findDatasheet(sqlite3 *db, const string id);
 vector<string> findModelsByDatasheet(sqlite3 *db, const string datasheetId);
 vector<Package> findPackagesByDatasheet(sqlite3 *db, const string datasheetId);
+// unordered_map<PinsetKey, int>
 unordered_map<string, string> listAllModelsAndDatasheets(sqlite3 *db);
 unordered_map<string, string> listAllSignalDescriptions(sqlite3 *db);
 
@@ -66,7 +75,16 @@ struct std::hash<sjabloon430::tools::db::Package> {
 	std::size_t operator()(const sjabloon430::tools::db::Package &p) const noexcept {
 		std::size_t h1 = std::hash<std::string>{}(p.drawing);
 		std::size_t h2 = p.pins;
-		return h1 ^ (h2 << 1); // or use boost::hash_combine
+		return h2 ^ (h1 << 1);
+	}
+};
+
+template<>
+struct std::hash<sjabloon430::tools::db::PinsetKey> {
+	std::size_t operator()(const sjabloon430::tools::db::PinsetKey &p) const noexcept {
+		std::size_t h1 = std::hash<sjabloon430::tools::db::Package>{}(p.pkg);
+		std::size_t h2 = p.deviceId;
+		return h2 ^ (h1 << 1);
 	}
 };
 
