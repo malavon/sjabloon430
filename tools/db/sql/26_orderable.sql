@@ -1,5 +1,7 @@
 --
--- File generated with SQLiteStudio.
+-- File generated with one of the sjabloon 430 database tools.
+-- Any alterations to this data will be kept by these tools, assuming the SQL is still valid.
+-- DO NOT REFORMAT THIS FILE AND CHECK IN ONLY AFTER RE-EXPORTING WITH A SJABLOON 430 TOOL.
 --
 -- Text encoding used: UTF-8
 --
@@ -1432,22 +1434,6 @@ INSERT INTO orderable (name, device_id, drawing, pins, pinset_id, status, msl_le
 INSERT INTO orderable (name, device_id, drawing, pins, pinset_id, status, msl_level, op_temp_min, op_temp_max, comment) VALUES ('MSP430FR2522IPW16R', 'MSP430FR2522', 'PW', 16, NULL, 'ACTIVE', 2, -40, 85, 'AUTOMATIC RESOLUTION');
 INSERT INTO orderable (name, device_id, drawing, pins, pinset_id, status, msl_level, op_temp_min, op_temp_max, comment) VALUES ('MSP430FR2522IRHLR', 'MSP430FR2522', 'RHL', 20, NULL, 'ACTIVE', 1, -40, 85, 'AUTOMATIC RESOLUTION');
 INSERT INTO orderable (name, device_id, drawing, pins, pinset_id, status, msl_level, op_temp_min, op_temp_max, comment) VALUES ('MSP430FR2522IRHLT', 'MSP430FR2522', 'RHL', 20, NULL, 'ACTIVE', 1, -40, 85, 'AUTOMATIC RESOLUTION');
-INSERT INTO orderable (name, device_id, drawing, pins, pinset_id, status, msl_level, op_temp_min, op_temp_max, comment) VALUES ('MSP430FR2532IRGER', 'MSP430FR2532', 'RGE', 24, NULL, 'ACTIVE', 1, -40, 85, 'AUTOMATIC RESOLUTION');
-INSERT INTO orderable (name, device_id, drawing, pins, pinset_id, status, msl_level, op_temp_min, op_temp_max, comment) VALUES ('MSP430FR2532IRGET', 'MSP430FR2532', 'RGE', 24, NULL, 'ACTIVE', 2, -40, 85, 'AUTOMATIC RESOLUTION');
-INSERT INTO orderable (name, device_id, drawing, pins, pinset_id, status, msl_level, op_temp_min, op_temp_max, comment) VALUES ('MSP430FR2533IDA', 'MSP430FR2533', 'DA', 32, NULL, 'ACTIVE', 2, -40, 85, 'AUTOMATIC RESOLUTION');
-INSERT INTO orderable (name, device_id, drawing, pins, pinset_id, status, msl_level, op_temp_min, op_temp_max, comment) VALUES ('MSP430FR2533IDAR', 'MSP430FR2533', 'DA', 32, NULL, 'ACTIVE', 2, -40, 85, 'AUTOMATIC RESOLUTION');
-INSERT INTO orderable (name, device_id, drawing, pins, pinset_id, status, msl_level, op_temp_min, op_temp_max, comment) VALUES ('MSP430FR2533IRHBR', 'MSP430FR2533', 'RHB', 32, NULL, 'ACTIVE', 2, -40, 85, 'AUTOMATIC RESOLUTION');
-INSERT INTO orderable (name, device_id, drawing, pins, pinset_id, status, msl_level, op_temp_min, op_temp_max, comment) VALUES ('MSP430FR2533IRHBT', 'MSP430FR2533', 'RHB', 32, NULL, 'ACTIVE', 2, -40, 85, 'AUTOMATIC RESOLUTION');
-INSERT INTO orderable (name, device_id, drawing, pins, pinset_id, status, msl_level, op_temp_min, op_temp_max, comment) VALUES ('MSP430FR2632IRGER', 'MSP430FR2632', 'RGE', 24, NULL, 'ACTIVE', 2, -40, 85, 'AUTOMATIC RESOLUTION');
-INSERT INTO orderable (name, device_id, drawing, pins, pinset_id, status, msl_level, op_temp_min, op_temp_max, comment) VALUES ('MSP430FR2632IRGET', 'MSP430FR2632', 'RGE', 24, NULL, 'ACTIVE', 2, -40, 85, 'AUTOMATIC RESOLUTION');
-INSERT INTO orderable (name, device_id, drawing, pins, pinset_id, status, msl_level, op_temp_min, op_temp_max, comment) VALUES ('MSP430FR2632IYQWR', 'MSP430FR2632', 'YQW', 24, NULL, 'ACTIVE', 1, -40, 85, 'AUTOMATIC RESOLUTION');
-INSERT INTO orderable (name, device_id, drawing, pins, pinset_id, status, msl_level, op_temp_min, op_temp_max, comment) VALUES ('MSP430FR2632IYQWT', 'MSP430FR2632', 'YQW', 24, NULL, 'ACTIVE', 1, -40, 85, 'AUTOMATIC RESOLUTION');
-INSERT INTO orderable (name, device_id, drawing, pins, pinset_id, status, msl_level, op_temp_min, op_temp_max, comment) VALUES ('MSP430FR2633IDA', 'MSP430FR2633', 'DA', 32, NULL, 'ACTIVE', 2, -40, 85, 'AUTOMATIC RESOLUTION');
-INSERT INTO orderable (name, device_id, drawing, pins, pinset_id, status, msl_level, op_temp_min, op_temp_max, comment) VALUES ('MSP430FR2633IDAR', 'MSP430FR2633', 'DA', 32, NULL, 'ACTIVE', 2, -40, 85, 'AUTOMATIC RESOLUTION');
-INSERT INTO orderable (name, device_id, drawing, pins, pinset_id, status, msl_level, op_temp_min, op_temp_max, comment) VALUES ('MSP430FR2633IRHBR', 'MSP430FR2633', 'RHB', 32, NULL, 'ACTIVE', 2, -40, 85, 'AUTOMATIC RESOLUTION');
-INSERT INTO orderable (name, device_id, drawing, pins, pinset_id, status, msl_level, op_temp_min, op_temp_max, comment) VALUES ('MSP430FR2633IRHBT', 'MSP430FR2633', 'RHB', 32, NULL, 'ACTIVE', 2, -40, 85, 'AUTOMATIC RESOLUTION');
-INSERT INTO orderable (name, device_id, drawing, pins, pinset_id, status, msl_level, op_temp_min, op_temp_max, comment) VALUES ('MSP430FR2633IYQWR', 'MSP430FR2633', 'YQW', 24, NULL, 'ACTIVE', 1, -40, 85, 'AUTOMATIC RESOLUTION');
-INSERT INTO orderable (name, device_id, drawing, pins, pinset_id, status, msl_level, op_temp_min, op_temp_max, comment) VALUES ('MSP430FR2633IYQWT', 'MSP430FR2633', 'YQW', 24, NULL, 'ACTIVE', 1, -40, 85, 'AUTOMATIC RESOLUTION');
 INSERT INTO orderable (name, device_id, drawing, pins, pinset_id, status, msl_level, op_temp_min, op_temp_max, comment) VALUES ('MSP430FR2672TRHBR', 'MSP430FR2672', 'RHB', 32, NULL, 'ACTIVE', 1, -40, 105, 'AUTOMATIC RESOLUTION');
 INSERT INTO orderable (name, device_id, drawing, pins, pinset_id, status, msl_level, op_temp_min, op_temp_max, comment) VALUES ('MSP430FR2672TRHBT', 'MSP430FR2672', 'RHB', 32, NULL, 'ACTIVE', 1, -40, 105, 'AUTOMATIC RESOLUTION');
 INSERT INTO orderable (name, device_id, drawing, pins, pinset_id, status, msl_level, op_temp_min, op_temp_max, comment) VALUES ('MSP430FR2673TRHBR', 'MSP430FR2673', 'RHB', 32, NULL, 'ACTIVE', 1, -40, 105, 'AUTOMATIC RESOLUTION');
