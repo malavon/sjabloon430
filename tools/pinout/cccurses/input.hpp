@@ -84,6 +84,8 @@ class KeyEventProducer {
 		// check feedback first, otherwise won't be leaving form until pressed twice
 		while ( fb == FEEDBACK_CONTINUE && (ch = wgetch(window)) ) {
 			switch ( ch ) {
+				case -1:
+					return; // at -1, leave loop
 				// TODO: TAB doesn't work, BTAB (back-tab does)...
 				// using code 9 does too, no key value? odd
 				case 9:
