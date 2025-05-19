@@ -1,5 +1,7 @@
 --
--- File generated with SQLiteStudio.
+-- File generated with one of the sjabloon 430 database tools.
+-- Any alterations to this data will be kept by these tools, assuming the SQL is still valid.
+-- DO NOT REFORMAT THIS FILE AND CHECK IN ONLY AFTER RE-EXPORTING WITH A SJABLOON 430 TOOL.
 --
 -- Text encoding used: UTF-8
 --
@@ -18,8 +20,6 @@ INSERT INTO device (model, datasheet_id, freq_max, storage_bytes, ram_bytes, gpi
 INSERT INTO device (model, datasheet_id, freq_max, storage_bytes, ram_bytes, gpio_count, uart_count, usb_count, i2c_count, spi_count, comp_count, timer_count, op_temp_min, op_temp_max, comment) VALUES ('CC430F6127', 'SLAS554', 20, 32768, 4096, 44, 1, 0, 1, 1, 8, 2, -40, 85, 'TI EXPORT');
 INSERT INTO device (model, datasheet_id, freq_max, storage_bytes, ram_bytes, gpio_count, uart_count, usb_count, i2c_count, spi_count, comp_count, timer_count, op_temp_min, op_temp_max, comment) VALUES ('CC430F6135', 'SLAS554', 20, 16384, 2048, 44, 1, 0, 1, 1, 8, 2, -40, 85, 'TI EXPORT');
 INSERT INTO device (model, datasheet_id, freq_max, storage_bytes, ram_bytes, gpio_count, uart_count, usb_count, i2c_count, spi_count, comp_count, timer_count, op_temp_min, op_temp_max, comment) VALUES ('CC430F6137', 'SLAS554', 20, 32768, 4096, 44, 1, 0, 1, 1, 8, 2, -40, 85, 'TI EXPORT');
-INSERT INTO device (model, datasheet_id, freq_max, storage_bytes, ram_bytes, gpio_count, uart_count, usb_count, i2c_count, spi_count, comp_count, timer_count, op_temp_min, op_temp_max, comment) VALUES ('CC430F6143', 'SLAS555', 20, 8192, 2048, 44, 1, 0, 1, 1, 8, 2, -40, 85, 'TI EXPORT');
-INSERT INTO device (model, datasheet_id, freq_max, storage_bytes, ram_bytes, gpio_count, uart_count, usb_count, i2c_count, spi_count, comp_count, timer_count, op_temp_min, op_temp_max, comment) VALUES ('CC430F6145', 'SLAS555', 20, 16384, 2048, 44, 1, 0, 1, 1, 8, 2, -40, 85, 'TI EXPORT');
 INSERT INTO device (model, datasheet_id, freq_max, storage_bytes, ram_bytes, gpio_count, uart_count, usb_count, i2c_count, spi_count, comp_count, timer_count, op_temp_min, op_temp_max, comment) VALUES ('CC430F6147', 'SLAS555', 20, 32768, 4096, 44, 1, 0, 1, 1, 8, 2, -40, 85, 'TI EXPORT');
 INSERT INTO device (model, datasheet_id, freq_max, storage_bytes, ram_bytes, gpio_count, uart_count, usb_count, i2c_count, spi_count, comp_count, timer_count, op_temp_min, op_temp_max, comment) VALUES ('MSP430AFE221', 'SLAS701', 12, 4096, 256, 11, 1, 0, 0, 1, 0, 1, -40, 85, 'TI EXPORT');
 INSERT INTO device (model, datasheet_id, freq_max, storage_bytes, ram_bytes, gpio_count, uart_count, usb_count, i2c_count, spi_count, comp_count, timer_count, op_temp_min, op_temp_max, comment) VALUES ('MSP430AFE222', 'SLAS701', 12, 4096, 256, 11, 1, 0, 0, 1, 0, 1, -40, 85, 'TI EXPORT');
@@ -401,10 +401,6 @@ INSERT INTO device (model, datasheet_id, freq_max, storage_bytes, ram_bytes, gpi
 INSERT INTO device (model, datasheet_id, freq_max, storage_bytes, ram_bytes, gpio_count, uart_count, usb_count, i2c_count, spi_count, comp_count, timer_count, op_temp_min, op_temp_max, comment) VALUES ('MSP430FR2476', 'SLASEO7', 16, 65536, 8192, 43, 2, 0, 2, 4, 4, 5, -40, 105, 'TI EXPORT');
 INSERT INTO device (model, datasheet_id, freq_max, storage_bytes, ram_bytes, gpio_count, uart_count, usb_count, i2c_count, spi_count, comp_count, timer_count, op_temp_min, op_temp_max, comment) VALUES ('MSP430FR2512', 'SLASEE4', 16, 8192, 2048, 15, 1, 0, 1, 2, 0, 2, -40, 85, 'TI EXPORT');
 INSERT INTO device (model, datasheet_id, freq_max, storage_bytes, ram_bytes, gpio_count, uart_count, usb_count, i2c_count, spi_count, comp_count, timer_count, op_temp_min, op_temp_max, comment) VALUES ('MSP430FR2522', 'SLASEE4', 16, 8192, 2048, 15, 1, 0, 1, 2, 0, 2, -40, 85, 'TI EXPORT');
-INSERT INTO device (model, datasheet_id, freq_max, storage_bytes, ram_bytes, gpio_count, uart_count, usb_count, i2c_count, spi_count, comp_count, timer_count, op_temp_min, op_temp_max, comment) VALUES ('MSP430FR2532', 'SLAS942', 16, 8192, 1024, 15, 2, 0, 1, 1, 0, 4, -40, 85, 'TI EXPORT');
-INSERT INTO device (model, datasheet_id, freq_max, storage_bytes, ram_bytes, gpio_count, uart_count, usb_count, i2c_count, spi_count, comp_count, timer_count, op_temp_min, op_temp_max, comment) VALUES ('MSP430FR2533', 'SLAS942', 16, 16384, 2048, 19, 2, 0, 1, 2, 0, 4, -40, 85, 'TI EXPORT');
-INSERT INTO device (model, datasheet_id, freq_max, storage_bytes, ram_bytes, gpio_count, uart_count, usb_count, i2c_count, spi_count, comp_count, timer_count, op_temp_min, op_temp_max, comment) VALUES ('MSP430FR2632', 'SLAS942', 16, 8192, 2048, 15, 2, 0, 1, 2, 0, 4, -40, 85, 'TI EXPORT');
-INSERT INTO device (model, datasheet_id, freq_max, storage_bytes, ram_bytes, gpio_count, uart_count, usb_count, i2c_count, spi_count, comp_count, timer_count, op_temp_min, op_temp_max, comment) VALUES ('MSP430FR2633', 'SLAS942', 16, 16384, 4096, 19, 2, 0, 1, 2, 0, 4, -40, 85, 'TI EXPORT');
 INSERT INTO device (model, datasheet_id, freq_max, storage_bytes, ram_bytes, gpio_count, uart_count, usb_count, i2c_count, spi_count, comp_count, timer_count, op_temp_min, op_temp_max, comment) VALUES ('MSP430FR2672', 'SLASEO5', 16, 8192, 2048, 27, 2, 0, 2, 4, 4, 5, -40, 105, 'TI EXPORT');
 INSERT INTO device (model, datasheet_id, freq_max, storage_bytes, ram_bytes, gpio_count, uart_count, usb_count, i2c_count, spi_count, comp_count, timer_count, op_temp_min, op_temp_max, comment) VALUES ('MSP430FR2673', 'SLASEO5', 16, 16384, 4096, 27, 2, 0, 2, 4, 4, 5, -40, 105, 'TI EXPORT');
 INSERT INTO device (model, datasheet_id, freq_max, storage_bytes, ram_bytes, gpio_count, uart_count, usb_count, i2c_count, spi_count, comp_count, timer_count, op_temp_min, op_temp_max, comment) VALUES ('MSP430FR2675', 'SLASEO5', 16, 32768, 6144, 43, 2, 0, 2, 4, 4, 5, -40, 105, 'TI EXPORT');
