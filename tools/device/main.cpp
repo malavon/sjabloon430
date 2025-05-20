@@ -42,19 +42,15 @@ const string INSERT_DEVICE = "INSERT INTO device (datasheet_id,model,freq_max,st
 
 int main(int argc, char **argv) // opties voor elke .txt file? misschien niet slecht?
 {
-	// const char *families = nullptr;
-	// const char *datasheets = nullptr;
-	// const char *links = nullptr;
-	// const char *packages = nullptr;
-	ifstream families, links, packages;
+	ifstream datasheets, families, links, packages;
 	const char *database = nullptr;
 
 	int opt;
 	while ( (opt = getopt(argc, argv, "d:f:l:p:h")) != -1 ) {
 		switch ( opt ) {
-			// case 'd':
-			// 	datasheets = optarg;
-			// 	break;
+			case 'd':
+				datasheets.open(optarg);
+				break;
 			case 'f':
 				families.open(optarg);
 				break;
