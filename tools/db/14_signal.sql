@@ -34,9 +34,10 @@ STRICT;
 
 -- Table: signalset
 CREATE TABLE IF NOT EXISTS signalset (
-    id        INTEGER CONSTRAINT PK_SIGNALSET PRIMARY KEY AUTOINCREMENT,
-    parent_id INTEGER CONSTRAINT FK_SSET_PARENT_SSET REFERENCES signalset (id) ON DELETE CASCADE
-                                                                               ON UPDATE CASCADE
+    id              INTEGER CONSTRAINT PK_SIGNALSET PRIMARY KEY AUTOINCREMENT, 
+    parent_id       INTEGER CONSTRAINT FK_SSET_PARENT_SSET REFERENCES signalset (id) ON DELETE CASCADE
+                                                                                     ON UPDATE CASCADE, 
+    datasheet_idx   INTEGER NOT NULL
 );
 
 -- Table: signalset_signal
