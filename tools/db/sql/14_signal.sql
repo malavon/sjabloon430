@@ -28,9 +28,14 @@ STRICT;
 
 -- Table: signalset
 CREATE TABLE IF NOT EXISTS signalset (
-    id        INTEGER PRIMARY KEY AUTOINCREMENT,
-    parent_id INTEGER REFERENCES signalset (id) ON DELETE RESTRICT
-                                                ON UPDATE CASCADE
+    id            INTEGER PRIMARY KEY AUTOINCREMENT,
+    parent_id     INTEGER REFERENCES signalset (id) ON DELETE RESTRICT
+                                                    ON UPDATE CASCADE,
+    datasheet_idx INTEGER NOT NULL,
+    CONSTRAINT [UQ_SIGNALSET_ID+IDX] UNIQUE (
+        id,
+        datasheet_idx
+    )
 );
 
 -- Table: signalset_signal
@@ -47,4 +52,3 @@ CREATE TABLE IF NOT EXISTS signalset_signal (
         signal_id
     )
 );
-
