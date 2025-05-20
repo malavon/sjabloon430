@@ -20,10 +20,11 @@ STRICT;
 
 -- Table: device_feature
 CREATE TABLE IF NOT EXISTS device_feature (
-    device_id  INTEGER REFERENCES device (id) ON DELETE RESTRICT
-                       NOT NULL,
-    feature_id TEXT    REFERENCES feature (id) ON DELETE RESTRICT
-                       NOT NULL,
+    device_id  TEXT NOT NULL
+                    REFERENCES device (model) ON DELETE CASCADE
+                                              ON UPDATE CASCADE,
+    feature_id TEXT REFERENCES feature (id) ON DELETE RESTRICT
+                    NOT NULL,
     param1     ANY,
     param2     ANY,
     param3     ANY,

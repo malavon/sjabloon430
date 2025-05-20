@@ -6,12 +6,9 @@
 
 -- Table: device
 CREATE TABLE IF NOT EXISTS device (
-    id            INTEGER PRIMARY KEY ON CONFLICT ROLLBACK AUTOINCREMENT
-                          NOT NULL,
+    model         TEXT    CONSTRAINT PK_DEVICE_MODEL PRIMARY KEY ON CONFLICT ROLLBACK,
     datasheet_id  TEXT    REFERENCES datasheet (id) ON DELETE RESTRICT
                           NOT NULL,
-    model         TEXT    NOT NULL
-                          UNIQUE,
     freq_max      INTEGER,
     storage_bytes INTEGER,
     ram_bytes     INTEGER,
@@ -27,4 +24,3 @@ CREATE TABLE IF NOT EXISTS device (
     comment       TEXT
 )
 STRICT;
-

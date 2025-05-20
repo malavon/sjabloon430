@@ -9,7 +9,8 @@ CREATE TABLE IF NOT EXISTS orderable (
     name        TEXT    CONSTRAINT UQ_ORDERABLE_NAME UNIQUE ON CONFLICT ROLLBACK
                         CONSTRAINT NN_ORDERABLE_NAME NOT NULL
                         PRIMARY KEY,
-    device_id   INTEGER CONSTRAINT FK_ORDERABLE_DEVICE REFERENCES device (id) ON DELETE RESTRICT
+    device_id   TEXT    CONSTRAINT FK_ORDERABLE_DEVICE REFERENCES device (model) ON DELETE RESTRICT
+                                                                                 ON UPDATE CASCADE
                         CONSTRAINT NN_ORDERABLE_DEVICE NOT NULL,
     drawing     TEXT    CONSTRAINT NN_ODBL_DRAWING NOT NULL,
     pins        INTEGER CONSTRAINT NN_ODBL_PINS NOT NULL,
