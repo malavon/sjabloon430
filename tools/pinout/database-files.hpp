@@ -11,9 +11,37 @@ namespace sjabloon430 { namespace tools { namespace db {
 
 using std::string;
 
+// modify export behaviour
+struct ExportConfig {
+	enum class Tx { NONE, BEGIN, COMMIT, BOTH };
+	enum class SQL { INSERT, UPDATE };
+
+	bool appendFile = false;
+	Tx tx = Tx::BOTH;
+	SQL sql = SQL::INSERT;
+
+	ExportConfig appendOverride(bool app) {
+		ExportConfig res(*this);
+		res.appendFile = app;
+		return res;
+	}
+
+	ExportConfig sqlOverride(SQL ovr) {
+		ExportConfig res(*this);
+		res.sql = ovr;
+		return res;
+	}
+
+	ExportConfig txOverride(Tx ovr) {
+		ExportConfig res(*this);
+		res.tx = ovr;
+		return res;
+	}
+};
+
 // export from a simple query, cannot export joined tables etc
-void exportFromPrepStmt(sqlite3_stmt *statement, const string fileName, bool append = false);
+void exportFromPrepStmt(sqlite3_stmt *statement, const string fileName, const ExportConfig &config = ExportConfig{});
 void importDatabase(sqlite3 *db, std::function<void(const std::string &file, const char *error)> callback);
 
-}}}
+}}} // namespace sjabloon430::tools::db
 #endif // SJABLOON430_TOOLS_DATABASE_FILES_HPP
