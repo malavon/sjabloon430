@@ -183,6 +183,14 @@ void drawPinSetHeader(Window &win, const int hdrRow, const vector<Package> &pkgs
 }
 
 void drawPinSet(Window &win, int &row, const vector<Package> &pkgs, unordered_map<string, string> &signals, const PinView &pv) {
+	unsigned int maxRows = win.maxRows();
+	if ( row + std::max(3ul /*always 1 line; 2?3?*/, pv[0].size()) > maxRows ) {
+		int rowsToScroll = row + 1 + pv[0].size() - maxRows;
+		win.scroll(rowsToScroll);
+		row -= rowsToScroll;
+	}
+
+	mvwhline(win, row++, 1, 0, min(win.maxCols() - 2, 79)); // capped at 80, esthaetics
 	int col = 0;
 	for ( const Package &pkg : pkgs ) {
 		col += FIELD_WIDTH_PKG + 1;
@@ -194,7 +202,7 @@ void drawPinSet(Window &win, int &row, const vector<Package> &pkgs, unordered_ma
 	col++;
 	int descCol = col + FIELD_WIDTH_SIGNAL + 1;
 	// cut off descriptions if need be
-	size_t maxDescLength = std::max(FIELD_WIDTH_DESC, win.size().cols - descCol);
+	size_t maxDescLength = std::max(FIELD_WIDTH_DESC, win.size().cols - descCol - 1);
 	const string CUT_CHARS = "...";
 	for ( const string &sgn : pv[0] ) {
 		win.add(row, col, sgn);
@@ -208,6 +216,22 @@ void drawPinSet(Window &win, int &row, const vector<Package> &pkgs, unordered_ma
 }
 
 void editPinSet(Window &win, int &row, const vector<Package> &pkgs, unordered_map<string, string> &signals, PinView &pv) {
+	// calculate to allow enough lines to print line, header & form
+	int maxRows = win.maxRows();
+	if ( row + 2 + MAX_SIGNALS > maxRows ) {
+		int rowsToScroll = row + 2 + MAX_SIGNALS - maxRows;
+		win.scroll(rowsToScroll);
+		row -= rowsToScroll;
+	}
+
+	if ( maxRows > 16 ) { // don't print the ruler if the lines are really, really compressed
+		mvwhline(win, row++, 1, 0, min(win.maxCols() - 2, 79));
+	}
+	// editing field always gets a header, unless there is no room for it
+	if ( maxRows > MAX_SIGNALS ) {
+		drawPinSetHeader(win, row++, pkgs);
+	}
+
 	Window formWin = win.deriveWindow(MAX_SIGNALS, 0, row, 0);
 
 	FormBuilder fb;
@@ -271,7 +295,6 @@ void editPinSet(Window &win, int &row, const vector<Package> &pkgs, unordered_ma
 void drawPinSetEditingWindow(Window &win, PinSetView &vw) {
 	win.erase(); // erase window necessary? erases hotkeys printed in main
 
-	int horizontalLineLength = 80 - 1; // -1: start @ col 1
 	int row = 0;
 	if ( !vw.pinViews.empty() ) {
 		drawPinSetHeader(win, row++, vw.pkgs);
@@ -279,12 +302,8 @@ void drawPinSetEditingWindow(Window &win, PinSetView &vw) {
 	for ( PinView &pv : vw.pinViews ) {
 		// drawPinSetHeader(win, row++, vw.pkgs);
 		// this line overwrites the header written for edit
-		mvwhline(win, row++, 1, 0, horizontalLineLength);
 		drawPinSet(win, row, vw.pkgs, vw.signalDescs, pv);
 	}
-	mvwhline(win, row++, 1, 0, horizontalLineLength);
-	// for now: edit new set at last position
-	drawPinSetHeader(win, row++, vw.pkgs); // editing field always gets a header?
 
 	PinView pv;
 	editPinSet(win, row, vw.pkgs, vw.signalDescs, pv);
