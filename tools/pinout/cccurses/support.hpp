@@ -3,6 +3,15 @@
 
 namespace cccurses {
 
+struct LocnSize {
+	int col, row;
+	int cols, rows;
+};
+
+struct Size {
+	int cols, rows;
+};
+
 enum class Toggle { ON, OFF };
 
 }
