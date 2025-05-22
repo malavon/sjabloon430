@@ -167,16 +167,16 @@ void drawPinSet(Window &win, int &row, const vector<Package> &pkgs, unordered_ma
 	}
 
 	col++;
-	// cut off descriptions if need be, 80 cols minimum but there are other windows which impact this size
-	int maxDescLength = std::max(FIELD_WIDTH_DESC, win.size().cols - col - FIELD_WIDTH_SIGNAL - 1);
+	int descCol = col + FIELD_WIDTH_SIGNAL + 1;
+	// cut off descriptions if need be
+	int maxDescLength = std::max(FIELD_WIDTH_DESC, win.size().cols - descCol);
 	const string CUT_CHARS = "...";
 	for ( const string &sgn : pv.signalset.signals ) {
 		win.add(row, col, sgn);
 		if ( signals[sgn].length() > maxDescLength ) {
-			win.add(row, col + FIELD_WIDTH_SIGNAL + 1,
-				signals[sgn].substr(0, maxDescLength - CUT_CHARS.length()) + CUT_CHARS);
+			win.add(row, descCol, signals[sgn].substr(0, maxDescLength - CUT_CHARS.length()) + CUT_CHARS);
 		} else {
-			win.add(row, col + FIELD_WIDTH_SIGNAL + 1, signals[sgn]);
+			win.add(row, descCol, signals[sgn]);
 		}
 		row++;
 	}
@@ -210,10 +210,14 @@ void editPinSet(Window &win, int &row, const vector<Package> &pkgs, unordered_ma
 	for ( int i = 0; i < pkgs.size(); i++ ) {
 		// packages have the same ordering as the fields
 		string pin = pinFields[i].buffer<string>();
-		int idx = pin.find_last_of("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz");
-		string bga = pin.substr(0, idx);
-		int nr = idx < pin.size() ? stoi(pin.substr(idx, pin.size())) : 0;
-		pv.pins[pkgs[i]] = Pin{bga, nr};
+		if ( pin.empty() ) {
+			pv.pins[pkgs[i]] = Pin{};
+		} else {
+			string::size_type idx = pin.find_last_of("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz");
+			string bga = (idx == string::npos) ? "" : pin.substr(0, idx + 1);
+			int nr = (idx == string::npos) ? stoi(pin) : stoi(pin.substr(idx + 1, pin.size()));
+			pv.pins[pkgs[i]] = Pin{bga, nr};
+		}
 	}
 
 	pv.signalset.signals.clear();
