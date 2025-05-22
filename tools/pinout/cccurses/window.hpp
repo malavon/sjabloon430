@@ -59,8 +59,10 @@ class Window {
 	}
 
 	void add(const string &text) {
-		int rc = waddnstr(ptr, text.c_str(), text.length());
-		assert(OK == rc);
+		if ( !text.empty() ) {
+			int rc = waddnstr(ptr, text.c_str(), text.length());
+			assert(OK == rc);
+		}
 	}
 
 	void add(const char character, int attrs) {
@@ -69,12 +71,14 @@ class Window {
 	}
 
 	void add(const string &text, int attrs) {
-		int rc = wattron(ptr, attrs);
-		assert(OK == rc);
-		rc = waddnstr(ptr, text.c_str(), text.length());
-		assert(OK == rc);
-		rc = wattroff(ptr, attrs);
-		assert(OK == rc);
+		if ( !text.empty() ) {
+			int rc = wattron(ptr, attrs);
+			assert(OK == rc);
+			rc = waddnstr(ptr, text.c_str(), text.length());
+			assert(OK == rc);
+			rc = wattroff(ptr, attrs);
+			assert(OK == rc);
+		}
 	}
 
 	void add(const int line, const int col, const char character) {
@@ -88,9 +92,10 @@ class Window {
 	}
 
 	void add(const int line, const int col, const string &text) {
-		// mvwaddstr(ptr, line, col, text.c_str();
-		int rc = mvwaddnstr(ptr, line, col, text.c_str(), text.length());
-		assert(OK == rc);
+		if ( !text.empty() ) {
+			int rc = mvwaddnstr(ptr, line, col, text.c_str(), text.length());
+			assert(OK == rc);
+		}
 	}
 
 	void add(const int line, const int col, const char character, int attrs) {
@@ -99,12 +104,14 @@ class Window {
 	}
 
 	void add(const int line, const int col, const string &text, int attrs) {
-		int rc = wattron(ptr, attrs);
-		assert(OK == rc);
-		rc = mvwaddnstr(ptr, line, col, text.c_str(), text.length());
-		assert(OK == rc);
-		rc = wattroff(ptr, attrs);
-		assert(OK == rc);
+		if ( !text.empty() ) {
+			int rc = wattron(ptr, attrs);
+			assert(OK == rc);
+			rc = mvwaddnstr(ptr, line, col, text.c_str(), text.length());
+			assert(OK == rc);
+			rc = wattroff(ptr, attrs);
+			assert(OK == rc);
+		}
 	}
 
 	void enableAttributes(const int attrs) {
