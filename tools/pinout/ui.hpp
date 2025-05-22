@@ -46,6 +46,10 @@ struct PinView {
 		assert(idx == 0);
 		return cview.signals;
 	}
+	const vector<string> &operator[](int idx) const {
+		assert(idx == 0);
+		return cview.signals;
+	}
 };
 
 struct PinSetView {

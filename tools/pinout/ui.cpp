@@ -29,8 +29,7 @@ class PinsetEventer : public FormEventHandler {
 
 		// calculate description field to reach column 80, with a sensible minimum width
 		// but ensure that the window can fit it (although application requires 80 cols minimum)
-		int maxX = getmaxx(static_cast<WINDOW *>(window));
-		int descFieldWidth = max(FIELD_WIDTH_DESC, min(80, maxX) - descColumn - 1);
+		int descFieldWidth = max(FIELD_WIDTH_DESC, min(80, window.size().cols) - descColumn - 1);
 
 		Field descField(1, descFieldWidth, row, descColumn);
 		descField.optionsActiveAndEditable(Toggle::OFF);
@@ -169,9 +168,17 @@ void drawPinSet(Window &win, int &row, const vector<Package> &pkgs, unordered_ma
 	}
 
 	col++;
-	for ( const string &sgn : pv.cview.signals ) {
+	// cut off descriptions if need be, 80 cols minimum but there are other windows which impact this size
+	int maxDescLength = std::max(FIELD_WIDTH_DESC, win.size().cols - col - FIELD_WIDTH_SIGNAL - 1);
+	const string CUT_CHARS = "...";
+	for ( const string &sgn : pv[0] ) {
 		win.add(row, col, sgn);
-		win.add(row, col + FIELD_WIDTH_SIGNAL + 1, signals[sgn]);
+		if ( signals[sgn].length() > maxDescLength ) {
+			win.add(row, col + FIELD_WIDTH_SIGNAL + 1,
+				signals[sgn].substr(0, maxDescLength - CUT_CHARS.length()) + CUT_CHARS);
+		} else {
+			win.add(row, col + FIELD_WIDTH_SIGNAL + 1, signals[sgn]);
+		}
 		row++;
 	}
 }
@@ -391,7 +398,7 @@ void reorderPackages(vector<Package> &pkgs) {
 		}
 
 		center.moveCursor(WIN_HEIGHT - 3, WIN_WIDTH - 3); // naive way of moving cursor where it doesn't bother as much
-			// should hide it somehow TODO
+								  // should hide it somehow TODO
 		center.paint();
 	} while ( (pressedKey = wgetch(center)) != KEY_ENTER && pressedKey != 10 );
 }
