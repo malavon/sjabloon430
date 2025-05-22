@@ -169,7 +169,7 @@ void drawPinSet(Window &win, int &row, const vector<Package> &pkgs, unordered_ma
 
 	col++;
 	int descCol = col + FIELD_WIDTH_SIGNAL + 1;
-	// cut off descriptions if need be
+	// cut Toggle::OFF descriptions if need be
 	int maxDescLength = std::max(FIELD_WIDTH_DESC, win.size().cols - descCol);
 	const string CUT_CHARS = "...";
 	for ( const string &sgn : pv[0] ) {
