@@ -38,19 +38,20 @@ int main() {
 		BorderedWindow top(WIN_TOP_HEIGHT, COLS - WIN_CONFIGSET_WIDTH, 0, 0);
 		// TODO: no border, separate with hline or something?
 		Window pins(LINES - WIN_TOP_HEIGHT, COLS - WIN_CONFIGSET_WIDTH, WIN_TOP_HEIGHT, 0);
+		pins.optionScrollable(Toggle::ON);
 
-		int l = 20;
 		Window &statusWin = pins;
-		statusWin.add(l++, 0, "Imported SQLite DB from files:");
+		statusWin.add(0, 0, "Imported SQLite DB from files:\n");
 		dbf::importDatabase(db, [&](const string &filename, const char *error) {
-			statusWin.add(l++, 2, '"');
+			statusWin.add("   \"");
 			statusWin.add(filename);
 			statusWin.add('"');
 
 			if ( error != nullptr ) {
-				statusWin.add(' ');
+				statusWin.add(" ERR: ");
 				statusWin.add(error);
 			}
+			statusWin.add('\n'); // scrolls if too many lines for window without possibly erroring
 		});
 		db::DatabaseTotals totals = db::countTotals(db);
 		statusWin.paint();
