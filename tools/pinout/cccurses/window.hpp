@@ -5,9 +5,10 @@
 #include <string>
 
 #include "ncurses.h"
+#include "support.hpp"
 
 namespace cccurses {
-using namespace std;
+using std::string;
 
 /**
  * @brief The Window class is a very simple wrapper around curses WINDOW. It's far from useful in all cases right now.
@@ -142,6 +143,14 @@ class Window {
 		assert(rr != ERR);
 	}
 
+	int maxCols() {
+		return getmaxx(ptr);
+	}
+
+	int maxRows() {
+		return getmaxy(ptr);
+	}
+
 	void moveCursor(const int line, const int col) {
 		int rc = wmove(ptr, line, col);
 		assert(OK == rc);
@@ -155,6 +164,17 @@ class Window {
 	void clear() {
 		wclear(ptr);
 		wrefresh(ptr);
+	}
+
+	Size size() const {
+		Size s;
+		s.cols = getmaxx(ptr);
+		s.rows = getmaxy(ptr);
+		return s;
+	}
+
+	void resize(int rows, int cols) {
+		wresize(ptr, rows, cols);
 	}
 
 	operator WINDOW *() const {

@@ -15,6 +15,7 @@ set(CCCURSES_HEADERS
     cccurses/error.hpp
     cccurses/form.hpp
     cccurses/input.hpp
+    cccurses/support.hpp
     cccurses/window.hpp
 )
 
