@@ -60,12 +60,12 @@ string insertStringFromResultSet(sqlite3_stmt *stmt) {
 	return insert;
 }
 
-void exportFromPrepStmt(sqlite3_stmt *stmt, const string fileName, bool append) {
+void exportFromPrepStmt(sqlite3_stmt *stmt, const string fileName, const ExportConfig &config) {
 	std::filesystem::path outFile(DB_DIRECTORY);
 	outFile /= fileName;
-	std::ofstream out(outFile, append ? (ios::out | ios::app) : ios::out); // output & append (todo)
+	std::ofstream out(outFile, config.appendFile ? (ios::out | ios::app) : ios::out); // output & append (todo)
 	// insert a comment in the file, unless appending
-	if ( append ) {
+	if ( config.appendFile ) {
 		out << endl; // todo: some custom comment? table name? difficult
 	} else {
 		out << "--" << endl;
@@ -76,13 +76,17 @@ void exportFromPrepStmt(sqlite3_stmt *stmt, const string fileName, bool append) 
 		out << "-- Text encoding used: UTF-8" << endl;
 		out << "--" << endl;
 	}
-	out << "BEGIN TRANSACTION;" << endl << endl;
+	if ( config.tx == ExportConfig::Tx::BOTH || config.tx == ExportConfig::Tx::BEGIN ) {
+		out << "BEGIN TRANSACTION;" << endl << endl;
+	}
 
 	while ( SQLITE_ROW == sqlite3_step(stmt) ) {
 		out << insertStringFromResultSet(stmt) << endl;
 	}
 
-	out << endl << "COMMIT TRANSACTION;" << endl;
+	if ( config.tx == ExportConfig::Tx::BOTH || config.tx == ExportConfig::Tx::COMMIT ) {
+		out << endl << "COMMIT TRANSACTION;" << endl;
+	}
 	sqlite3_finalize(stmt);
 }
 

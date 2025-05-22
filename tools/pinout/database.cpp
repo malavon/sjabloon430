@@ -192,5 +192,4 @@ int saveSignals(sqlite3 *db, unordered_map<string, string> signals) {
 
 	return insertedRows;
 }
-
 }}} // namespace sjabloon430::tools::db
