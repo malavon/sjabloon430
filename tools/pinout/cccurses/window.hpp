@@ -155,6 +155,10 @@ class Window {
 		assert(OK == rc);
 	}
 
+	void optionScrollable(Toggle toggle) {
+		scrollok(ptr, toggle == Toggle::ON);
+	}
+
 	void paint() const {
 		int rr = wrefresh(ptr);
 		assert(rr != ERR);
@@ -163,6 +167,11 @@ class Window {
 	void clear() {
 		wclear(ptr);
 		wrefresh(ptr);
+	}
+
+#undef scroll // scroll is a macro ... needs to be undef'ed in order to define this function
+	void scroll(int lines) {
+		wscrl(ptr, lines);
 	}
 
 	Size size() const {
