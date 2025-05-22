@@ -77,14 +77,12 @@ string insertStringFromResultSet(sqlite3_stmt *stmt) {
 	return insert;
 }
 
-void exportFromPrepStmt(sqlite3_stmt *stmt, const string fileName, bool append) {
+void exportFromPrepStmt(sqlite3_stmt *stmt, const string fileName, const ExportConfig &config) {
 	std::filesystem::path outFile(DB_DIRECTORY);
 	outFile /= fileName;
-	std::ofstream out(outFile, append ? (ios::out | ios::app) : ios::out); // output & append (todo)
+	std::ofstream out(outFile, config.appendFile ? (ios::out | ios::app) : ios::out); // output & append (todo)
 
-	if ( append ) {
-		out << endl; // todo: some custom comment? table name? difficult
-	} else {
+	if ( !config.appendFile ) {
 		out << "--" << endl;
 		out << "-- File generated with one of the sjabloon 430 database tools." << endl;
 		out << "-- Any alterations to this data will be kept by these tools, assuming the SQL is still valid." << endl;
@@ -93,16 +91,25 @@ void exportFromPrepStmt(sqlite3_stmt *stmt, const string fileName, bool append) 
 		out << "-- Text encoding used: UTF-8" << endl;
 		out << "--" << endl;
 	}
-	out << "BEGIN TRANSACTION;" << endl << endl;
-	int rc = sqlite3_step(stmt);
-	while ( SQLITE_ROW == rc ) {
-		out << insertStringFromResultSet(stmt) << endl;
-		if ( SQLITE_DONE == (rc = sqlite3_step(stmt)) ) {
-			out << endl;
-		};
+
+	if ( config.tx == ExportConfig::Tx::BOTH || config.tx == ExportConfig::Tx::BEGIN ) {
+		out << "BEGIN TRANSACTION;" << endl << endl;
 	}
-	out << endl << "COMMIT TRANSACTION;" << endl;
-	sqlite3_finalize(stmt);
+
+	int rc = sqlite3_step(stmt);
+	while ( rc == SQLITE_ROW ) {
+		if ( config.sql == ExportConfig::SQL::INSERT ) {
+			out << insertStringFromResultSet(stmt) << endl;
+		}
+		if ( (rc = sqlite3_step(stmt)) == SQLITE_DONE ) { // one more endline AFTER block for this query
+			out << endl;
+		}
+	}
+
+	if ( config.tx == ExportConfig::Tx::BOTH || config.tx == ExportConfig::Tx::COMMIT ) {
+		out << "COMMIT TRANSACTION;" << endl;
+	}
+	out.close();
 }
 
 // maybe this should be a function shared with other programs
