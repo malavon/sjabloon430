@@ -2,6 +2,7 @@
 #define CCURSES_WINDOW_HPP
 
 #include <cassert>
+#include <cstdarg>
 #include <string>
 
 #include "ncurses.h"
@@ -164,6 +165,24 @@ class Window {
 		int rr = wrefresh(ptr);
 		assert(rr != ERR);
 	}
+
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wvarargs"
+	void print(string fmt, ...) {
+		va_list args;
+		va_start(args, fmt.c_str());
+		vw_printw(ptr, fmt.c_str(), args);
+		va_end(args);
+	}
+
+	void print(const int line, const int col, string fmt, ...) {
+		wmove(ptr, line, col);
+		va_list args;
+		va_start(args, fmt.c_str());
+		vw_printw(ptr, fmt.c_str(), args);
+		va_end(args);
+	}
+#pragma GCC diagnostic pop
 
 	void clear() {
 		wclear(ptr);
