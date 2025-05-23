@@ -56,13 +56,16 @@ int main() {
 			}
 			statusWin.add('\n'); // scrolls if too many lines for window without possibly erroring
 		});
-		db::DatabaseTotals totals = db::countTotals(db);
 		statusWin.paint();
 
 		// initial state: open search window
 		string selectedId = ui::searchDatasheet(db::listAllModelsAndDatasheets(db), WIDEST_MODEL_LENGTH);
 		db::Datasheet selectedDS = db::findDatasheet(db, selectedId);
-		ui::drawTopWindow(top, selectedDS, totals);
+
+		db::DatabaseTotals totals = db::countTotals(db);
+		db::DatabaseTotals supported = db::countSupported(db);
+
+		ui::drawTopWindow(top, selectedDS, totals, supported);
 
 		printShortcuts(pins);
 

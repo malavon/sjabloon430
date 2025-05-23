@@ -1,5 +1,7 @@
 #include "ui.hpp"
 
+#include <cstdio>
+
 namespace sjabloon430 { namespace tools { namespace pinout { namespace ui {
 
 using namespace cccurses;
@@ -319,7 +321,7 @@ void drawSetConfigWindow(BorderedWindow &win, const vector<string> &models, cons
 	win.paint();
 }
 
-void drawTopWindow(BorderedWindow &win, const Datasheet &ds, DatabaseTotals &totals) {
+void drawTopWindow(BorderedWindow &win, const Datasheet &ds, const DatabaseTotals &ttl, const DatabaseTotals &sprt) {
 	int topLine = 0;
 	int topCol = 1;
 	win.setTitle("Search");
@@ -336,22 +338,39 @@ void drawTopWindow(BorderedWindow &win, const Datasheet &ds, DatabaseTotals &tot
 		win.add(ds.revDate);
 	}
 
-	// currently doesn't work
-	// top.print(4, 1, "DB contains: %i datasheets, %i devices, %d orderables, %i packages", totals.datasheets, totals.devices, totals.orderables,
-	// totals.packages);
-	win.add(topLine + 2, topCol, "DB contains: ");
-	win.add(std::to_string(totals.datasheets));
-	win.add(" datasheets, ");
-	win.add(std::to_string(totals.devices));
-	win.add(" devices, ");
-	win.add(std::to_string(totals.orderables));
-	win.add(" orderables, ");
-	win.add(std::to_string(totals.packages));
-	win.add(" packages");
-
-	win.add(topLine + 0, topCol, "Datasheet: ");
-	win.add(ds.id);
-
+	static const int BFR = 64;
+	char buffer[BFR] = "";
+	string fullHdr = "DB supported/total (%): ";
+	std::snprintf(buffer, BFR, "%d/%d datasheets (%#.1f%%)", sprt.datasheets, ttl.datasheets,
+		      100.0f * sprt.datasheets / ttl.datasheets);
+	fullHdr += buffer;
+	std::snprintf(buffer, BFR, ", %d/%d devices (%#.1f%%)", sprt.devices, ttl.devices, 100.0f * sprt.devices / ttl.devices);
+	fullHdr += buffer;
+	std::snprintf(buffer, BFR, " and %d/%d orderables (%#.1f%%)", sprt.orderables, ttl.orderables,
+		      100.0f * sprt.orderables / ttl.orderables);
+	fullHdr += buffer;
+	if ( win.maxCols() >= fullHdr.length() + 2 ) {
+		win.add(topLine + 2, topCol, fullHdr);
+	} else {
+		string shortHdr = "DB (sprt/ttl/%):";
+		std::snprintf(buffer, BFR, " %d/%d sheets (%#.1f%%)", sprt.datasheets, ttl.datasheets,
+			      100.0f * sprt.datasheets / ttl.datasheets);
+		shortHdr += buffer;
+		std::snprintf(buffer, BFR, ", %d/%d devs (%#.1f%%)", sprt.devices, ttl.devices,
+			      100.0f * sprt.devices / ttl.devices);
+		shortHdr += buffer;
+		std::snprintf(buffer, BFR, ", %d/%d ordbls (%#.1f%%)", sprt.orderables, ttl.orderables,
+			      100.0f * sprt.orderables / ttl.orderables);
+		shortHdr += buffer;
+		if ( win.maxCols() >= shortHdr.length() + 2 ) {
+			win.add(topLine + 2, topCol, shortHdr);
+		} else {
+			win.add(topLine + 2, topCol, "DB:");
+			win.print(" %d/%d DS", sprt.datasheets, ttl.datasheets);
+			win.print(", %d/%d DEV", sprt.devices, ttl.devices);
+			win.print(", %d/%d ODBL", sprt.orderables, ttl.orderables);
+		}
+	}
 	win.paint();
 }
 
@@ -419,8 +438,8 @@ void reorderPackages(vector<Package> &pkgs) {
 			col += pkg.length() + 1;
 		}
 
-		center.moveCursor(WIN_HEIGHT - 3, WIN_WIDTH - 3); // naive way of moving cursor where it doesn't bother as much
-								  // should hide it somehow TODO
+		// naive way of moving cursor where it doesn't bother as much, should hide it somehow TODO
+		center.moveCursor(WIN_HEIGHT - 3, WIN_WIDTH - 3);
 		center.paint();
 	} while ( (pressedKey = wgetch(center)) != KEY_ENTER && pressedKey != 10 );
 }
