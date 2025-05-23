@@ -58,7 +58,7 @@ void editPinSet(Window &, int &row, const vector<string> &pkgs, unordered_map<st
 // Window drawing functions
 void drawPinSetEditingWindow(Window &win, PinSetView &pinView);
 void drawSetConfigWindow(BorderedWindow &, const vector<string> &models, const vector<Package> &packages);
-void drawTopWindow(BorderedWindow &, const Datasheet &, DatabaseTotals &);
+void drawTopWindow(BorderedWindow &, const Datasheet &, DatabaseTotals &totals, DatabaseTotals &supported);
 void reorderPackages(vector<Package> &pkgs);
 string searchDatasheet(const unordered_map<string, string> &dsModels, const int widestModelLength);
 

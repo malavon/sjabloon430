@@ -33,26 +33,59 @@ void prepare(sqlite3 *db, sqlite3_stmt **stmt, const char *QUERY) {
 DatabaseTotals countTotals(sqlite3 *db) {
 	// a single result row is best, 1 column per count
 	// this is the best I can do with my knowledge of sqlite
-	static const char *QUERY = "SELECT SUM(datasheets), SUM(devices), SUM(orderables), SUM(packages) "
+	static const char *QUERY = "SELECT SUM(ds), SUM(dv), SUM(odbl) "
 				   "FROM ("
-				   "	SELECT 0 AS datasheets, 0 AS devices, 0 AS orderables, 0 AS packages"
-				   "	UNION SELECT COUNT(*), 0, 0, 0 FROM datasheet"
-				   "	UNION SELECT 0, COUNT(*), 0, 0 FROM device"
-				   "	UNION SELECT 0, 0, COUNT(*), 0 FROM orderable"
-				   "	UNION SELECT 0, 0, 0, COUNT(*) FROM package )";
+				   "	SELECT 0 AS ds, 0 AS dv, 0 AS odbl "
+				   "	UNION SELECT COUNT( * ), 0, 0 FROM datasheet "
+				   "	UNION SELECT 0, COUNT( * ), 0 FROM device "
+				   "	UNION SELECT 0, 0, COUNT( * ) FROM orderable )";
 
 	static sqlite3_stmt *stmt;
 	if ( stmt == nullptr ) {
 		prepare(db, &stmt, QUERY);
 	}
 
-	DatabaseTotals totals{-1, -1, -1, -1};
-
+	DatabaseTotals totals{-1, -1, -1};
 	if ( sqlite3_step(stmt) == SQLITE_ROW ) {
 		totals.datasheets = sqlite3_column_int(stmt, 0);
 		totals.devices = sqlite3_column_int(stmt, 1);
 		totals.orderables = sqlite3_column_int(stmt, 2);
-		totals.packages = sqlite3_column_int(stmt, 3);
+	}
+
+	return totals;
+}
+
+DatabaseTotals countSupported(sqlite3 *db) {
+	// a single result row is best, 1 column per count
+	// this is the best I can do with my knowledge of sqlite
+	static const char *QUERY = "SELECT SUM(ds), SUM(dv), SUM(odbl) FROM ("
+				   "	SELECT 0 AS ds, 0 AS dv, 0 AS odbl "
+				   "UNION "
+				   "	SELECT count(DISTINCT ds.id), 0, 0 "
+				   "	FROM datasheet ds "
+				   "	INNER JOIN device d ON ds.id = d.datasheet_id "
+				   "	INNER JOIN orderable o ON d.model = o.device_id "
+				   "	WHERE o.pinset_id NOT NULL "
+				   "UNION"
+				   "	SELECT 0, COUNT(DISTINCT d.model), 0 "
+				   "	FROM device d "
+				   "	INNER JOIN orderable o ON d.model = o.device_id "
+				   "	WHERE o.pinset_id NOT NULL "
+				   "UNION"
+				   "	SELECT 0, 0, COUNT(DISTINCT o.name) "
+				   "	FROM orderable o "
+				   "	WHERE o.pinset_id NOT NULL )";
+
+	static sqlite3_stmt *stmt;
+	if ( stmt == nullptr ) {
+		prepare(db, &stmt, QUERY);
+	}
+
+	DatabaseTotals totals{-1, -1, -1};
+	if ( sqlite3_step(stmt) == SQLITE_ROW ) {
+		totals.datasheets = sqlite3_column_int(stmt, 0);
+		totals.devices = sqlite3_column_int(stmt, 1);
+		totals.orderables = sqlite3_column_int(stmt, 2);
 	}
 
 	return totals;

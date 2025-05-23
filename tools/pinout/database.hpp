@@ -56,7 +56,6 @@ struct DatabaseTotals {
 	int datasheets;
 	int devices;
 	int orderables;
-	int packages;
 };
 
 /* Simple data objects, no need for encapsulation in a privately used tool ... */
@@ -93,6 +92,7 @@ void prepare(sqlite3 *db, sqlite3_stmt **stmt, const char *query);
 
 /* Query DB */
 DatabaseTotals countTotals(sqlite3 *db);
+DatabaseTotals countSupported(sqlite3 *db);
 
 Datasheet findDatasheet(sqlite3 *db, const string id);
 vector<string> findModelsByDatasheet(sqlite3 *db, const string datasheetId);
