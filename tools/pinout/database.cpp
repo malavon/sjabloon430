@@ -167,72 +167,6 @@ vector<Orderable> findOrderablesByDatasheet(sqlite3 *db, const string datasheetI
 	return result;
 }
 
-vector<Signalset> findSignalsetsByDatasheet(sqlite3 *db, const string datasheetId) {
-	// this function assumes index is continuous from 0 to n
-
-	static const char *SSET_QUERY =
-	    "SELECT DISTINCT datasheet_idx, ss.id signalset_id, ss.parent_id, drawing, pins, pin_bga_row, pin_number "
-	    "FROM signalset ss "
-	    "INNER JOIN pinset_signalset psss ON ss.id = psss.signalset_id "
-	    "INNER JOIN orderable o ON o.pinset_id = psss.pinset_id "
-	    "INNER JOIN device d ON o.device_id = d.model "
-	    "WHERE d.datasheet_id = ? "
-	    "ORDER BY datasheet_idx ASC, ss.parent_id ASC, ss.id ASC";
-
-	static const char *SGNS_QUERY = "SELECT idx, signal_id "
-					"FROM signalset_signal sss "
-					"INNER JOIN signal s ON s.id = sss.signal_id "
-					"WHERE signalset_id = ? "
-					"ORDER BY sss.signalset_id ASC, idx ASC";
-	static sqlite3_stmt *stmtSset, *stmtSgns;
-	if ( stmtSset == nullptr ) {
-		prepare(db, &stmtSset, SSET_QUERY);
-		prepare(db, &stmtSgns, SGNS_QUERY);
-	}
-
-	sqlite3_reset(stmtSset);
-	int rc = sqlite3_bind_text(stmtSset, 1, datasheetId.c_str(), -1, SQLITE_STATIC);
-	assert(SQLITE_OK == rc);
-
-	vector<Signalset> result;
-	Signalset s;
-	int lastId = 0, id = 0;
-	int vrIdx = -1;
-	while ( sqlite3_step(stmtSset) == SQLITE_ROW ) {
-		// datasheet_idx = sqlite3_column_int(stmt, 0);
-		id = sqlite3_column_int(stmtSset, 1);
-		if ( lastId != id ) {
-			lastId = id;
-			s = Signalset();
-			s.id = id;
-			s.parentId = sqlite3_column_int(stmtSset, 2);
-			result.push_back(s);
-			vrIdx++;
-		}
-		string drw = reinterpret_cast<const char *>(sqlite3_column_text(stmtSset, 3));
-		int pins = sqlite3_column_int(stmtSset, 4);
-		const unsigned char *dbBga = sqlite3_column_text(stmtSset, 5);
-		string bgaRow = (dbBga == nullptr) ? "" : reinterpret_cast<const char *>(dbBga);
-		int pinNumber = sqlite3_column_int(stmtSset, 6);
-		s.pins[Package{drw, pins}] = Pin{bgaRow, pinNumber};
-		result[vrIdx] = s; // isn't necessary? no copy-semantics?
-	}
-
-	for ( Signalset &s : result ) {
-		sqlite3_reset(stmtSgns);
-		rc = sqlite3_bind_int(stmtSgns, 1, s.id);
-		assert(SQLITE_OK == rc);
-		// assumes idx is continuous and starts at 0 -> incorrect once parents are used ...
-		while ( sqlite3_step(stmtSgns) == SQLITE_ROW ) {
-			// idx = sqlite3_column_int(stmtSgns, 0)
-			string sgn = reinterpret_cast<const char *>(sqlite3_column_text(stmtSgns, 1));
-			s.signals.push_back(sgn);
-		}
-	}
-
-	return result;
-}
-
 vector<Package> findPackagesByDatasheet(sqlite3 *db, const string datasheetId) {
 	static const char *QUERY = "SELECT o.drawing, o.pins "
 				   "FROM orderable o "
@@ -308,6 +242,71 @@ vector<Pinset> findPinsetsByDatasheet(sqlite3 *db, const vector<Signalset> sgnse
 	}
 
 	return ps;
+}
+vector<Signalset> findSignalsetsByDatasheet(sqlite3 *db, const string datasheetId) {
+	// this function assumes index is continuous from 0 to n
+
+	static const char *SSET_QUERY =
+	    "SELECT DISTINCT datasheet_idx, ss.id signalset_id, ss.parent_id, drawing, pins, pin_bga_row, pin_number "
+	    "FROM signalset ss "
+	    "INNER JOIN pinset_signalset psss ON ss.id = psss.signalset_id "
+	    "INNER JOIN orderable o ON o.pinset_id = psss.pinset_id "
+	    "INNER JOIN device d ON o.device_id = d.model "
+	    "WHERE d.datasheet_id = ? "
+	    "ORDER BY datasheet_idx ASC, ss.parent_id ASC, ss.id ASC";
+
+	static const char *SGNS_QUERY = "SELECT idx, signal_id "
+					"FROM signalset_signal sss "
+					"INNER JOIN signal s ON s.id = sss.signal_id "
+					"WHERE signalset_id = ? "
+					"ORDER BY sss.signalset_id ASC, idx ASC";
+	static sqlite3_stmt *stmtSset, *stmtSgns;
+	if ( stmtSset == nullptr ) {
+		prepare(db, &stmtSset, SSET_QUERY);
+		prepare(db, &stmtSgns, SGNS_QUERY);
+	}
+
+	sqlite3_reset(stmtSset);
+	int rc = sqlite3_bind_text(stmtSset, 1, datasheetId.c_str(), -1, SQLITE_STATIC);
+	assert(SQLITE_OK == rc);
+
+	vector<Signalset> result;
+	Signalset s;
+	int lastId = 0, id = 0;
+	int vrIdx = -1;
+	while ( sqlite3_step(stmtSset) == SQLITE_ROW ) {
+		// datasheet_idx = sqlite3_column_int(stmt, 0);
+		id = sqlite3_column_int(stmtSset, 1);
+		if ( lastId != id ) {
+			lastId = id;
+			s = Signalset();
+			s.id = id;
+			s.parentId = sqlite3_column_int(stmtSset, 2);
+			result.push_back(s);
+			vrIdx++;
+		}
+		string drw = reinterpret_cast<const char *>(sqlite3_column_text(stmtSset, 3));
+		int pins = sqlite3_column_int(stmtSset, 4);
+		const unsigned char *dbBga = sqlite3_column_text(stmtSset, 5);
+		string bgaRow = (dbBga == nullptr) ? "" : reinterpret_cast<const char *>(dbBga);
+		int pinNumber = sqlite3_column_int(stmtSset, 6);
+		s.pins[Package{drw, pins}] = Pin{bgaRow, pinNumber};
+		result[vrIdx] = s; // isn't necessary? no copy-semantics?
+	}
+
+	for ( Signalset &s : result ) {
+		sqlite3_reset(stmtSgns);
+		rc = sqlite3_bind_int(stmtSgns, 1, s.id);
+		assert(SQLITE_OK == rc);
+		// assumes idx is continuous and starts at 0 -> incorrect once parents are used ...
+		while ( sqlite3_step(stmtSgns) == SQLITE_ROW ) {
+			// idx = sqlite3_column_int(stmtSgns, 0)
+			string sgn = reinterpret_cast<const char *>(sqlite3_column_text(stmtSgns, 1));
+			s.signals.push_back(sgn);
+		}
+	}
+
+	return result;
 }
 
 unordered_map<string, string> listAllModelsAndDatasheets(sqlite3 *db) {
