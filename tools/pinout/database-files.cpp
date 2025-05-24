@@ -21,6 +21,7 @@ namespace sjabloon430 { namespace tools { namespace db {
 // export from a simple query, cannot export joined tables etc
 void exportFromPrepStmt(sqlite3_stmt *statement, const string fileName, const ExportConfig &config = ExportConfig{});
 string insertStringFromResultSet(sqlite3_stmt *stmt);
+string updateStringFromResultSet(sqlite3_stmt *stmt, int whereColumns = 1);
 
 // helper functions
 void prepare(sqlite3 *db, sqlite3_stmt **stmt, const char *query) {
@@ -74,6 +75,52 @@ string insertStringFromResultSet(sqlite3_stmt *stmt) {
 	return insert;
 }
 
+// creates an update string from a resultset, first column is required to be the key on which to update!
+string updateStringFromResultSet(sqlite3_stmt *stmt, int whereColumns) {
+	const int columns = sqlite3_column_count(stmt);
+	if ( columns <= whereColumns ) {
+		return "ERROR NOT ENOUGH COLUMNS";
+	}
+
+	const char *table = sqlite3_column_table_name(stmt, 0);
+	string sql = "UPDATE ";
+	sql += table;
+	string updates = " SET ";
+	string condition = " WHERE ";
+
+	string sub;
+	for ( int c = 0; c < columns; c++ ) {
+		sub = (c > 1) ? "," : ""; // first is id, second is first update, only second update requires a comma
+		const char *origin = sqlite3_column_origin_name(stmt, c); // column name from DB
+		if ( origin == nullptr ) {
+			const char *col = sqlite3_column_name(stmt, c); // column name from AS-statement
+			sub += (col == nullptr) ? "ERROR_NO_COL_NAME" : col;
+		} else {
+			sub += origin;
+		}
+		sub += " = ";
+		const char *type = sqlite3_column_decltype(stmt, c);
+		const unsigned char *value = sqlite3_column_text(stmt, c);
+		if ( value == nullptr ) {
+			sub += "NULL"; // only allowed for updates, not condition ...
+		} else if ( strcmp(type, "INTEGER") == 0 || strcmp(type, "REAL") == 0 ) {
+			sub += reinterpret_cast<const char *>(value);
+		} else {
+			sub += "'";
+			sub += reinterpret_cast<const char *>(value);
+			sub += "'";
+		}
+
+		if ( c < whereColumns ) {
+			condition += sub;
+		} else {
+			updates += sub;
+		}
+	}
+
+	return sql + updates + condition + ";";
+}
+
 void exportFromPrepStmt(sqlite3_stmt *stmt, const string fileName, const ExportConfig &config) {
 	std::filesystem::path outFile(DB_DIRECTORY);
 	outFile /= fileName;
@@ -97,6 +144,8 @@ void exportFromPrepStmt(sqlite3_stmt *stmt, const string fileName, const ExportC
 	while ( rc == SQLITE_ROW ) {
 		if ( config.sql == ExportConfig::SQL::INSERT ) {
 			out << insertStringFromResultSet(stmt) << endl;
+		} else {
+			out << updateStringFromResultSet(stmt) << endl;
 		}
 		if ( (rc = sqlite3_step(stmt)) == SQLITE_DONE ) { // one more endline AFTER block for this query
 			out << endl;

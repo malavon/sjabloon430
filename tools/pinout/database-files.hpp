@@ -21,7 +21,7 @@ struct ExportConfig {
 	SQL sql = SQL::INSERT;
 };
 
-// only publicly-accessible functions are listed here; privately used ones are in the .cpp file
+// only publicly-accessible functions are declared here; privately used ones are in the .cpp file
 
 void exportSignals(sqlite3 *db);
 void importDatabase(sqlite3 *db, std::function<void(const std::string &file, const char *error)> callback);
