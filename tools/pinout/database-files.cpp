@@ -21,6 +21,7 @@ namespace sjabloon430 { namespace tools { namespace db {
 // export from a simple query, cannot export joined tables etc
 void exportFromPrepStmt(sqlite3_stmt *statement, const string fileName, const ExportConfig &config = ExportConfig{});
 string insertStringFromResultSet(sqlite3_stmt *stmt);
+string updateStringFromResultSet(sqlite3_stmt *stmt, int whereColumns = 1);
 
 enum class ColumnDecl { NULL_VALUE, NUMBER, TEXT };
 
@@ -92,6 +93,46 @@ string insertStringFromResultSet(sqlite3_stmt *stmt) {
 	return insert;
 }
 
+// creates an update string from a resultset, first column is required to be the key on which to update!
+string updateStringFromResultSet(sqlite3_stmt *stmt, int whereColumns) {
+	const int columns = sqlite3_column_count(stmt);
+	if ( columns <= whereColumns ) {
+		return "ERROR NOT ENOUGH COLUMNS";
+	}
+
+	const char *table = sqlite3_column_table_name(stmt, 0);
+	string sql = "UPDATE ";
+	sql += table;
+	string updates = " SET ";
+	string condition = " WHERE ";
+
+	string sub;
+	for ( int c = 0; c < columns; c++ ) {
+		sub = (c > 1) ? "," : ""; // first is id, second is first update, only second update requires a comma
+		sub += inferColumnName(stmt, c);
+		sub += " = ";
+		ColumnDecl cd = inferColumnDecl(stmt, c);
+		const char *value = reinterpret_cast<const char *>(sqlite3_column_text(stmt, c));
+		if ( ColumnDecl::NULL_VALUE == cd ) {
+			sub += "NULL"; // only allowed for updates, not condition ...
+		} else if ( ColumnDecl::NUMBER == cd ) {
+			sub += value;
+		} else /* ColumnDecl::Text */ {
+			sub += "'";
+			sub += value;
+			sub += "'";
+		}
+
+		if ( c < whereColumns ) {
+			condition += sub;
+		} else {
+			updates += sub;
+		}
+	}
+
+	return sql + updates + condition + ";";
+}
+
 void exportFromPrepStmt(sqlite3_stmt *stmt, const string fileName, const ExportConfig &config) {
 	std::filesystem::path outFile(DB_DIRECTORY);
 	outFile /= fileName;
@@ -115,6 +156,8 @@ void exportFromPrepStmt(sqlite3_stmt *stmt, const string fileName, const ExportC
 	while ( rc == SQLITE_ROW ) {
 		if ( config.sql == ExportConfig::SQL::INSERT ) {
 			out << insertStringFromResultSet(stmt) << endl;
+		} else {
+			out << updateStringFromResultSet(stmt) << endl;
 		}
 		if ( (rc = sqlite3_step(stmt)) == SQLITE_DONE ) { // one more endline AFTER block for this query
 			out << endl;

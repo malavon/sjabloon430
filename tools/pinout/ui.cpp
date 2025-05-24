@@ -377,7 +377,7 @@ void drawTopWindow(BorderedWindow &win, const Datasheet &ds, const DatabaseTotal
 	std::snprintf(buffer, BFR, " and %d/%d orderables (%#.1f%%)", sprt.orderables, ttl.orderables,
 		      100.0f * sprt.orderables / ttl.orderables);
 	fullHdr += buffer;
-	if ( win.maxCols() >= static_cast<int>(fullHdr.length() + 2) ) {
+	if ( win.maxCols() >= static_cast<int>(fullHdr.length()) + 2 ) {
 		win.add(topLine + 2, topCol, fullHdr);
 	} else {
 		string shortHdr = "DB (sprt/ttl/%):";
@@ -390,7 +390,7 @@ void drawTopWindow(BorderedWindow &win, const Datasheet &ds, const DatabaseTotal
 		std::snprintf(buffer, BFR, ", %d/%d ordbls (%#.1f%%)", sprt.orderables, ttl.orderables,
 			      100.0f * sprt.orderables / ttl.orderables);
 		shortHdr += buffer;
-		if ( win.maxCols() >= static_cast<int>(shortHdr.length() + 2) ) {
+		if ( win.maxCols() >= static_cast<int>(shortHdr.length()) + 2 ) {
 			win.add(topLine + 2, topCol, shortHdr);
 		} else {
 			win.add(topLine + 2, topCol, "DB:");
