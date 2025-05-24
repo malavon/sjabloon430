@@ -110,6 +110,12 @@ int main() {
 		db::saveSignals(db, vw.signalDescs);
 		dbf::exportSignals(db);
 
+		// db::saveSignalsets(db, signalsets);
+
+		dbf::exportDataForDatasheet(db, selectedId);
+		dbf::exportDevicesWithoutPinout(db);
+		dbf::exportOrderablesWithoutPinout(db);
+
 		// TODO: input up/down & other hotkeys, basically the bulk of the application?
 		// or should this be in the main application?
 		// much more logical I think, since DB access is required for saving

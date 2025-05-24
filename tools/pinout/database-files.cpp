@@ -36,6 +36,7 @@ string insertStringFromResultSet(sqlite3_stmt *stmt, vector<int> widths = {});
 string updateStringFromResultSet(sqlite3_stmt *stmt, vector<int> widths = {}, int whereColumns = 1);
 
 // partial export functions for datasheet data
+void exportDevicesFor(sqlite3 *db, const string &datasheetId, const string filename, ExportConfig expConf);
 void exportOrderablesFor(sqlite3 *db, const string &datasheetId, const string filename, ExportConfig expConf);
 void exportOrderablePinsetsFor(sqlite3 *db, const string &datasheetId, const string filename, ExportConfig expConf);
 void exportPinsetsFor(sqlite3 *db, const string &datasheetId, const string filename, ExportConfig expConf);
@@ -207,6 +208,21 @@ void exportFromPrepStmt(sqlite3_stmt *stmt, const string fileName, const ExportC
 
 // sub-functions for exports of pinout data
 
+void exportDevicesFor(sqlite3 *db, const string &datasheetId, const string filename, ExportConfig expConf) {
+	static const char *QUERY = "SELECT * "
+				   "FROM device "
+				   "WHERE datasheet_id = ? "
+				   "ORDER BY model ASC";
+	static sqlite3_stmt *stmt;
+	if ( stmt == nullptr ) {
+		prepare(db, &stmt, QUERY);
+	}
+
+	sqlite3_reset(stmt);
+	sqlite3_bind_text(stmt, 1, datasheetId.c_str(), -1, SQLITE_STATIC);
+	exportFromPrepStmt(stmt, filename, expConf);
+}
+
 void exportOrderablesFor(sqlite3 *db, const string &datasheetId, const string filename, ExportConfig expConf) {
 	// cannot use select *, pinset_id is forced to NULL so it can be updated with an update statement AFTER
 	// pinset export!
@@ -345,12 +361,28 @@ void exportDataForDatasheet(sqlite3 *db, const string &datasheetId) {
 		c = std::tolower(c);
 	}
 	const string file = "90_" + lower + ".sql";
-	exportOrderablesFor(db, datasheetId, file, ExportConfig{.appendFile = false, .tx = ExportConfig::Tx::BEGIN});
+	exportDevicesFor(db, datasheetId, file, ExportConfig{.appendFile = false, .tx = ExportConfig::Tx::BEGIN});
+	exportOrderablesFor(db, datasheetId, file, ExportConfig{.appendFile = true, .tx = ExportConfig::Tx::NONE});
 	exportPinsetsFor(db, datasheetId, file, ExportConfig{.appendFile = true, .tx = ExportConfig::Tx::NONE});
 	exportSignalsetsFor(db, datasheetId, file, ExportConfig{.appendFile = true, .tx = ExportConfig::Tx::NONE});
 	exportPinsetSignalsetsFor(db, datasheetId, file, ExportConfig{.appendFile = true, .tx = ExportConfig::Tx::NONE});
 	exportSignalsetSignalsFor(db, datasheetId, file, ExportConfig{.appendFile = true, .tx = ExportConfig::Tx::NONE});
 	exportOrderablePinsetsFor(db, datasheetId, file, ExportConfig{.appendFile = true, .tx = ExportConfig::Tx::COMMIT});
+}
+
+void exportDevicesWithoutPinout(sqlite3 *db) {
+	static const char *QUERY = "SELECT d.* "
+				   "FROM device d "
+				   "INNER JOIN orderable o ON d.model = o.device_id "
+				   "WHERE o.pinset_id IS NULL "
+				   "GROUP BY d.model "
+				   "ORDER BY model ASC";
+	static sqlite3_stmt *stmt;
+	if ( stmt == nullptr ) {
+		prepare(db, &stmt, QUERY);
+	}
+	sqlite3_reset(stmt);
+	exportFromPrepStmt(stmt, "21_device.sql");
 }
 
 void exportOrderablesWithoutPinout(sqlite3 *db) {
