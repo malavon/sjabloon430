@@ -453,30 +453,43 @@ int saveSignalsets(sqlite3 *db, vector<Signalset> &sets) {
 // TODO: add update!!! for pincount
 int saveOrUpdatePinset(sqlite3 *db, Pinset &ps) { // assumes signal sets are all in DB!
 	static const char *INSERT_QUERY = "INSERT INTO pinset (pins) VALUES (?)";
+	static const char *UPDATE_QUERY = "UPDATE pinset SET pins = ? WHERE id = ?";
 	static const char *DELETE_LINKS = "DELETE FROM pinset_signalset WHERE signalset_id = ?";
 	static const char *LINK_QUERY = "INSERT INTO pinset_signalset (pinset_id, signalset_id, pin_bga_row, pin_number) "
 					"VALUES (:psetId, :ssetId, :bgaRow, :pinNumber)";
-	static sqlite3_stmt *insStmt, *delStmt, *lnkStmt;
+	static sqlite3_stmt *insStmt, *updStmt, *delStmt, *lnkStmt;
 	if ( insStmt == nullptr ) { // assume both are null
 		prepare(db, &insStmt, INSERT_QUERY);
+		prepare(db, &updStmt, UPDATE_QUERY);
 		prepare(db, &delStmt, DELETE_LINKS);
 		prepare(db, &lnkStmt, LINK_QUERY);
 	}
-	sqlite3_reset(insStmt);
 
 	int alteredRows = 0, rc;
+	// totalpins should already be set, this is NOT calculated in this function
 	if ( ps.id == 0 ) {
-		// totalpins should already be set, this is NOT calculated in this function
+		sqlite3_reset(insStmt);
 		rc = sqlite3_bind_int(insStmt, 1, ps.totalPins);
 		assert(SQLITE_OK == rc);
 		rc = sqlite3_step(insStmt);
 		assert(SQLITE_DONE == rc);
 		ps.id = sqlite3_last_insert_rowid(db);
 		alteredRows++;
-	} else { // if already in database, remove signalsets
+	} else { // if already in database, remove signalsets, update totalPins count
+		sqlite3_reset(updStmt);
+		rc = sqlite3_bind_int(updStmt, 1, ps.totalPins);
+		assert(SQLITE_OK == rc);
+		rc = sqlite3_bind_int(updStmt, 2, ps.id);
+		assert(SQLITE_OK == rc);
+		rc = sqlite3_step(updStmt);
+		assert(SQLITE_DONE == rc);
+		alteredRows++;
+
 		sqlite3_reset(delStmt);
 		rc = sqlite3_bind_int(delStmt, 1, ps.id);
 		assert(SQLITE_OK == rc);
+		rc = sqlite3_step(delStmt);
+		assert(SQLITE_DONE == rc);
 		alteredRows++;
 	}
 
