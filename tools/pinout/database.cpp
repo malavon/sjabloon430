@@ -502,12 +502,15 @@ int saveOrUpdatePinset(sqlite3 *db, Pinset &ps) { // assumes signal sets are all
 		assert(SQLITE_OK == rc);
 		if ( pin.bgaRow.empty() ) {
 			rc = sqlite3_bind_null(lnkStmt, 3);
-			assert(SQLITE_OK == rc);
 		} else {
 			rc = sqlite3_bind_text(lnkStmt, 3, pin.bgaRow.c_str(), -1, SQLITE_STATIC);
-			assert(SQLITE_OK == rc);
 		}
-		rc = sqlite3_bind_int(lnkStmt, 4, pin.number); // assumes no text
+		assert(SQLITE_OK == rc);
+		if ( pin.number == 0 ) { // 0 is in-app value for no pin, save it as NULL
+			rc = sqlite3_bind_null(lnkStmt, 4);
+		} else {
+			rc = sqlite3_bind_int(lnkStmt, 4, pin.number);
+		}
 		assert(SQLITE_OK == rc);
 		// execute, ignore errors for duplicates but reset statement before next
 		if ( SQLITE_DONE == sqlite3_step(lnkStmt) ) {

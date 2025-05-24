@@ -172,8 +172,12 @@ void drawPinSet(Window &win, int &row, const vector<Package> &pkgs, unordered_ma
 	for ( const Package &pkg : pkgs ) {
 		col += HEADER_WIDTH_PKG + 1;
 		const Pin pin = pv.pins.at(pkg);
-		const string pstr = pin.bgaRow + to_string(pin.number);
-		win.add(row, col - pstr.length(), pstr);
+		if ( pin.empty() ) {
+			win.add(row, col - 1, '-');
+		} else {
+			const string pstr = pin.bgaRow + to_string(pin.number);
+			win.add(row, col - pstr.length(), pstr);
+		}
 	}
 
 	col++;
