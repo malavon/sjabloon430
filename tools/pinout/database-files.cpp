@@ -16,6 +16,7 @@ using namespace std;
 using namespace std::filesystem;
 
 namespace sjabloon430 { namespace tools { namespace db {
+
 string insertStringFromResultSet(sqlite3_stmt *stmt) {
 	int columns = sqlite3_column_count(stmt);
 	if ( columns == 0 ) {
@@ -144,11 +145,27 @@ void exportFromPrepStmt(sqlite3_stmt *stmt, const string fileName, const ExportC
 	out.close();
 }
 
+void exportDevicesWithoutPinout(sqlite3 *db) {
+	static const char *QUERY = "SELECT d.* "
+				   "FROM device d "
+				   "INNER JOIN orderable o ON d.model = o.device_id "
+				   "WHERE o.pinset_id IS NULL "
+				   "GROUP BY d.model "
+				   "ORDER BY model ASC";
+	static sqlite3_stmt *stmt;
+	if ( stmt == nullptr ) {
+		prepare(db, &stmt, QUERY);
+	}
+	sqlite3_reset(stmt);
+	exportFromPrepStmt(stmt, "21_device.sql");
+}
+
 void exportOrderablesWithoutPinout(sqlite3 *db) {
 	static const char *QUERY = "SELECT o.* "
 				   "FROM orderable o "
 				   "INNER JOIN device d ON d.model = o.device_id "
 				   "WHERE pinset_id IS NULL "
+				   "GROUP BY name "
 				   "ORDER BY name ASC, pinset_id ASC";
 	static sqlite3_stmt *stmt;
 	if ( stmt == nullptr ) {
@@ -159,6 +176,21 @@ void exportOrderablesWithoutPinout(sqlite3 *db) {
 }
 
 // sub-functions for exports of pinout data
+void exportDevicesForDatasheet(sqlite3 *db, const string &datasheetId, const string filename, ExportConfig expConf) {
+	static const char *QUERY = "SELECT * "
+				   "FROM device "
+				   "WHERE datasheet_id = ?"
+				   "ORDER BY model ASC";
+	static sqlite3_stmt *stmt;
+	if ( stmt == nullptr ) {
+		prepare(db, &stmt, QUERY);
+	}
+
+	sqlite3_reset(stmt);
+	sqlite3_bind_text(stmt, 1, datasheetId.c_str(), -1, SQLITE_STATIC);
+	exportFromPrepStmt(stmt, filename, expConf);
+}
+
 void exportPinoutOrderables(sqlite3 *db, const string &datasheetId, const string filename, ExportConfig expConf) {
 	// cannot use select *, pinset_id is forced to NULL so it can be updated with an update statement AFTER
 	// pinset export!
@@ -289,7 +321,8 @@ void exportPinoutData(sqlite3 *db, const string &datasheetId) {
 		c = std::tolower(c);
 	}
 	const string file = "99_" + lower + ".sql";
-	exportPinoutOrderables(db, datasheetId, file, ExportConfig{.appendFile = false, .tx = ExportConfig::Tx::BEGIN});
+	exportDevicesForDatasheet(db, datasheetId, file, ExportConfig{.appendFile = false, .tx = ExportConfig::Tx::BEGIN});
+	exportPinoutOrderables(db, datasheetId, file, ExportConfig{.appendFile = true, .tx = ExportConfig::Tx::NONE});
 	exportPinoutSignalsets(db, datasheetId, file, ExportConfig{.appendFile = true, .tx = ExportConfig::Tx::NONE});
 	exportPinoutSignalsetSignalLinks(db, datasheetId, file, ExportConfig{.appendFile = true, .tx = ExportConfig::Tx::NONE});
 	exportPinoutPinsets(db, datasheetId, file, ExportConfig{.appendFile = true, .tx = ExportConfig::Tx::NONE});

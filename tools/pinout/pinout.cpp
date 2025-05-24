@@ -115,6 +115,7 @@ int main() {
 		db::saveSignalsets(db, signalsets);
 
 		db::exportPinoutData(db, selectedId);
+		db::exportDevicesWithoutPinout(db);
 		db::exportOrderablesWithoutPinout(db);
 
 		// TODO: input up/down & other hotkeys, basically the bulk of the application?

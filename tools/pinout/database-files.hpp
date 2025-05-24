@@ -22,6 +22,7 @@ struct ExportConfig {
 };
 
 // export from a simple query, cannot export joined tables etc
+void exportDevicesWithoutPinout(sqlite3 *db);
 void exportFromPrepStmt(sqlite3_stmt *statement, const string fileName, const ExportConfig &config = ExportConfig{});
 void exportOrderablesWithoutPinout(sqlite3 *db);
 void exportPinoutData(sqlite3 *db, const string &datasheetId);
