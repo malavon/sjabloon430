@@ -23,25 +23,25 @@ struct ExportConfig {
 	Format fmt = Format::FIXED; // harmless default: use colwidth (which is empty by default)
 	std::vector<int> colWidths = {};
 
-	ExportConfig appendOverride(bool app) {
+	ExportConfig appendOverride(bool app) const {
 		ExportConfig res(*this);
 		res.appendFile = app;
 		return res;
 	}
 
-	ExportConfig fmtOverride(Format ovr) {
+	ExportConfig fmtOverride(Format ovr) const {
 		ExportConfig res(*this);
 		res.fmt = ovr;
 		return res;
 	}
 
-	ExportConfig sqlOverride(SQL ovr) {
+	ExportConfig sqlOverride(SQL ovr) const {
 		ExportConfig res(*this);
 		res.sql = ovr;
 		return res;
 	}
 
-	ExportConfig txOverride(Tx ovr) {
+	ExportConfig txOverride(Tx ovr) const {
 		ExportConfig res(*this);
 		res.tx = ovr;
 		return res;
@@ -50,6 +50,7 @@ struct ExportConfig {
 // only publicly-accessible functions are declared here; privately used ones are in the .cpp file
 
 void exportDataForDatasheet(sqlite3 *db, const string &datasheetId);
+void exportOrderablesWithoutPinout(sqlite3 *db);
 void exportSignals(sqlite3 *db);
 void importDatabase(sqlite3 *db, std::function<void(const std::string &file, const char *error)> callback);
 
