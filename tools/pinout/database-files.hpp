@@ -25,8 +25,9 @@ struct ExportConfig {
 // only publicly-accessible functions are declared here; privately used ones are in the .cpp file
 
 void exportDataForDatasheet(sqlite3 *db, const string &datasheetId);
+void exportOrderablesWithoutPinout(sqlite3 *db);
 void exportSignals(sqlite3 *db);
 void importDatabase(sqlite3 *db, std::function<void(const std::string &file, const char *error)> callback);
 
-}}}
+}}} // namespace sjabloon430::tools::db
 #endif // SJABLOON430_TOOLS_DATABASE_FILES_HPP
