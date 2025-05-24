@@ -19,8 +19,11 @@ using namespace std::filesystem;
 namespace sjabloon430 { namespace tools { namespace db {
 // constants for formatting of column widths
 int MAX_WIDTH_NULL = 4;
+int MAX_WIDTH_PIN = 3;
+int MAX_WIDTH_PINSET = 4; // id=1-999, but NULL values possible thus 4
 int MAX_WIDTH_SIGNAL = 9 + 2;
-int MAX_WIDTH_SIGNALSET = 5; //id=1-99999
+int MAX_WIDTH_SIGNAL_INDEX = 1; // actually log10 of signal width (without quotes)
+int MAX_WIDTH_SIGNALSET = 5;	//id=1-99999
 int MAX_WIDTH_SIGNALGROUP = 9 + 2;
 
 // privately used functions forward declarations
@@ -29,6 +32,12 @@ int MAX_WIDTH_SIGNALGROUP = 9 + 2;
 void exportFromPrepStmt(sqlite3_stmt *statement, const string fileName, const ExportConfig &config = ExportConfig{});
 string insertStringFromResultSet(sqlite3_stmt *stmt, vector<int> widths = {});
 string updateStringFromResultSet(sqlite3_stmt *stmt, vector<int> widths = {}, int whereColumns = 1);
+
+// partial export functions for datasheet data
+void exportPinsetsFor(sqlite3 *db, const string &datasheetId, const string filename, ExportConfig expConf);
+void exportPinsetSignalsetsFor(sqlite3 *db, const string &datasheetId, const string filename, ExportConfig expConf);
+void exportSignalsetsFor(sqlite3 *db, const string &datasheetId, const string filename, ExportConfig expConf);
+void exportSignalsetSignalsFor(sqlite3 *db, const string &datasheetId, const string filename, ExportConfig expConf);
 
 // helper functions
 void prepare(sqlite3 *db, sqlite3_stmt **stmt, const char *query) {
@@ -190,6 +199,112 @@ void exportFromPrepStmt(sqlite3_stmt *stmt, const string fileName, const ExportC
 		out << "COMMIT TRANSACTION;" << endl;
 	}
 	out.close();
+}
+
+// sub-functions for exports of pinout data
+
+void exportPinsetsFor(sqlite3 *db, const string &datasheetId, const string filename, ExportConfig expConf) {
+	static const char *QUERY = "SELECT ps.* "
+				   "FROM pinset ps "
+				   "WHERE id IN ( "
+				   "	SELECT pinset_id "
+				   "	FROM orderable o "
+				   "	INNER JOIN device d ON d.model = o.device_id "
+				   "	WHERE datasheet_id = ?) "
+				   "ORDER BY id ASC";
+	static sqlite3_stmt *stmt;
+	if ( stmt == nullptr ) {
+		prepare(db, &stmt, QUERY);
+	}
+
+	sqlite3_reset(stmt);
+	sqlite3_bind_text(stmt, 1, datasheetId.c_str(), -1, SQLITE_STATIC);
+	expConf.colWidths = {MAX_WIDTH_PINSET, MAX_WIDTH_PINSET, MAX_WIDTH_PIN};
+	exportFromPrepStmt(stmt, filename, expConf);
+}
+
+void exportPinsetSignalsetsFor(sqlite3 *db, const string &datasheetId, const string filename, ExportConfig expConf) {
+	static const char *QUERY = "SELECT psss.* "
+				   "FROM pinset_signalset psss "
+				   "INNER JOIN pinset ps ON ps.id = psss.pinset_id "
+				   "INNER JOIN signalset ss on psss.signalset_id = ss.id " // for correct ordering
+				   "WHERE ps.id IN ("
+				   "	SELECT pinset_id "
+				   "	FROM orderable o "
+				   "	INNER JOIN device d ON d.model = o.device_id "
+				   "	WHERE datasheet_id = ?) "
+				   "ORDER BY datasheet_idx ASC, pinset_id ASC, pin_bga_row ASC, pin_number ASC";
+	static sqlite3_stmt *stmt;
+	if ( stmt == nullptr ) {
+		prepare(db, &stmt, QUERY);
+	}
+
+	sqlite3_reset(stmt);
+	sqlite3_bind_text(stmt, 1, datasheetId.c_str(), -1, SQLITE_STATIC);
+	expConf.colWidths = {MAX_WIDTH_PINSET, MAX_WIDTH_SIGNALSET, MAX_WIDTH_NULL, MAX_WIDTH_PIN};
+	exportFromPrepStmt(stmt, filename, expConf);
+}
+
+void exportSignalsetsFor(sqlite3 *db, const string &datasheetId, const string filename, ExportConfig expConf) {
+	static const char *QUERY = "SELECT ss.* "
+				   "FROM signalset ss "
+				   "INNER JOIN pinset_signalset psss ON psss.signalset_id = ss.id "
+				   "INNER JOIN pinset ps ON ps.id = psss.pinset_id "
+				   "WHERE ps.id IN ("
+				   "	SELECT pinset_id "
+				   "	FROM orderable o "
+				   "	INNER JOIN device d ON d.model = o.device_id "
+				   "	WHERE datasheet_id = ? "
+				   "	GROUP BY pinset_id) "
+				   "GROUP BY ss.id "
+				   "ORDER BY datasheet_idx ASC"; // no other columns needed, only 1 datasheet
+	static sqlite3_stmt *stmt;
+	if ( stmt == nullptr ) {
+		prepare(db, &stmt, QUERY);
+	}
+
+	sqlite3_reset(stmt);
+	sqlite3_bind_text(stmt, 1, datasheetId.c_str(), -1, SQLITE_STATIC);
+	expConf.colWidths = {MAX_WIDTH_SIGNALSET, MAX_WIDTH_SIGNALSET, MAX_WIDTH_PIN};
+	exportFromPrepStmt(stmt, filename, expConf);
+}
+
+void exportSignalsetSignalsFor(sqlite3 *db, const string &datasheetId, const string filename, ExportConfig expConf) {
+	static const char *QUERY = "SELECT sss.signalset_id, sss.idx, sss.signal_id "
+				   "FROM signalset_signal sss "
+				   "INNER JOIN signalset ss ON ss.id = sss.signalset_id "
+				   "INNER JOIN pinset_signalset psss ON psss.signalset_id = ss.id "
+				   "WHERE psss.pinset_id IN ("
+				   "	SELECT pinset_id "
+				   "	FROM orderable o "
+				   "	INNER JOIN device d ON d.model = o.device_id "
+				   "	WHERE datasheet_id = ? "
+				   "	GROUP BY pinset_id) "
+				   "GROUP BY sss.signalset_id, sss.signal_id "
+				   "ORDER BY ss.datasheet_idx ASC, sss.idx ASC"; // groups child/parents together!
+	static sqlite3_stmt *stmt;
+	if ( stmt == nullptr ) {
+		prepare(db, &stmt, QUERY);
+	}
+
+	sqlite3_reset(stmt);
+	sqlite3_bind_text(stmt, 1, datasheetId.c_str(), -1, SQLITE_STATIC);
+	expConf.colWidths = {MAX_WIDTH_SIGNALSET, MAX_WIDTH_SIGNAL_INDEX, MAX_WIDTH_SIGNAL};
+	exportFromPrepStmt(stmt, filename, expConf);
+}
+
+// publicly exposed export functions
+
+void exportDataForDatasheet(sqlite3 *db, const string &datasheetId) {
+	string lower = datasheetId; // is there no single-function for strings or even const char*??
+	for ( char &c : lower ) {
+		c = std::tolower(c);
+	}
+	const string file = "90_" + lower + ".sql";
+	exportPinsetsFor(db, datasheetId, file, ExportConfig{.appendFile = false, .tx = ExportConfig::Tx::BEGIN});
+	exportSignalsetsFor(db, datasheetId, file, ExportConfig{.appendFile = true, .tx = ExportConfig::Tx::NONE});
+	exportPinsetSignalsetsFor(db, datasheetId, file, ExportConfig{.appendFile = true, .tx = ExportConfig::Tx::NONE});
+	exportSignalsetSignalsFor(db, datasheetId, file, ExportConfig{.appendFile = true, .tx = ExportConfig::Tx::COMMIT});
 }
 
 void exportSignals(sqlite3 *db) {
