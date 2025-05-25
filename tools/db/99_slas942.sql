@@ -287,5 +287,4 @@ UPDATE orderable SET pinset_id = 4 WHERE name = 'MSP430FR2632IYQWT';
 UPDATE orderable SET pinset_id = 4 WHERE name = 'MSP430FR2633IYQWR';
 UPDATE orderable SET pinset_id = 4 WHERE name = 'MSP430FR2633IYQWT';
 
-
 COMMIT TRANSACTION;
