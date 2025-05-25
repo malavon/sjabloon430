@@ -7,7 +7,7 @@
 -- Table: pinset
 CREATE TABLE IF NOT EXISTS pinset (
     id            INTEGER CONSTRAINT PK_SET PRIMARY KEY AUTOINCREMENT,
-    parent_set_id ANY     CONSTRAINT FK_pinset_pinset REFERENCES pinset (id) ON DELETE RESTRICT,
+    -- parent_set_id ANY     CONSTRAINT FK_pinset_pinset REFERENCES pinset (id) ON DELETE RESTRICT,
     pins          INTEGER NOT NULL,
     comment       TEXT
 )
