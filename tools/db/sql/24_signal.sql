@@ -177,7 +177,9 @@ INSERT INTO signal (signalgroup, id, alias_for, desc) VALUES (       NULL, 'UCB0
 INSERT INTO signal (signalgroup, id, alias_for, desc) VALUES (       NULL, 'VEREF+'   ,        NULL, 'ADC positive reference');
 INSERT INTO signal (signalgroup, id, alias_for, desc) VALUES (       NULL, 'VEREF-'   ,        NULL, 'ADC negative reference');
 INSERT INTO signal (signalgroup, id, alias_for, desc) VALUES (       NULL, 'VREF+'    ,        NULL, 'Output of positive reference voltage with ground as reference');
+INSERT INTO signal (signalgroup, id, alias_for, desc) VALUES (       NULL, 'VREF+/VEREF+',        NULL, 'WRONG use VREF+ and VEREF+');
 INSERT INTO signal (signalgroup, id, alias_for, desc) VALUES (       NULL, 'VREF-'    ,        NULL, 'Output of negative reference voltage with ground as reference');
+INSERT INTO signal (signalgroup, id, alias_for, desc) VALUES (       NULL, 'VREF-/VEREF-',        NULL, 'WRONG use VEF- and VEREF-');
 INSERT INTO signal (signalgroup, id, alias_for, desc) VALUES (       NULL, 'VREG'     ,        NULL, 'CapTIvate regulator external decoupling capacitor');
 INSERT INTO signal (signalgroup, id, alias_for, desc) VALUES (       NULL, 'XIN'      ,        NULL, 'Input terminal for crystal oscillator');
 INSERT INTO signal (signalgroup, id, alias_for, desc) VALUES (       NULL, 'XOUT'     ,        NULL, 'Output terminal for crystal oscillator');
