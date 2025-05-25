@@ -178,9 +178,13 @@ void addPinsetsToOrderables(sqlite3 *db, const vector<db::Signalset> &ssets, vec
 
 			for ( const db::Signalset &s : ssets ) {
 				// always add signalset for correct index, but do not count it if empty!
-				Pin pin = s.pins.at(o.pkg);
-				p.totalPins += pin.empty() ? 0 : 1;
-				p.signalsets[pin] = s;
+				if ( s.pins.find(o.pkg) != s.pins.end() ) {
+					Pin pin = s.pins.at(o.pkg);
+					p.totalPins++;
+					// this can only store a single empty/null pin...
+					// so I stopped inserting those
+					p.signalsets[pin] = s;
+				}
 			}
 
 			db::saveOrUpdatePinset(db, p);

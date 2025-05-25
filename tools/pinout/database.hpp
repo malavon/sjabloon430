@@ -87,7 +87,7 @@ struct Signalset {
 	int id = 0;	  // auto-increment
 	int parentId = 0; // 0 == NULL
 	vector<string> signals;
-	unordered_map<Package, Pin> pins;
+	unordered_map<Package, Pin> pins; // this construct can store only a single empty/null pin!
 };
 
 /* SQLite 3 init & database import/export */
