@@ -18,6 +18,7 @@ using namespace sjabloon430::tools::pinout;
 void addPinsetsToOrderables(sqlite3 *, const vector<db::Signalset> &, vector<db::Orderable> &);
 void convertDbToView(const vector<db::Orderable> &, const vector<db::Signalset> &, ui::PinSetView &);
 void convertViewToDb(const ui::PinSetView &, vector<db::Signalset> &);
+void mainApplicationLoop(Window &win, ui::PinSetView vw);
 void printShortcuts(Window &win);
 
 static const string WIDEST("MSP430F6459-HIREL");
@@ -107,10 +108,7 @@ int main() {
 		vw.signalDescs = db::listAllSignalDescriptions(db);
 		convertDbToView(ordbls, signalsets, vw);
 
-		int tempChar = 0;
-		do {
-			ui::drawPinSetEditingWindow(pins, vw);
-		} while ( (tempChar = wgetch(pins)) != 27 ); // ESC key for exit
+		mainApplicationLoop(pins, vw);
 
 		db::saveSignals(db, vw.signalDescs);
 		db::exportSignals(db);
@@ -155,6 +153,14 @@ int main() {
 	endCurses();
 
 	return EXIT_SUCCESS;
+}
+
+void mainApplicationLoop(Window &win, ui::PinSetView vw) {
+	int tempChar = 0;
+	do {
+		ui::drawPinSetEditingWindow(win, vw);
+
+	} while ( (tempChar = wgetch(win)) != 27 ); // ESC key for exit
 }
 
 void addPinsetsToOrderables(sqlite3 *db, const vector<db::Signalset> &ssets, vector<db::Orderable> &odbls) {

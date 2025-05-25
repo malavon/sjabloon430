@@ -62,5 +62,7 @@ void drawTopWindow(BorderedWindow &, const Datasheet &, DatabaseTotals &totals, 
 void reorderPackages(vector<Package> &pkgs);
 string searchDatasheet(const unordered_map<string, string> &dsModels, const int widestModelLength);
 
+// basic browse/edit/view pin assignment functionality; bulk of what this application is intented to do
+
 }}}} // namespace sjabloon430::tools::pinout::ui
 #endif // UI_HPP
