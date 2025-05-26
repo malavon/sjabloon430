@@ -209,11 +209,13 @@ void drawPinSet(Window &win, int &row, const vector<Package> &pkgs, unordered_ma
 	int maxDescLength = std::max(FIELD_WIDTH_DESC, win.maxCols() - descCol - 1);
 	const string CUT_CHARS = "...";
 	for ( const string &sgn : pv[0] ) {
-		win.add(row, col, sgn);
-		if ( signals[sgn].length() > maxDescLength ) {
-			win.add(row, descCol, signals[sgn].substr(0, maxDescLength - CUT_CHARS.length()) + CUT_CHARS);
-		} else {
-			win.add(row, descCol, signals[sgn]);
+		if ( row < win.maxRows() ) {
+			win.add(row, col, sgn);
+			if ( signals[sgn].length() > maxDescLength ) {
+				win.add(row, descCol, signals[sgn].substr(0, maxDescLength - CUT_CHARS.length()) + CUT_CHARS);
+			} else {
+				win.add(row, descCol, signals[sgn]);
+			}
 		}
 		row++;
 	}
@@ -327,9 +329,11 @@ void drawPinSetEditingWindow(Window &win, PinSetView &vw) {
 			drawPinSet(win, row, vw.pkgs, vw.signalDescs, pv);
 			mvwhline(win, row++, 1, 0, min(win.maxCols() - 2, 79)); // capped at 80, esthaetics
 			roomToDisplayMore = (scrolled == 0);
-		} else if ( roomToDisplayMore ) { // if there is still some room to render the next signal, do so
-			if ( row + pv[0].size() + 2 < win.maxRows() ) { // TODO: ugly to check this here?
+		} else if ( roomToDisplayMore ) {    // if there is still some room to render the next signal, do so
+			if ( row < win.maxRows() ) { // if there is 1 line available, render partially
 				drawPinSet(win, row, vw.pkgs, vw.signalDescs, pv);
+			}
+			if ( row < win.maxRows() ) {
 				mvwhline(win, row++, 1, 0, min(win.maxCols() - 2, 79)); // capped at 80, esthaetics
 			} else {
 				roomToDisplayMore = false;
