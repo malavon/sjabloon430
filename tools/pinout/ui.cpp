@@ -7,6 +7,15 @@ namespace sjabloon430 { namespace tools { namespace pinout { namespace ui {
 using namespace cccurses;
 using namespace sjabloon430::tools::pinout::db;
 
+// internally used (partial window) functions
+void drawPinSetHeader(Window &, const int row, const vector<string> &pkgs);
+void drawPinSet(Window &, int &row, const vector<string> &pkgs, unordered_map<string, string> &sgn, const db::Signalset &pv);
+void editPinSet(Window &, int &row, const vector<string> &pkgs, unordered_map<string, string> &signals, db::Signalset &pv);
+
+// helper functions
+// scrolls window if cannot accomodate {rows}, adds amount to currentRow, returns bare amount as well
+int scrollToAccomodate(Window &win, int rows, int &currentRow);
+
 class PinsetEventer : public FormEventHandler {
   public:
 	PinsetEventer(Window &win, EventEmittingForm<PinsetEventer> &form, const vector<Package> &pkgs,
@@ -153,6 +162,16 @@ class PinsetEventer : public FormEventHandler {
 	vector<string> previousSignals;
 };
 
+// helper functions
+int scrollToAccomodate(Window &win, int rows, int &currentRow) {
+	int rowsToScroll = std::max(0, currentRow + rows - win.maxRows());
+	if ( rowsToScroll > 0 ) {
+		win.scroll(rowsToScroll);
+		currentRow -= rowsToScroll;
+	}
+	return rowsToScroll; // returns how many were scrolled in reality
+}
+
 void drawPinSetHeader(Window &win, const int hdrRow, const vector<Package> &pkgs) {
 	int col = 0;
 	for ( const Package &pkg : pkgs ) {
@@ -198,20 +217,38 @@ void drawPinSet(Window &win, int &row, const vector<Package> &pkgs, unordered_ma
 		}
 		row++;
 	}
-	mvwhline(win, row++, 1, 0, min(win.maxCols() - 2, 79)); // capped at 80, esthaetics
+}
+
+// gets data from form and updates signalset AND signals/description data
+void formToSignalData(PinView &pv, unordered_map<string, string> &signals, const vector<Package> &pkgs, Field pinFields[],
+		      PinsetEventer &pev) {
+	for ( int i = 0; i < pkgs.size(); i++ ) {
+		// packages have the same ordering as the fields
+		string pin = pinFields[i].buffer<string>();
+		string::size_type idx = pin.find_first_of("0123456789");
+		if ( pin.empty() || idx == string::npos ) { // no legal pin number (always contains a number)
+			pv.pins[pkgs[i]] = Pin{};
+		} else {
+			string bga = (idx == 0) ? "" : pin.substr(0, idx);
+			int nr = (idx == 0 ? stoi(pin) : stoi(pin.substr(idx, pin.size())));
+			pv.pins[pkgs[i]] = Pin{bga, nr};
+		}
+	}
+
+	pv[0].clear();
+	for ( const pair<Field, Field> &sgnAndDesc : pev.getFieldVector() ) {
+		string sgn = sgnAndDesc.first.buffer<string>();
+		string desc = sgnAndDesc.second.buffer<string>();
+		if ( !sgn.empty() ) {
+			pv[0].push_back(sgn);
+			if ( signals[sgn].empty() ) {
+				signals[sgn] = desc;
+			}
+		}
+	}
 }
 
 void editPinSet(Window &win, int &row, const vector<Package> &pkgs, unordered_map<string, string> &signals, PinView &pv) {
-	// calculate to allow enough lines to print line, header & form
-	int maxRows = win.maxRows();
-	int rowsToScroll = row + 2 + MAX_SIGNALS - maxRows;
-	if ( rowsToScroll > 0 ) {
-		win.scroll(rowsToScroll);
-		row -= rowsToScroll;
-	}
-
-	win.paint(); // required or nothing is displayed, but why? refresh needed?
-
 	Window formWin = win.deriveWindow(MAX_SIGNALS, 0, row, 0);
 
 	FormBuilder fb;
@@ -237,35 +274,10 @@ void editPinSet(Window &win, int &row, const vector<Package> &pkgs, unordered_ma
 	PinsetEventer pev(formWin, form, pkgs, signals, pv[0], sgnCol);
 
 	form.loop(pev);
+	formWin.erase(); // important, erase only the form part of the window
 
 	// after looping of edit, complete the pinview
-	for ( int i = 0; i < pkgs.size(); i++ ) {
-		// packages have the same ordering as the fields
-		string pin = pinFields[i].buffer<string>();
-		if ( pin.empty() ) {
-			pv.pins[pkgs[i]] = Pin{};
-		} else {
-			string::size_type idx = pin.find_last_of("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz");
-			string bga = (idx == string::npos) ? "" : pin.substr(0, idx + 1);
-			int nr = (idx == string::npos) ? stoi(pin) : stoi(pin.substr(idx + 1, pin.size()));
-			pv.pins[pkgs[i]] = Pin{bga, nr};
-		}
-	}
-
-	pv[0].clear();
-	for ( const pair<Field, Field> &sgnAndDesc : pev.getFieldVector() ) {
-		string sgn = sgnAndDesc.first.buffer<string>();
-		string desc = sgnAndDesc.second.buffer<string>();
-		if ( !sgn.empty() ) {
-			pv.cview.signals.push_back(sgn);
-			// only allow editing if description is empty?
-			// actually, only allow addition?
-			if ( signals[sgn].empty() ) {
-				signals[sgn] = desc;
-			}
-		}
-	}
-	formWin.erase(); // important, erase only the form part of the window
+	formToSignalData(pv, signals, pkgs, pinFields, pev);
 }
 
 // Window drawing functions
@@ -281,41 +293,57 @@ void drawPinSetEditingWindow(Window &win, PinSetView &vw) {
 		// so no global clear necessary AND the sets below the edited one are still displayed without redrawing!
 		win.erase();
 	}
-	int maxRows = win.maxRows();
 
-	int row = 0, idx = 0, rowsToScroll = 0;
-	for ( ui::PinView &pv : vw.pinViews ) {
-		rowsToScroll = row + 1 /* horizontal ruler */ + pv[0].size() - maxRows + 1;
-		if ( idx <= vw.selIdx && rowsToScroll > 0 ) {
-			win.scroll(rowsToScroll);
-			row -= rowsToScroll;
-		}
-
+	int row = 0, idx = 0;
+	bool roomToDisplayMore = true, selectionReached = false;
+	for ( vector<PinView>::iterator it = vw.pinViews.begin();
+	      it != vw.pinViews.end() && (roomToDisplayMore || !selectionReached); it++, idx++ ) {
+		PinView &pv = *it;
 		if ( idx == vw.editIdx ) {
-			editPinSet(win, row, vw.pkgs, vw.signalDescs, pv); // scrolls window for now
+			// ensure there is enough room to display entire form, will not be dynamically expanded
+			scrollToAccomodate(win, MAX_SIGNALS + 1 /* header */, row);
+			drawPinSetHeader(win, row++, vw.pkgs);
+			editPinSet(win, row, vw.pkgs, vw.signalDescs, pv);
+			row--; // row is restored because this same function call it'll be rendered in THE SAME SPOT
+
+			// TODO: if signals are added or removed, below drawing will corrupt the display a little
+			// until the window is cleared (i.e. this function is called again during the loop)
+			// this is acceptable for MVP, especially since this is an internally-used tool
 		}
+
 		if ( idx == vw.selIdx ) {
+			selectionReached = true;
+			scrollToAccomodate(win, pv[0].size() + 1 /* header */ + 1 /* horiz. ruler */, row);
 			win.enableAttributes(WA_BOLD);
 			drawPinSetHeader(win, row++, vw.pkgs);
 			for ( int i = 0; i < pv[0].size(); i++ ) {
 				win.add(row + i, 1, ">");
 			}
-		} else {
-			win.disableAttributes(WA_BOLD);
-		}
-		if ( idx <= vw.selIdx | rowsToScroll <= 0 ) {
 			drawPinSet(win, row, vw.pkgs, vw.signalDescs, pv);
+			mvwhline(win, row++, 1, 0, min(win.maxCols() - 2, 79)); // capped at 80, esthaetics
+			win.disableAttributes(WA_BOLD);
+		} else if ( !selectionReached ) { // selection not yet reached, keep drawing & scrolling if need be
+			int scrolled = scrollToAccomodate(win, pv[0].size() + 1 /* header */ + 1 /* horiz. ruler */, row);
+			drawPinSet(win, row, vw.pkgs, vw.signalDescs, pv);
+			mvwhline(win, row++, 1, 0, min(win.maxCols() - 2, 79)); // capped at 80, esthaetics
+			roomToDisplayMore = (scrolled == 0);
+		} else if ( roomToDisplayMore ) { // if there is still some room to render the next signal, do so
+			if ( row + pv[0].size() + 2 < win.maxRows() ) { // TODO: ugly to check this here?
+				drawPinSet(win, row, vw.pkgs, vw.signalDescs, pv);
+				mvwhline(win, row++, 1, 0, min(win.maxCols() - 2, 79)); // capped at 80, esthaetics
+			} else {
+				roomToDisplayMore = false;
+			}
+			// TODO: would be a lot nicer if partial signal is rendered!
 		}
-
-		idx++;
 	}
 
 	// at last option editing means inserting a new one
 	if ( vw.editIdx == vw.pinViews.size() ) {
 		PinView pv;
-		// TODO: could have issues with scrolling ...
+		scrollToAccomodate(win, MAX_SIGNALS + 1 /* header */, row);
 		drawPinSetHeader(win, row++, vw.pkgs);
-		editPinSet(win, row, vw.pkgs, vw.signalDescs, pv); // scrolls window for now
+		editPinSet(win, row, vw.pkgs, vw.signalDescs, pv);
 		// data has been added to given Signalset but is only valid if at least one pin and one signal
 		// signals without pins are useless, pins without signals are as well
 		bool valid = false;
@@ -325,26 +353,24 @@ void drawPinSetEditingWindow(Window &win, PinSetView &vw) {
 				break; // yes, break :)
 			}
 		}
+		row--; // advanced to draw header above, OVERWRITE exact edit position with view-only
 		if ( valid ) {
+			win.clearLine(row);
 			vw.pinViews.push_back(pv);
 			drawPinSet(win, row, vw.pkgs, vw.signalDescs, pv);
+			mvwhline(win, row++, 1, 0, min(win.maxCols() - 2, 79)); // capped at 80, esthaetics
 			vw.selIdx++;
-		} else {
-			row--; // row was advanced by editPinSet, but no signalset/pinview was added ...
 		}
 	}
 
 	// scrolled/selected all the way to the botton
 	// render an empty placeholder
 	if ( vw.selIdx == vw.pinViews.size() ) {
-		rowsToScroll = row + 2 - maxRows;
-		if ( rowsToScroll > 0 ) {
-			win.scroll(rowsToScroll);
-			row -= rowsToScroll;
-		}
+		scrollToAccomodate(win, 2, row);
 		win.enableAttributes(WA_BOLD);
 		drawPinSetHeader(win, row++, vw.pkgs);
 		win.add(row++, 1, "> End of signals reached. Inserting will add a new signalset.");
+		win.disableAttributes(WA_BOLD);
 	}
 }
 
