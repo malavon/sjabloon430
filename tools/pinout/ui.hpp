@@ -32,6 +32,19 @@ struct PinView {
 	unordered_map<Package, Pin> pins;
 	// multiple signals are common; indexed! begin/first = default
 	db::Signalset signalset;
+
+	bool hasPins() const {
+		for ( const std::pair<Package, Pin> &pr : pins ) {
+			if ( !pr.second.empty() ) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	bool hasPinsAndSignals() const {
+		return hasPins() && !signalset.signals.empty();
+	}
 };
 
 struct PinSetView {

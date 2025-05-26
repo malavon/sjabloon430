@@ -127,11 +127,14 @@ int main() {
 					// 	vw.editIdx = -1;
 					// }
 					break;
-				case KEY_IC /* insert? */:
-					// vw.pinViews.insert(vw.pinViews.begin() + vw.selIdx, db::Signalset());
-					// vw.editIdx = vw.selIdx;
+				case KEY_IC /* insert */:
+					// insert and edit; will be removed by ui code if no signals are inserted!
+					if ( vw.selIdx < vw.pinViews.size() ) {
+						vw.pinViews.insert(vw.pinViews.begin() + vw.selIdx, ui::PinView());
+						vw.editIdx = vw.selIdx;
+					}
 					break;
-				case KEY_DC /* delete?*/:
+				case KEY_DC /* delete */:
 					if ( vw.selIdx < vw.pinViews.size() ) {
 						vw.pinViews.erase(vw.pinViews.begin() + vw.selIdx);
 					}
@@ -148,7 +151,7 @@ int main() {
 		db::exportSignals(db);
 
 		convertViewToDb(vw, signalsets);
-		db::saveSignalsets(db, signalsets);
+		db::saveOrUpdateSignalsets(db, signalsets);
 
 		addPinsetsToOrderables(db, signalsets, ordbls);
 		db::linkOrderableToPinset(db, ordbls);

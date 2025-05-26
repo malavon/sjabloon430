@@ -26,7 +26,7 @@ struct Pin {
 		return bgaRow == o.bgaRow && number == o.number;
 	}
 
-	operator const string() {
+	operator const string() const {
 		return bgaRow + (number == 0 ? "" : std::to_string(number));
 	}
 };
@@ -116,8 +116,8 @@ unordered_map<string, string> listAllSignalDescriptions(sqlite3 *db);
 int linkOrderableToPinset(sqlite3 *, const vector<Orderable> &);
 
 int saveSignals(sqlite3 *db, unordered_map<string, string> signals);
-int saveSignalsets(sqlite3 *db, vector<Signalset> &sets); // assumes signals are all in DB!
-int saveOrUpdatePinset(sqlite3 *db, Pinset &ps);	  // assumes signal sets are all in DB!
+int saveOrUpdateSignalsets(sqlite3 *db, vector<Signalset> &sets); // assumes signals are all in DB!
+int saveOrUpdatePinset(sqlite3 *db, Pinset &ps);		  // assumes signalsets are all in DB!
 
 }}} // namespace sjabloon430::tools::db
 

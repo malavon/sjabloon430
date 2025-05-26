@@ -194,11 +194,10 @@ void drawPinSet(Window &win, int &row, const vector<Package> &pkgs, unordered_ma
 	int col = 0;
 	for ( const Package &pkg : pkgs ) {
 		col += HEADER_WIDTH_PKG + 1;
-		if ( pv.pins.end() == pv.pins.find(pkg) ) {
+		if ( pv.pins.end() == pv.pins.find(pkg) || pv.pins.at(pkg).empty() ) {
 			win.add(row, col - 1, '-');
 		} else {
-			const Pin pin = pv.pins.at(pkg);
-			const string pstr = pin.bgaRow + to_string(pin.number);
+			const string pstr = pv.pins.at(pkg); // implicit casting
 			win.add(row, col - pstr.length(), pstr);
 		}
 	}
@@ -308,9 +307,13 @@ void drawPinSetEditingWindow(Window &win, PinSetView &vw) {
 			editPinSet(win, row, vw.pkgs, vw.signalDescs, pv);
 			row--; // row is restored because this same function call it'll be rendered in THE SAME SPOT
 
-			// TODO: if signals are added or removed, below drawing will corrupt the display a little
-			// until the window is cleared (i.e. this function is called again during the loop)
-			// this is acceptable for MVP, especially since this is an internally-used tool
+			// if it's not valid, remove it
+			if ( !pv.hasPinsAndSignals() ) {
+				vw.pinViews.erase(it);
+			}
+
+			// if signals are added or removed, everything below will need to be redrawn
+			win.clearToEndOfScreen();
 		}
 
 		if ( idx == vw.selIdx ) {
@@ -339,7 +342,6 @@ void drawPinSetEditingWindow(Window &win, PinSetView &vw) {
 			} else {
 				roomToDisplayMore = false;
 			}
-			// TODO: would be a lot nicer if partial signal is rendered!
 		}
 	}
 
@@ -351,15 +353,8 @@ void drawPinSetEditingWindow(Window &win, PinSetView &vw) {
 		editPinSet(win, row, vw.pkgs, vw.signalDescs, pv);
 		// data has been added to given Signalset but is only valid if at least one pin and one signal
 		// signals without pins are useless, pins without signals are as well
-		bool valid = false;
-		for ( const std::pair<Package, Pin> &pr : pv.pins ) {
-			if ( !pr.second.empty() && !pv.signalset.signals.empty() ) {
-				valid = true;
-				break; // yes, break :)
-			}
-		}
 		row--; // advanced to draw header above, OVERWRITE exact edit position with view-only
-		if ( valid ) {
+		if ( pv.hasPinsAndSignals() ) {
 			win.clearLine(row);
 			vw.pinViews.push_back(pv);
 			drawPinSet(win, row, vw.pkgs, vw.signalDescs, pv);
