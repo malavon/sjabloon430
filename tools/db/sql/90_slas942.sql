@@ -68,7 +68,7 @@ INSERT INTO signalset_signal (signalset_id, idx, signal_id) VALUES (1, 2, 'SBWTD
 INSERT INTO signalset_signal (signalset_id, idx, signal_id) VALUES (2, 0, 'TEST');
 INSERT INTO signalset_signal (signalset_id, idx, signal_id) VALUES (2, 1, 'SBWTCK');
 INSERT INTO signalset_signal (signalset_id, idx, signal_id) VALUES (3, 0, 'P1.4');
-INSERT INTO signalset_signal (signalset_id, idx, signal_id) VALUES (3, 1, 'UCA0TXDG');
+INSERT INTO signalset_signal (signalset_id, idx, signal_id) VALUES (3, 1, 'UCA0TXD');
 INSERT INTO signalset_signal (signalset_id, idx, signal_id) VALUES (3, 2, 'UCA0SIMO');
 INSERT INTO signalset_signal (signalset_id, idx, signal_id) VALUES (3, 3, 'TA1.2');
 INSERT INTO signalset_signal (signalset_id, idx, signal_id) VALUES (3, 4, 'TCK');
@@ -265,7 +265,7 @@ INSERT INTO pinset_signalset (pinset_id, signalset_id, pin_bga_row, pin_number) 
 INSERT INTO pinset_signalset (pinset_id, signalset_id, pin_bga_row, pin_number) VALUES (4, 23, 'D', '5');
 INSERT INTO pinset_signalset (pinset_id, signalset_id, pin_bga_row, pin_number) VALUES (4, 25, 'E', '5');
 INSERT INTO pinset_signalset (pinset_id, signalset_id, pin_bga_row, pin_number) VALUES (4, 27, 'D', '4');
-INSERT INTO pinset_signalset (pinset_id, signalset_id, pin_bga_row, pin_number) VALUES (4, 29, NULL, '4');
+INSERT INTO pinset_signalset (pinset_id, signalset_id, pin_bga_row, pin_number) VALUES (4, 29, 'E', '4');
 INSERT INTO pinset_signalset (pinset_id, signalset_id, pin_bga_row, pin_number) VALUES (4, 30, 'E', '3');
 INSERT INTO pinset_signalset (pinset_id, signalset_id, pin_bga_row, pin_number) VALUES (4, 31, 'D', '3');
 INSERT INTO pinset_signalset (pinset_id, signalset_id, pin_bga_row, pin_number) VALUES (4, 32, 'E', '2');
