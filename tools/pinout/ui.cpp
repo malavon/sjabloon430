@@ -68,8 +68,8 @@ class PinsetEventer : public FormEventHandler {
 		addExtraFieldPair();
 		pair<Field, Field> pr = *signalAndDescFields.rbegin();
 		pr.first.setBuffer(signal);
-		pr.second.setBuffer(signalAndDescMap[signal]); // assume a description always exists
-		pr.second.optionsActiveAndEditable(Toggle::OFF);
+		string desc = signalAndDescMap[signal];
+		pr.second.setBuffer(desc); // assume a description always exists
 	}
 
 	void fieldHopped() {
@@ -111,10 +111,9 @@ class PinsetEventer : public FormEventHandler {
 						// also: required (todo: also in other branches)
 					} else {
 						// exists
-						desc.optionsActiveAndEditable(Toggle::OFF);
 						string description = signalAndDescMap[signalTxt];
-						// todo: implement on field
 						desc.setBuffer(description);
+						desc.optionsActiveAndEditable(description.empty() ? Toggle::ON : Toggle::OFF);
 					}
 				}
 			}
