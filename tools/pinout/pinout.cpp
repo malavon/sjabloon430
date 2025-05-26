@@ -114,7 +114,7 @@ int main() {
 		dbf::exportSignals(db);
 
 		convertViewToDb(vw, signalsets);
-		db::saveSignalsets(db, signalsets);
+		db::saveOrUpdateSignalsets(db, signalsets);
 
 		addPinsetsToOrderables(db, signalsets, ordbls);
 		db::linkOrderableToPinset(db, ordbls);
