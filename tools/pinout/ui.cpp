@@ -209,7 +209,7 @@ void editPinSet(Window &win, int &row, const vector<Package> &pkgs, unordered_ma
 		row -= rowsToScroll;
 	}
 
-	win.paint();
+	win.paint(); // required or nothing is displayed, but why? refresh needed?
 
 	Window formWin = win.deriveWindow(MAX_SIGNALS, 0, row, 0);
 
@@ -284,7 +284,6 @@ void drawPinSetEditingWindow(Window &win, PinSetView &vw) {
 
 	int row = 0, idx = 0, rowsToScroll = 0;
 	for ( ui::PinView &pv : vw.pinViews ) {
-		// rowsToScroll = row + 1 /*horizontal ruler*/ + pv.signals.size() - maxRows + 1 + (idx == vw.selIdx ? 1 : 0);
 		rowsToScroll = row + 1 /* horizontal ruler */ + pv.signalset.signals.size() - maxRows + 1;
 		if ( idx <= vw.selIdx && rowsToScroll > 0 ) {
 			win.scroll(rowsToScroll);
@@ -292,20 +291,9 @@ void drawPinSetEditingWindow(Window &win, PinSetView &vw) {
 		}
 
 		if ( idx == vw.editIdx ) {
-			// Signalset pv;					   // TODO
 			editPinSet(win, row, vw.pkgs, vw.signalDescs, pv); // scrolls window for now
-			// data has been added to given Signalset but is only valid if at least one pin is filled
-			// signals without pins are useless
-			// for ( const std::pair<Package, Pin> &pr : pv.pins ) {
-			// 	if ( !pr.second.empty() ) {
-			// 		vw.pinViews.push_back(pv); // TODO
-			// 		break; // yes, break :)
-			// 	}
-			// }
-			vw.editIdx = -1; // reset edit index
 		}
 		if ( idx == vw.selIdx ) {
-			// if the window was scrolled, scroll 1 more to ensure that the header fits
 			win.enableAttributes(WA_BOLD);
 			drawPinSetHeader(win, row++, vw.pkgs);
 			for ( int i = 0; i < pv.signalset.signals.size(); i++ ) {
@@ -319,6 +307,43 @@ void drawPinSetEditingWindow(Window &win, PinSetView &vw) {
 		}
 
 		idx++;
+	}
+
+	// at last option editing means inserting a new one
+	if ( vw.editIdx == vw.pinViews.size() ) {
+		PinView pv;
+		// TODO: could have issues with scrolling ...
+		drawPinSetHeader(win, row++, vw.pkgs);
+		editPinSet(win, row, vw.pkgs, vw.signalDescs, pv); // scrolls window for now
+		// data has been added to given Signalset but is only valid if at least one pin and one signal
+		// signals without pins are useless, pins without signals are as well
+		bool valid = false;
+		for ( const std::pair<Package, Pin> &pr : pv.pins ) {
+			if ( !pr.second.empty() && !pv.signalset.signals.empty() ) {
+				valid = true;
+				break; // yes, break :)
+			}
+		}
+		if ( valid ) {
+			vw.pinViews.push_back(pv);
+			drawPinSet(win, row, vw.pkgs, vw.signalDescs, pv);
+			vw.selIdx++;
+		} else {
+			row--; // row was advanced by editPinSet, but no signalset/pinview was added ...
+		}
+	}
+
+	// scrolled/selected all the way to the botton
+	// render an empty placeholder
+	if ( vw.selIdx == vw.pinViews.size() ) {
+		rowsToScroll = row + 2 - maxRows;
+		if ( rowsToScroll > 0 ) {
+			win.scroll(rowsToScroll);
+			row -= rowsToScroll;
+		}
+		win.enableAttributes(WA_BOLD);
+		drawPinSetHeader(win, row++, vw.pkgs);
+		win.add(row++, 1, "> End of signals reached. Inserting will add a new signalset.");
 	}
 }
 

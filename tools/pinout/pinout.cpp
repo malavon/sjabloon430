@@ -110,7 +110,6 @@ int main() {
 
 		int tempChar = 0;
 		do {
-			vw.editIdx = -1;
 			switch ( tempChar ) {
 				case KEY_UP:
 					vw.selIdx = max(0, vw.selIdx - 1);
@@ -122,12 +121,27 @@ int main() {
 				case KEY_ENTER:
 				case 10 /* RETURN */:
 					vw.editIdx = vw.selIdx;
+					// cheating ... don't really like this
+					// if ( vw.selIdx == vw.pinViews.size() ) {
+					// 	ui::drawPinSetEditingWindow(pins, vw);
+					// 	vw.editIdx = -1;
+					// }
 					break;
-				case 27 /*ESCAPE*/:
+				case KEY_IC /* insert? */:
+					// vw.pinViews.insert(vw.pinViews.begin() + vw.selIdx, db::Signalset());
+					// vw.editIdx = vw.selIdx;
+					break;
+				case KEY_DC /* delete?*/:
+					if ( vw.selIdx < vw.pinViews.size() ) {
+						vw.pinViews.erase(vw.pinViews.begin() + vw.selIdx);
+					}
+					break;
+				case 27 /*ESCAPE*/: // open a menu or something, probably beyond MVP though
 					break;
 			}
 
 			ui::drawPinSetEditingWindow(pins, vw);
+			vw.editIdx = -1; // reset editIdx otherwise editing would never stop
 		} while ( (tempChar = wgetch(pins)) != 27 ); // ESC key for exit
 
 		db::saveSignals(db, vw.signalDescs);
