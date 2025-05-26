@@ -34,10 +34,14 @@ STRICT;
 
 -- Table: signalset
 CREATE TABLE IF NOT EXISTS signalset (
-    id              INTEGER CONSTRAINT PK_SIGNALSET PRIMARY KEY AUTOINCREMENT, 
-    parent_id       INTEGER CONSTRAINT FK_SSET_PARENT_SSET REFERENCES signalset (id) ON DELETE CASCADE
-                                                                                     ON UPDATE CASCADE, 
-    datasheet_idx   INTEGER NOT NULL
+    id            INTEGER CONSTRAINT PK_SIGNALSET PRIMARY KEY AUTOINCREMENT,
+    parent_id     INTEGER CONSTRAINT FK_SSET_PARENT_SSET REFERENCES signalset (id) ON DELETE CASCADE
+                                                                                   ON UPDATE CASCADE,
+    datasheet_idx INTEGER NOT NULL,
+    CONSTRAINT [UQ_SIGNALSET_ID+IDX] UNIQUE (
+        id,
+        datasheet_idx
+    )
 );
 
 -- Table: signalset_signal
@@ -47,6 +51,9 @@ CREATE TABLE IF NOT EXISTS signalset_signal (
     signal_id    TEXT    CONSTRAINT FK_SSET_SGN_SGN REFERENCES signal (id) ON DELETE RESTRICT
                                                                            ON UPDATE RESTRICT
                          NOT NULL,
-    idx          INTEGER NOT NULL
+    idx          INTEGER NOT NULL,
+    PRIMARY KEY (
+        signalset_id,
+        signal_id
+    )
 );
-
