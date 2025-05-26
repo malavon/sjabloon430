@@ -424,8 +424,7 @@ int saveSignalsets(sqlite3 *db, vector<Signalset> &sets) {
 			sqlite3_reset(delStmt);
 			rc = sqlite3_bind_int(delStmt, 1, s.id);
 			assert(SQLITE_OK == rc);
-			sqlite3_reset(lnkStmt);
-			if ( SQLITE_DONE == sqlite3_step(lnkStmt) ) {
+			if ( SQLITE_DONE == sqlite3_step(delStmt) ) {
 				alteredRows += sqlite3_changes(db);
 			}
 		}
