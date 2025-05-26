@@ -279,12 +279,13 @@ void exportPinoutPinsetSignalsetLinks(sqlite3 *db, const string &datasheetId, co
 	static const char *QUERY = "SELECT psss.* "
 				   "FROM pinset_signalset psss "
 				   "INNER JOIN pinset ps ON ps.id = psss.pinset_id "
+				   "INNER JOIN signalset ss on psss.signalset_id = ss.id " // for correct ordering
 				   "WHERE ps.id IN ("
 				   "	SELECT pinset_id "
 				   "	FROM orderable o "
 				   "	INNER JOIN device d ON d.model = o.device_id "
 				   "	WHERE datasheet_id = ?) "
-				   "ORDER BY pinset_id ASC, signalset_id ASC, pin_bga_row ASC, pin_number ASC";
+				   "ORDER BY datasheet_idx ASC, pinset_id ASC, pin_bga_row ASC, pin_number ASC";
 	static sqlite3_stmt *stmt;
 	if ( stmt == nullptr ) {
 		prepare(db, &stmt, QUERY);
