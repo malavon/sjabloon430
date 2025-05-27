@@ -42,7 +42,7 @@ int main() {
 	{
 		BorderedWindow top(WIN_TOP_HEIGHT, COLS - MAX_WIDTH, 0, 0);
 		// TODO: no border, separate with hline or something?
-		Window hotkeys(1, COLS - MAX_WIDTH, 5, 0);
+		Window hotkeys = top.deriveWindow(1, COLS - MAX_WIDTH, 4, 0);
 		Window pins(LINES - 6, COLS - MAX_WIDTH, 6, 0);
 		pins.optionScrollable(Toggle::ON);
 
