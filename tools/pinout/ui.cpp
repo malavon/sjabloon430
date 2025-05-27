@@ -162,8 +162,9 @@ void drawPinSet(Window &win, int &row, const vector<Package> &pkgs, unordered_ma
 	int col = 0;
 	for ( const Package &pkg : pkgs ) {
 		col += HEADER_WIDTH_PKG + 1;
-		const string pin = pv.pins.at(pkg);
-		win.add(row, col - pin.length(), pin);
+		const Pin pin = pv.pins.at(pkg);
+		const string pstr = pin.bgaRow + to_string(pin.number);
+		win.add(row, col - pstr.length(), pstr);
 	}
 
 	col++;
@@ -201,7 +202,11 @@ void editPinSet(Window &win, int &row, const vector<Package> &pkgs, unordered_ma
 	// after looping of edit, complete the pinview
 	for ( int i = 0; i < pkgs.size(); i++ ) {
 		// packages have the same ordering as the fields
-		pv.pins[pkgs[i]] = pinFields[i].buffer<string>();
+		string pin = pinFields[i].buffer<string>();
+		int idx = pin.find_last_of("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz");
+		string bga = pin.substr(0, idx);
+		int nr = idx < pin.size() ? stoi(pin.substr(idx, pin.size())) : 0;
+		pv.pins[pkgs[i]] = Pin{bga, nr};
 	}
 
 	pv.signals.clear();
@@ -250,7 +255,9 @@ void drawPinSetEditingWindow(Window &win, PinSetView &vw) {
 	// to verify: count pin (string) length, since the map itself is not empty!
 	int pinTotal = 0;
 	for ( auto it = pv.pins.begin(); it != pv.pins.end() && pinTotal == 0; it++ ) {
-		pinTotal += it->second.length();
+		Pin pin = it->second;
+		string pstr = pin.bgaRow + to_string(pin.number);
+		pinTotal += pstr.length();
 	}
 	if ( pinTotal > 0 && !pv.signals.empty() ) {
 		vw.pinViews.push_back(pv);
@@ -382,7 +389,7 @@ void reorderPackages(vector<Package> &pkgs) {
 		}
 
 		center.moveCursor(WIN_HEIGHT - 3, WIN_WIDTH - 3); // naive way of moving cursor where it doesn't bother as much
-								  // should hide it somehow TODO
+		    // should hide it somehow TODO
 		center.paint();
 	} while ( (pressedKey = wgetch(center)) != KEY_ENTER && pressedKey != 10 );
 }
