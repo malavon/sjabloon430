@@ -48,6 +48,8 @@ int main() {
 		// Window hotkeys(1, COLS - WIN_CONFIGSET_WIDTH, 5, 0);
 		Window pins(LINES - 6, COLS - WIN_CONFIGSET_WIDTH, 6, 0);
 		pins.optionScrollable(Toggle::ON);
+		vector<BorderedWindow> configsetWindows;
+		configsetWindows.reserve(4); // without this it's not working; will copy items and call destructor! ...
 
 		Window &statusWin = pins;
 		statusWin.add(0, 0, "Imported SQLite DB from files:\n");
@@ -89,13 +91,15 @@ int main() {
 		BorderedWindow defaultSet(defaultSetHeight, WIN_CONFIGSET_WIDTH, 0, COLS - WIN_CONFIGSET_WIDTH);
 		defaultSet.setTitle("Default");
 		ui::drawSetConfigWindow(defaultSet, models, pkgs);
+		configsetWindows.push_back(defaultSet);
 
-		BorderedWindow newSet(6, WIN_CONFIGSET_WIDTH, defaultSetHeight, COLS - WIN_CONFIGSET_WIDTH);
+		BorderedWindow newSet(defaultSetHeight, WIN_CONFIGSET_WIDTH, defaultSetHeight, COLS - WIN_CONFIGSET_WIDTH);
 		newSet.setTitle("Set F5");
 		// newSet.add(0, 1, "F5: Create new set");
 		/* clang-format off */ // does not format, TODO
 		ui::drawSetConfigWindow(newSet, {"MOCKUP"}, {Package{"MOCKUP", 22}});
 		/* clang-format on */
+		configsetWindows.push_back(newSet);
 
 		// orderables are used to create config sets (the thing at the right :p) -> but not yet implemented
 		vector<db::Orderable> ordbls = db::findOrderablesByDatasheet(db, selectedId);
@@ -110,6 +114,7 @@ int main() {
 		convertDbToView(ordbls, signalsets, vw);
 
 		int tempChar = 0;
+		int activeConfig = 99;
 		do {
 			switch ( tempChar ) {
 				case KEY_UP:
@@ -134,6 +139,17 @@ int main() {
 				case KEY_DC /* delete */:
 					if ( vw.selIdx < vw.pinViews.size() ) {
 						vw.pinViews.erase(vw.pinViews.begin() + vw.selIdx);
+					}
+					break;
+				case KEY_F(4):
+					activeConfig = activeConfig >= configsetWindows.size() - 1 ? 0 : activeConfig + 1;
+					for ( int c = 0; c < configsetWindows.size(); c++ ) {
+						if ( c == activeConfig ) {
+							configsetWindows[c].enableAttributes(WA_BOLD);
+						} else {
+							configsetWindows[c].disableAttributes(WA_BOLD);
+						}
+						ui::drawSetConfigWindow(configsetWindows[c], models, pkgs);
 					}
 					break;
 				case 27 /*ESCAPE*/: // open a menu or something, probably beyond MVP though

@@ -373,7 +373,7 @@ void drawPinSetEditingWindow(Window &win, PinSetView &vw) {
 	}
 }
 
-void drawSetConfigWindow(BorderedWindow &win, const vector<string> &models, const vector<Package> &packages) {
+void drawSetConfigWindow(BorderedWindow &win, const vector<string> &models, const vector<Package> &pkgs) {
 	const int MAX_PKG_LEN = 6;
 	const int COL_HDR = 1;
 	const int COL_DATA = 2;
@@ -385,8 +385,8 @@ void drawSetConfigWindow(BorderedWindow &win, const vector<string> &models, cons
 	}
 
 	win.add(lr++, COL_HDR, "Packages:");
-	for ( int i = 0; i < packages.size(); i++ ) {
-		const string pkg = packages[i].drawing + to_string(packages[i].pins);
+	for ( int i = 0; i < pkgs.size(); i++ ) {
+		const string pkg = pkgs[i].drawing + to_string(pkgs[i].pins);
 		if ( i % 2 == 0 ) {
 			win.add(lr, COL_DATA, pkg);
 		} else {
