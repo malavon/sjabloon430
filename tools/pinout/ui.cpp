@@ -655,5 +655,4 @@ void displayEditHotkeys(Window &win) {
 	displayHotkey(win, "Confirm", "Enter");
 	win.paint();
 }
-
 }}}} // namespace sjabloon430::tools::pinout::ui

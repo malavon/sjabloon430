@@ -20,7 +20,11 @@ void convertDbToView(const vector<db::Orderable> &, const vector<db::Signalset> 
 void convertViewToDb(const ui::PinSetView &, vector<db::Signalset> &);
 
 static const int WIDEST_MODEL_LENGTH = strlen("MSP430F6459-HIREL"); /* hardcoded longest model */
-static const int WIN_TOP_HEIGHT = 5;
+
+static const int WIN_TOP_HEIGHT = 6;
+static const int WIN_CONFIGSET_WIDTH = WIDEST_MODEL_LENGTH + 2 /* indent */ + 2 /* borders */;
+
+static const int ROW_HOTKEYS = WIN_TOP_HEIGHT - 2 /* borders*/ - 1 /* last line */;
 
 int main() {
 	setlocale(LC_ALL, "");
@@ -35,15 +39,11 @@ int main() {
 	/* Initialize curses */
 	initCurses();
 
-	static const int MODEL_INDENT = 2;
-	// base on select max(length(name)) + MODEL_INDENT + 2 from device?
-	static const int MAX_WIDTH = WIDEST_MODEL_LENGTH + MODEL_INDENT + 2 /*border*/;
-
 	{
-		BorderedWindow top(WIN_TOP_HEIGHT, COLS - MAX_WIDTH, 0, 0);
+		BorderedWindow top(WIN_TOP_HEIGHT, COLS - WIN_CONFIGSET_WIDTH, 0, 0);
 		// TODO: no border, separate with hline or something?
-		Window hotkeys = top.deriveWindow(1, COLS - MAX_WIDTH, 4, 0);
-		Window pins(LINES - 6, COLS - MAX_WIDTH, 6, 0);
+		Window hotkeys = top.deriveWindow(1, top.maxCols(), ROW_HOTKEYS, 0);
+		Window pins(LINES - 6, COLS - WIN_CONFIGSET_WIDTH, 6, 0);
 		pins.optionScrollable(Toggle::ON);
 
 		Window &statusWin = pins;
@@ -81,11 +81,11 @@ int main() {
 				     + pkgs.size() / 2 /* packages are max 5 wide, 2 pkgs/line */
 				     + pkgs.size() % 2 /* when odd, 1 extra pkg, 1 extra line */
 				     + 2 /* headers */ + 2 /* borders */;
-		BorderedWindow defaultSet(defaultSetHeight, MAX_WIDTH, 0, COLS - MAX_WIDTH);
+		BorderedWindow defaultSet(defaultSetHeight, WIN_CONFIGSET_WIDTH, 0, COLS - WIN_CONFIGSET_WIDTH);
 		defaultSet.setTitle("Default");
 		ui::drawSetConfigWindow(defaultSet, models, pkgs);
 
-		BorderedWindow newSet(6, MAX_WIDTH, defaultSetHeight, COLS - MAX_WIDTH);
+		BorderedWindow newSet(6, WIN_CONFIGSET_WIDTH, defaultSetHeight, COLS - WIN_CONFIGSET_WIDTH);
 		newSet.setTitle("Set F5");
 		// newSet.add(0, 1, "F5: Create new set");
 		/* clang-format off */ // does not format, TODO
