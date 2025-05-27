@@ -19,7 +19,8 @@ void addPinsetsToOrderables(sqlite3 *, const vector<db::Signalset> &, vector<db:
 void convertDbToView(const vector<db::Orderable> &, const vector<db::Signalset> &, ui::PinSetView &);
 void convertViewToDb(const ui::PinSetView &, vector<db::Signalset> &);
 
-void printShortcuts(Window &win);
+void displayBrowseHotkeys(Window &win);
+void displayEditHotkeys(Window &win);
 
 static const string WIDEST("MSP430F6459-HIREL");
 
@@ -43,6 +44,7 @@ int main() {
 	{
 		BorderedWindow top(5, COLS - MAX_WIDTH, 0, 0);
 		// TODO: no border, separate with hline or something?
+		Window hotkeys(1, COLS - MAX_WIDTH, 5, 0);
 		Window pins(LINES - 6, COLS - MAX_WIDTH, 6, 0);
 		pins.optionScrollable(Toggle::ON);
 
@@ -69,8 +71,6 @@ int main() {
 		db::DatabaseTotals supported = db::countSupported(db);
 
 		ui::drawTopWindow(top, selectedDS, totals, supported);
-
-		printShortcuts(pins);
 
 		vector<string> models = db::findModelsByDatasheet(db, selectedId);
 		// models are used for (default) set
@@ -115,17 +115,13 @@ int main() {
 					vw.selIdx = max(0, vw.selIdx - 1);
 					break;
 				case KEY_DOWN:
-					// size() is 1 higher than max to allow selecting pin at the end?
+					// size() is 1 higher than max to allow selecting pin at the end
 					vw.selIdx = min(static_cast<int>(vw.pinViews.size()), vw.selIdx + 1);
 					break;
 				case KEY_ENTER:
 				case 10 /* RETURN */:
 					vw.editIdx = vw.selIdx;
-					// cheating ... don't really like this
-					// if ( vw.selIdx == vw.pinViews.size() ) {
-					// 	ui::drawPinSetEditingWindow(pins, vw);
-					// 	vw.editIdx = -1;
-					// }
+					displayEditHotkeys(hotkeys);
 					break;
 				case KEY_IC /* insert */:
 					// insert and edit; will be removed by ui code if no signals are inserted!
@@ -144,7 +140,8 @@ int main() {
 			}
 
 			ui::drawPinSetEditingWindow(pins, vw);
-			vw.editIdx = -1; // reset editIdx otherwise editing would never stop
+			displayBrowseHotkeys(hotkeys); // default hotkeys
+			vw.editIdx = -1;	       // reset editIdx otherwise editing would never stop
 		} while ( (tempChar = wgetch(pins)) != 27 ); // ESC key for exit
 
 		db::saveSignals(db, vw.signalDescs);
@@ -251,23 +248,37 @@ void convertViewToDb(const ui::PinSetView &vw, vector<db::Signalset> &signalsets
 	}
 }
 
-// this function assumes the screen is on the defaultSet position to make it simpler
-void printShortcut(Window &window, const string &key, const string &text) {
-	window.add(' ');
-	window.add(key, A_STANDOUT);
-	window.add(' ');
-	window.add(text);
+void displayHotkey(Window &win, const string &text, const vector<chtype> &keys) {
+	win.add(' ');
+	for ( const chtype key : keys ) {
+		win.add(key | A_STANDOUT);
+	}
+	win.add(' ');
+	win.add(text);
 }
 
-void printShortcuts(Window &hotkeyWin) {
-	const int LINE = 0;
+void displayHotkey(Window &win, const string &text, const string &key) {
+	win.add(' ');
+	win.add(key, A_STANDOUT);
+	win.add(' ');
+	win.add(text);
+}
 
-	hotkeyWin.moveCursor(LINE, 0);
-	printShortcut(hotkeyWin, "ESC", "QUIT");
-	printShortcut(hotkeyWin, "F1", "Help");
-	printShortcut(hotkeyWin, "F2", "Search");
-	printShortcut(hotkeyWin, "PgUp/PgDn", "Up/Down");
-	printShortcut(hotkeyWin, "Ctrl+e", "Edit Mode");
-	printShortcut(hotkeyWin, "Ctrl+s", "Save");
-	printShortcut(hotkeyWin, "F5-F9", "Set #");
+void displayBrowseHotkeys(Window &win) {
+	win.moveCursor(0, 0);
+	win.clearToEndOfLine();
+	displayHotkey(win, "QUIT", "ESC");
+	displayHotkey(win, "Nav.", vector<chtype>({ACS_UARROW, '/', ACS_DARROW}));
+	displayHotkey(win, "Edit", "Enter");
+	displayHotkey(win, "Insert", "Ins");
+	displayHotkey(win, "Delete", "Del");
+	win.paint();
+}
+
+void displayEditHotkeys(Window &win) {
+	win.moveCursor(0, 0);
+	win.clearToEndOfLine();
+	displayHotkey(win, "Nav.", "TAB/STAB");
+	displayHotkey(win, "Confirm", "Enter");
+	win.paint();
 }
