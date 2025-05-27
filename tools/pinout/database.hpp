@@ -7,11 +7,49 @@
 #include <unordered_map>
 #include <vector>
 
-namespace sjabloon430 { namespace tools { namespace pinout { namespace db {
-
 using std::string;
 using std::unordered_map;
 using std::vector;
+
+namespace sjabloon430 { namespace tools {
+
+/* Simple data objects which are not really database-related */
+struct Pin {
+	string bgaRow;
+	int number;
+	bool operator==(const Pin &o) const {
+		return bgaRow == o.bgaRow && number == o.number;
+	}
+};
+
+struct Package {
+	string drawing;
+	int pins;
+	bool operator==(const Package &o) const {
+		return drawing == o.drawing && pins == o.pins;
+	}
+};
+}} // namespace sjabloon430::tools
+
+template<>
+struct std::hash<sjabloon430::tools::Package> {
+	std::size_t operator()(const sjabloon430::tools::Package &p) const noexcept {
+		std::size_t h1 = std::hash<std::string>{}(p.drawing);
+		std::size_t h2 = p.pins;
+		return h1 ^ (h2 << 1); // or use boost::hash_combine
+	}
+};
+
+template<>
+struct std::hash<sjabloon430::tools::Pin> {
+	std::size_t operator()(const sjabloon430::tools::Pin &p) const noexcept {
+		std::size_t h1 = std::hash<std::string>{}(p.bgaRow);
+		std::size_t h2 = p.number;
+		return h1 ^ (h2 << 1); // or use boost::hash_combine
+	}
+};
+
+namespace sjabloon430 { namespace tools { namespace pinout { namespace db {
 
 /** Support structs/classes */
 struct DatabaseTotals {
@@ -29,13 +67,23 @@ struct Datasheet {
 	string revDate;
 };
 
-struct Package {
-	string drawing;
-	int pins;
+struct Orderable {
+	string name; // also id (never linked to... useless)
+	Package pkg;
+	int pinsetId; // link?
+};
 
-	bool operator==(const Package &o) const {
-		return drawing == o.drawing && pins == o.pins;
-	}
+struct Pinset {
+	int id = 0; // auto-increment
+	int totalPins;
+	unordered_map<Pin, struct Signalset *> signalsets;
+};
+
+struct Signalset {
+	int id = 0;	  // auto-increment
+	int parentId = 0; // 0 == NULL
+	vector<string> signals;
+	unordered_map<Package, Pin> pins;
 };
 
 /* SQLite 3 init & database import/export */
@@ -47,7 +95,10 @@ void prepare(sqlite3 *db, sqlite3_stmt **stmt, const char *query);
 DatabaseTotals countTotals(sqlite3 *db);
 Datasheet findDatasheet(sqlite3 *db, const string id);
 vector<string> findModelsByDatasheet(sqlite3 *db, const string datasheetId);
+vector<Orderable> findOrderablesByDatasheet(sqlite3 *db, const string datasheetId);
+vector<Signalset> findSignalsetsByDatasheet(sqlite3 *db, const string datasheetId);
 vector<Package> findPackagesByDatasheet(sqlite3 *db, const string datasheetId);
+vector<Pinset> findPinsetsByDatasheet(sqlite3 *db, const string datasheetId);
 unordered_map<string, string> listAllModelsAndDatasheets(sqlite3 *db);
 unordered_map<string, string> listAllSignalDescriptions(sqlite3 *db);
 
@@ -55,14 +106,5 @@ unordered_map<string, string> listAllSignalDescriptions(sqlite3 *db);
 int saveSignals(sqlite3 *db, unordered_map<string, string> signals);
 
 }}}} // namespace sjabloon430::tools::pinout::db
-
-template<>
-struct std::hash<sjabloon430::tools::pinout::db::Package> {
-	std::size_t operator()(const sjabloon430::tools::pinout::db::Package &p) const noexcept {
-		std::size_t h1 = std::hash<std::string>{}(p.drawing);
-		std::size_t h2 = p.pins;
-		return h1 ^ (h2 << 1); // or use boost::hash_combine
-	}
-};
 
 #endif // SJABLOON430_TOOLS_PINOUT_DATABASE_HPP

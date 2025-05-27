@@ -3,6 +3,7 @@
 namespace sjabloon430 { namespace tools { namespace pinout { namespace ui {
 
 using namespace cccurses;
+using namespace sjabloon430::tools::pinout::db;
 
 class PinsetEventer : public FormEventHandler {
   public:
@@ -162,12 +163,13 @@ void drawPinSet(Window &win, int &row, const vector<Package> &pkgs, unordered_ma
 	int col = 0;
 	for ( const Package &pkg : pkgs ) {
 		col += HEADER_WIDTH_PKG + 1;
-		const string pin = pv.pins.at(pkg);
-		win.add(row, col - pin.length(), pin);
+		const Pin pin = pv.pins.at(pkg);
+		const string pstr = pin.bgaRow + to_string(pin.number);
+		win.add(row, col - pstr.length(), pstr);
 	}
 
 	col++;
-	for ( const string &sgn : pv.signals ) {
+	for ( const string &sgn : pv.cview.signals ) {
 		win.add(row, col, sgn);
 		win.add(row, col + FIELD_WIDTH_SIGNAL + 1, signals[sgn]);
 		row++;
@@ -201,15 +203,23 @@ void editPinSet(Window &win, int &row, const vector<Package> &pkgs, unordered_ma
 	// after looping of edit, complete the pinview
 	for ( int i = 0; i < pkgs.size(); i++ ) {
 		// packages have the same ordering as the fields
-		pv.pins[pkgs[i]] = pinFields[i].buffer<string>();
+		string pin = pinFields[i].buffer<string>();
+		if ( pin.empty() ) {
+			pv.pins[pkgs[i]] = Pin{};
+		} else {
+			string::size_type idx = pin.find_last_of("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz");
+			string bga = (idx == string::npos) ? "" : pin.substr(0, idx + 1);
+			int nr = (idx == string::npos) ? stoi(pin) : stoi(pin.substr(idx + 1, pin.size()));
+			pv.pins[pkgs[i]] = Pin{bga, nr};
+		}
 	}
 
-	pv.signals.clear();
+	pv.cview.signals.clear();
 	for ( const pair<Field, Field> &sgnAndDesc : pev.getSignalsVector() ) {
 		string sgn = sgnAndDesc.first.buffer<string>();
 		string desc = sgnAndDesc.second.buffer<string>();
 		if ( !sgn.empty() ) {
-			pv.signals.push_back(sgn);
+			pv.cview.signals.push_back(sgn);
 			// only allow editing if description is empty?
 			// actually, only allow addition?
 			if ( signals[sgn].empty() ) {
@@ -250,9 +260,11 @@ void drawPinSetEditingWindow(Window &win, PinSetView &vw) {
 	// to verify: count pin (string) length, since the map itself is not empty!
 	int pinTotal = 0;
 	for ( auto it = pv.pins.begin(); it != pv.pins.end() && pinTotal == 0; it++ ) {
-		pinTotal += it->second.length();
+		Pin pin = it->second;
+		string pstr = pin.bgaRow + to_string(pin.number);
+		pinTotal += pstr.length();
 	}
-	if ( pinTotal > 0 && !pv.signals.empty() ) {
+	if ( pinTotal > 0 && !pv[0].empty() ) {
 		vw.pinViews.push_back(pv);
 	}
 }
@@ -336,7 +348,7 @@ void reorderPackages(vector<Package> &pkgs) {
 	center.add(1, (WIN_WIDTH - KEYS.length()) / 2 - 1, KEYS);
 
 	int totalPkgsLength = -1;
-	for ( const db::Package &pkg : pkgs ) {
+	for ( const Package &pkg : pkgs ) {
 		totalPkgsLength += pkg.drawing.length() + to_string(pkg.pins).length() + 1;
 	}
 
