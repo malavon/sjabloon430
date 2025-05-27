@@ -10,13 +10,31 @@
 namespace sjabloon430 { namespace tools { namespace pinout { namespace ui {
 
 using namespace cccurses;
-using namespace sjabloon430::tools::pinout::db;
 
 struct PinView {
+	// this struct was conceived to prevent using a db:: scoped object in the ui (like db::Signalset)
+	// and once parenting/configsets has been implemented it will be much more useful
+	// hindsight(c) powered by rebase (R)
+	struct ConfigView {
+		int signalsetId = 0;
+		// parentsetId = 0; // not sure if needed, don't use unless proven useful
+		// indexed! first = (pin) default
+		vector<string> signals;
+	};
+	ConfigView cview;
 	// one pin per package
-	unordered_map<Package, string> pins;
-	// multiple signals are common; indexed! begin/first = default
-	vector<string> signals;
+	unordered_map<Package, Pin> pins;
+	// experiment: getting/setting signals can happen through the [] operator to get to
+	// the one and only configview (in the future, multiple signalsets will be required)
+	// then again, will NOT break compilation once it is no longer a single one ...
+	vector<string> &operator[](int idx) {
+		assert(idx == 0);
+		return cview.signals;
+	}
+	const vector<string> &operator[](int idx) const {
+		assert(idx == 0);
+		return cview.signals;
+	}
 };
 
 struct PinSetView {
@@ -44,7 +62,7 @@ void editPinSet(Window &, int &row, const vector<string> &pkgs, unordered_map<st
 // Window drawing functions
 void drawPinSetEditingWindow(Window &win, PinSetView &pinView);
 void drawSetConfigWindow(BorderedWindow &, const vector<string> &models, const vector<Package> &packages);
-void drawTopWindow(BorderedWindow &, const Datasheet &, DatabaseTotals &);
+void drawTopWindow(BorderedWindow &, const db::Datasheet &, db::DatabaseTotals &);
 void reorderPackages(vector<Package> &pkgs); // given vector is reordered in-place
 string searchDatasheet(const unordered_map<string, string> &dsModels, const int modelFieldWidth);
 
