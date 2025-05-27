@@ -17,8 +17,7 @@ using sjabloon430::tools::Pin;
 
 void addPinsetsToOrderables(sqlite3 *, const vector<db::Signalset> &, vector<db::Orderable> &);
 void convertDbToView(const vector<db::Orderable> &, const vector<db::Signalset> &, ui::PinSetView &);
-void convertViewToDb(const ui::PinSetView &vw, vector<db::Signalset> &signalsets);
-void printShortcuts(Window &win);
+void convertViewToDb(const ui::PinSetView &, vector<db::Signalset> &);
 
 static const int WIDEST_MODEL_LENGTH = strlen("MSP430F6459-HIREL"); /* hardcoded longest model */
 static const int WIN_TOP_HEIGHT = 5;
@@ -43,6 +42,7 @@ int main() {
 	{
 		BorderedWindow top(WIN_TOP_HEIGHT, COLS - MAX_WIDTH, 0, 0);
 		// TODO: no border, separate with hline or something?
+		Window hotkeys(1, COLS - MAX_WIDTH, 5, 0);
 		Window pins(LINES - 6, COLS - MAX_WIDTH, 6, 0);
 		pins.optionScrollable(Toggle::ON);
 
@@ -69,8 +69,6 @@ int main() {
 		db::DatabaseTotals supported = db::countSupported(db);
 
 		ui::drawTopWindow(top, selectedDS, totals, supported);
-
-		printShortcuts(pins);
 
 		vector<string> models = db::findModelsByDatasheet(db, selectedId);
 		// models are used for (default) set
@@ -108,7 +106,7 @@ int main() {
 		vw.signalDescs = db::listAllSignalDescriptions(db);
 		convertDbToView(ordbls, signalsets, vw);
 
-		ui::loopPinsetEditing(pins, vw);
+		ui::loopPinsetEditing(pins, hotkeys, vw);
 
 		db::saveSignals(db, vw.signalDescs);
 		dbf::exportSignals(db);
@@ -217,17 +215,4 @@ void convertViewToDb(const ui::PinSetView &vw, vector<db::Signalset> &signalsets
 		s.pins = pv.pins;
 		signalsets.push_back(s);
 	}
-}
-
-void printShortcuts(Window &win) {
-	const int LINE = 0;
-
-	win.moveCursor(LINE, 0);
-	ui::displayHotkey(win, "QUIT", "ESC");
-	ui::displayHotkey(win, "Help", "F1");
-	ui::displayHotkey(win, "Search", "F2");
-	ui::displayHotkey(win, "Up/Down", "PgUp/PgDn");
-	ui::displayHotkey(win, "Edit mode", "Ctrl+e");
-	ui::displayHotkey(win, "Save", "Ctrl+s");
-	ui::displayHotkey(win, "Set #", "F5-F9");
 }
