@@ -12,7 +12,9 @@
 using namespace cccurses;
 using namespace sjabloon430::tools::pinout;
 namespace dbf = sjabloon430::tools::db;
+using sjabloon430::tools::Package;
 
+void convertDbToView(const vector<db::Orderable> &, const vector<db::Signalset> &, ui::PinSetView &);
 void printShortcuts(Window &win);
 
 static const int WIDEST_MODEL_LENGTH = strlen("MSP430F6459-HIREL"); /* hardcoded longest model */
@@ -67,7 +69,7 @@ int main() {
 		// models are used for (default) set
 		// TODO: other sets have to be retrieved from pinset & calculated
 
-		vector<db::Package> pkgs = db::findPackagesByDatasheet(db, selectedDS.id);
+		vector<Package> pkgs = db::findPackagesByDatasheet(db, selectedDS.id);
 		// packages are also used for sets
 
 		int defaultSetHeight = models.size()   /* one line per model */
@@ -82,15 +84,20 @@ int main() {
 		newSet.setTitle("Set F5");
 		// newSet.add(0, 1, "F5: Create new set");
 		/* clang-format off */ // does not format, TODO
-		ui::drawSetConfigWindow(newSet, {"MOCKUP"}, {db::Package{"MOCKUP", 22}});
+		ui::drawSetConfigWindow(newSet, {"MOCKUP"}, {Package{"MOCKUP", 22}});
 		/* clang-format on */
 
-		ui::reorderPackages(pkgs);
-		ui::PinSetView vw = {pkgs};
-		vw.signalDescs = db::listAllSignalDescriptions(db);
 		// TODO: get pins from DB
+		// orderables are used to create config sets (the thing at the right :p) -> but not yet implemented
+		vector<db::Orderable> ordbls = db::findOrderablesByDatasheet(db, selectedId);
+		// /signalsets/pinsets are also linked to orderables and thus model/package
+		vector<db::Signalset> signalsets = db::findSignalsetsByDatasheet(db, selectedId);
 
-		ui::PinView pv;
+		ui::reorderPackages(pkgs);
+		ui::PinSetView vw{pkgs};
+		vw.signalDescs = db::listAllSignalDescriptions(db);
+		convertDbToView(ordbls, signalsets, vw);
+
 		int tempChar = 0;
 		do {
 			ui::drawPinSetEditingWindow(pins, vw);
@@ -128,6 +135,16 @@ int main() {
 	endCurses();
 
 	return EXIT_SUCCESS;
+}
+
+void convertDbToView(const vector<db::Orderable> &ordbls, const vector<db::Signalset> &signalsets, ui::PinSetView &vw) {
+	// orderables should be used in DB query? part of config set?
+	for ( const db::Signalset &ss : signalsets ) {
+		ui::PinView pv;
+		pv.pins = ss.pins;
+		pv.signals = ss.signals;
+		vw.pinViews.push_back(pv);
+	}
 }
 
 // this function assumes the screen is on the defaultSet position to make it simpler

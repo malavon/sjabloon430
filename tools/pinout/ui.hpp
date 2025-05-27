@@ -29,7 +29,7 @@ static const char *DESCRIPTION_HDR("DESCRIPTION");
 
 struct PinView {
 	// one pin per package
-	unordered_map<Package, string> pins;
+	unordered_map<Package, Pin> pins;
 	// multiple signals are common; indexed! begin/first = default
 	vector<string> signals;
 };
