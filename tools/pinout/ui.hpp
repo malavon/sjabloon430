@@ -78,13 +78,9 @@ void drawSetConfigWindow(BorderedWindow &, const vector<db::Orderable> odbls);
 void drawSetConfigWindow(BorderedWindow &, const vector<string> &models, const vector<Package> &packages);
 void drawTopWindow(BorderedWindow &, const db::Datasheet &, const db::DatabaseTotals &ttl, const db::DatabaseTotals &sprtd);
 vector<db::Orderable> filterForConfigset(const vector<Package> &, const vector<string> &models, vector<db::Orderable> &);
-void loopPinsetEditing(Window &, PinSetView &);
+void loopPinsetEditing(Window &, Window &hotKeys, PinSetView &);
 void reorderPackages(vector<Package> &pkgs); // given vector is reordered in-place
 string searchDatasheet(const unordered_map<string, string> &dsModels, const int modelFieldWidth);
-
-// hotkey helpers
-void displayHotkey(Window &win, const string &text, const vector<chtype> &keys);
-void displayHotkey(Window &win, const string &text, const string &key);
 
 }}}} // namespace sjabloon430::tools::pinout::ui
 #endif // SJABLOON430_TOOLS_PINOUT_UI_HPP

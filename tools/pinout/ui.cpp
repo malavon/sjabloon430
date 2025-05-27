@@ -33,6 +33,13 @@ void editPinSet(Window &, int &row, const vector<string> &pkgs, unordered_map<st
 // scrolls window if cannot accomodate {rows}, adds amount to currentRow, returns bare amount as well
 int scrollToAccomodate(Window &win, int rows, int &currentRow);
 
+// hotkey displays
+void displayBrowseHotkeys(Window &);
+void displayEditHotkeys(Window &);
+// hotkey helpers
+void displayHotkey(Window &win, const string &text, const vector<chtype> &keys);
+void displayHotkey(Window &win, const string &text, const string &key);
+
 typedef EventEmittingForm<class PinsetEventer, SimpleFormKeyEventConsumer> PinsetForm;
 
 class PinsetEventer : public FormEventHandler {
@@ -469,7 +476,7 @@ void drawTopWindow(BorderedWindow &win, const Datasheet &ds, const DatabaseTotal
 	win.paint();
 }
 
-void loopPinsetEditing(Window &win, PinSetView &vw) {
+void loopPinsetEditing(Window &win, Window &hot, PinSetView &vw) {
 	int tempChar = 0;
 	do {
 		switch ( tempChar ) {
@@ -477,12 +484,13 @@ void loopPinsetEditing(Window &win, PinSetView &vw) {
 				vw.selIdx = max(0u, vw.selIdx - 1);
 				break;
 			case KEY_DOWN:
-				// size() is 1 higher than max to allow selecting pin at the end?
-				vw.selIdx = min<unsigned int>(vw.pinViews.size(), vw.selIdx + 1);
+				// size() is 1 higher than max to allow selecting pin at the end
+				vw.selIdx = min<int>(vw.pinViews.size(), vw.selIdx + 1);
 				break;
 			case KEY_ENTER:
 			case 10 /* RETURN */:
 				vw.editIdx = vw.selIdx;
+				displayEditHotkeys(hot);
 				break;
 			case KEY_IC /* insert */:
 				// insert and edit; will be removed by ui code if no signals are inserted!
@@ -501,7 +509,8 @@ void loopPinsetEditing(Window &win, PinSetView &vw) {
 		}
 
 		drawPinSetEditingWindow(win, vw);
-		vw.editIdx = -1; // reset editIdx otherwise editing would never stop
+		displayBrowseHotkeys(hot); // default hotkeys
+		vw.editIdx = -1;	   // reset editIdx otherwise editing would never stop
 	} while ( (tempChar = wgetch(win)) != 27 ); // ESC key for exit
 }
 
@@ -647,6 +656,23 @@ void displayHotkey(Window &win, const string &text, const string &key) {
 	win.add(key, A_STANDOUT);
 	win.add(' ');
 	win.add(text);
+}
+
+void displayBrowseHotkeys(Window &win) {
+	win.clearLine(0);
+	displayHotkey(win, "QUIT", "ESC");
+	displayHotkey(win, "Nav.", vector<chtype>({ACS_UARROW, '/', ACS_DARROW}));
+	displayHotkey(win, "Edit", "Enter");
+	displayHotkey(win, "Insert", "Ins");
+	displayHotkey(win, "Delete", "Del");
+	win.paint();
+}
+
+void displayEditHotkeys(Window &win) {
+	win.clearLine(0);
+	displayHotkey(win, "Nav.", "TAB/STAB");
+	displayHotkey(win, "Confirm", "Enter");
+	win.paint();
 }
 
 }}}} // namespace sjabloon430::tools::pinout::ui
