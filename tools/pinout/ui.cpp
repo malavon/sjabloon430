@@ -379,7 +379,7 @@ void drawPinSetEditingWindow(Window &win, PinSetView &vw) {
 	}
 }
 
-void drawSetConfigWindow(BorderedWindow &win, const vector<string> &models, const vector<Package> &packages) {
+void drawSetConfigWindow(BorderedWindow &win, const vector<string> &models, const vector<Package> &pkgs) {
 	const int MAX_PKG_LEN = 6;
 	const int COL_HDR = 1;
 	const int COL_DATA = 2;
@@ -391,8 +391,8 @@ void drawSetConfigWindow(BorderedWindow &win, const vector<string> &models, cons
 	}
 
 	win.add(lr++, COL_HDR, "Packages:");
-	for ( int i = 0; i < packages.size(); i++ ) {
-		const string pkg = packages[i].drawing + to_string(packages[i].pins);
+	for ( int i = 0; i < pkgs.size(); i++ ) {
+		const string pkg = pkgs[i].drawing + to_string(pkgs[i].pins);
 		if ( i % 2 == 0 ) {
 			win.add(lr, COL_DATA, pkg);
 		} else {
@@ -471,7 +471,7 @@ void loopPinsetEditing(Window &win, Window &hot, PinSetView &vw) {
 			case KEY_ENTER:
 			case 10 /* RETURN */:
 				vw.editIdx = vw.selIdx;
-				displayEditHotkeys(hot);
+				displayEditHotkeys(win);
 				break;
 			case KEY_IC /* insert */:
 				// insert and edit; will be removed by ui code if no signals are inserted!
@@ -484,6 +484,17 @@ void loopPinsetEditing(Window &win, Window &hot, PinSetView &vw) {
 				if ( vw.selIdx < vw.pinViews.size() ) {
 					vw.pinViews.erase(vw.pinViews.begin() + vw.selIdx);
 				}
+				break;
+			case KEY_F(4):
+				// activeConfig = activeConfig >= configsetWindows.size() - 1 ? 0 : activeConfig + 1;
+				// for ( int c = 0; c < configsetWindows.size(); c++ ) {
+				// 	if ( c == activeConfig ) {
+				// 		configsetWindows[c].enableAttributes(WA_BOLD);
+				// 	} else {
+				// 		configsetWindows[c].disableAttributes(WA_BOLD);
+				// 	}
+				// 	ui::drawSetConfigWindow(configsetWindows[c], models, pkgs);
+				// }
 				break;
 			case 27 /*ESCAPE*/: // open a menu or something, probably beyond MVP though
 				break;

@@ -85,7 +85,7 @@ int main() {
 		defaultSet.setTitle("Default");
 		ui::drawSetConfigWindow(defaultSet, models, pkgs);
 
-		BorderedWindow newSet(6, WIN_CONFIGSET_WIDTH, defaultSetHeight, COLS - WIN_CONFIGSET_WIDTH);
+		BorderedWindow newSet(defaultSetHeight, WIN_CONFIGSET_WIDTH, defaultSetHeight, COLS - WIN_CONFIGSET_WIDTH);
 		newSet.setTitle("Set F5");
 		// newSet.add(0, 1, "F5: Create new set");
 		/* clang-format off */ // does not format, TODO
