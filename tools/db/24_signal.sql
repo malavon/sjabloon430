@@ -23,6 +23,7 @@ INSERT INTO signal (signalgroup, id, desc) VALUES (NULL, 'CA1', 'Comparator_A+, 
 INSERT INTO signal (signalgroup, id, desc) VALUES (NULL, 'CA2', 'Comparator_A+, CA2 input');
 INSERT INTO signal (signalgroup, id, desc) VALUES (NULL, 'CA3', 'Comparator_A+, CA3 input');
 INSERT INTO signal (signalgroup, id, desc) VALUES (NULL, 'CA4', 'Comparator_A+, CA4 input');
+INSERT INTO signal (signalgroup, id, desc) VALUES (NULL, 'CA5', 'Comparator_A+, CA5 input');
 INSERT INTO signal (signalgroup, id, desc) VALUES (NULL, 'CAOUT', 'Comparator_A+, output');
 INSERT INTO signal (signalgroup, id, desc) VALUES (NULL, 'CAP0.0', 'CapTIvate channel');
 INSERT INTO signal (signalgroup, id, desc) VALUES (NULL, 'CAP0.1', 'CapTIvate channel');

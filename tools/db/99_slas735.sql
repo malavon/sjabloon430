@@ -85,6 +85,7 @@ INSERT INTO signalset (id, parent_id, datasheet_idx) VALUES (34, NULL, 1);
 INSERT INTO signalset (id, parent_id, datasheet_idx) VALUES (35, NULL, 2);
 INSERT INTO signalset (id, parent_id, datasheet_idx) VALUES (36, NULL, 3);
 INSERT INTO signalset (id, parent_id, datasheet_idx) VALUES (37, NULL, 4);
+INSERT INTO signalset (id, parent_id, datasheet_idx) VALUES (38, NULL, 5);
 
 INSERT INTO signalset_signal (signalset_id, idx, signal_id) VALUES (33, 0, 'P1.0');
 INSERT INTO signalset_signal (signalset_id, idx, signal_id) VALUES (33, 1, 'TA0CLK');
@@ -118,11 +119,18 @@ INSERT INTO signalset_signal (signalset_id, idx, signal_id) VALUES (37, 4, 'A4')
 INSERT INTO signalset_signal (signalset_id, idx, signal_id) VALUES (37, 5, 'VREF+/VEREF+');
 INSERT INTO signalset_signal (signalset_id, idx, signal_id) VALUES (37, 6, 'CA4');
 INSERT INTO signalset_signal (signalset_id, idx, signal_id) VALUES (37, 7, 'TCK');
+INSERT INTO signalset_signal (signalset_id, idx, signal_id) VALUES (38, 0, 'P1.5');
+INSERT INTO signalset_signal (signalset_id, idx, signal_id) VALUES (38, 1, 'TA0.0');
+INSERT INTO signalset_signal (signalset_id, idx, signal_id) VALUES (38, 2, 'UCB0CLK');
+INSERT INTO signalset_signal (signalset_id, idx, signal_id) VALUES (38, 3, 'UCA0STE');
+INSERT INTO signalset_signal (signalset_id, idx, signal_id) VALUES (38, 4, 'A5');
+INSERT INTO signalset_signal (signalset_id, idx, signal_id) VALUES (38, 5, 'CA5');
+INSERT INTO signalset_signal (signalset_id, idx, signal_id) VALUES (38, 6, 'TMS');
 
-INSERT INTO pinset (id, pins, comment) VALUES (5, 5, NULL);
-INSERT INTO pinset (id, pins, comment) VALUES (6, 5, NULL);
-INSERT INTO pinset (id, pins, comment) VALUES (7, 5, NULL);
-INSERT INTO pinset (id, pins, comment) VALUES (8, 5, NULL);
+INSERT INTO pinset (id, pins, comment) VALUES (5, 6, NULL);
+INSERT INTO pinset (id, pins, comment) VALUES (6, 6, NULL);
+INSERT INTO pinset (id, pins, comment) VALUES (7, 6, NULL);
+INSERT INTO pinset (id, pins, comment) VALUES (8, 6, NULL);
 
 INSERT INTO pinset_signalset (pinset_id, signalset_id, pin_bga_row, pin_number) VALUES (5, 33, NULL, '2');
 INSERT INTO pinset_signalset (pinset_id, signalset_id, pin_bga_row, pin_number) VALUES (6, 33, NULL, '2');
@@ -144,6 +152,10 @@ INSERT INTO pinset_signalset (pinset_id, signalset_id, pin_bga_row, pin_number) 
 INSERT INTO pinset_signalset (pinset_id, signalset_id, pin_bga_row, pin_number) VALUES (6, 37, NULL, '6');
 INSERT INTO pinset_signalset (pinset_id, signalset_id, pin_bga_row, pin_number) VALUES (7, 37, NULL, '6');
 INSERT INTO pinset_signalset (pinset_id, signalset_id, pin_bga_row, pin_number) VALUES (8, 37, NULL, '4');
+INSERT INTO pinset_signalset (pinset_id, signalset_id, pin_bga_row, pin_number) VALUES (5, 38, NULL, '7');
+INSERT INTO pinset_signalset (pinset_id, signalset_id, pin_bga_row, pin_number) VALUES (6, 38, NULL, '7');
+INSERT INTO pinset_signalset (pinset_id, signalset_id, pin_bga_row, pin_number) VALUES (7, 38, NULL, '7');
+INSERT INTO pinset_signalset (pinset_id, signalset_id, pin_bga_row, pin_number) VALUES (8, 38, NULL, '5');
 
 UPDATE orderable SET pinset_id = 5 WHERE name = 'MSP430G2113IN20';
 UPDATE orderable SET pinset_id = 5 WHERE name = 'MSP430G2153IN20';
