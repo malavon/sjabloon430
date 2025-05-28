@@ -168,7 +168,7 @@ void drawPinSet(Window &win, int &row, const vector<Package> &pkgs, unordered_ma
 	}
 
 	col++;
-	for ( const string &sgn : pv.signals ) {
+	for ( const string &sgn : pv.signalset.signals ) {
 		win.add(row, col, sgn);
 		win.add(row, col + FIELD_WIDTH_SIGNAL + 1, signals[sgn]);
 		row++;
@@ -209,12 +209,12 @@ void editPinSet(Window &win, int &row, const vector<Package> &pkgs, unordered_ma
 		pv.pins[pkgs[i]] = Pin{bga, nr};
 	}
 
-	pv.signals.clear();
+	pv.signalset.signals.clear();
 	for ( const pair<Field, Field> &sgnAndDesc : pev.getSignalsVector() ) {
 		string sgn = sgnAndDesc.first.buffer<string>();
 		string desc = sgnAndDesc.second.buffer<string>();
 		if ( !sgn.empty() ) {
-			pv.signals.push_back(sgn);
+			pv.signalset.signals.push_back(sgn);
 			// only allow editing if description is empty?
 			// actually, only allow addition?
 			if ( signals[sgn].empty() ) {
@@ -259,7 +259,7 @@ void drawPinSetEditingWindow(Window &win, PinSetView &vw) {
 		string pstr = pin.bgaRow + to_string(pin.number);
 		pinTotal += pstr.length();
 	}
-	if ( pinTotal > 0 && !pv.signals.empty() ) {
+	if ( pinTotal > 0 && !pv.signalset.signals.empty() ) {
 		vw.pinViews.push_back(pv);
 	}
 }
