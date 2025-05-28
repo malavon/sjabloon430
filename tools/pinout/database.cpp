@@ -450,11 +450,10 @@ int saveSignalsets(sqlite3 *db, vector<Signalset> &sets) {
 	return alteredRows;
 }
 
-// TODO: add update!!! for pincount
 int saveOrUpdatePinset(sqlite3 *db, Pinset &ps) { // assumes signal sets are all in DB!
 	static const char *INSERT_QUERY = "INSERT INTO pinset (pins) VALUES (?)";
 	static const char *UPDATE_QUERY = "UPDATE pinset SET pins = ? WHERE id = ?";
-	static const char *DELETE_LINKS = "DELETE FROM pinset_signalset WHERE signalset_id = ?";
+	static const char *DELETE_LINKS = "DELETE FROM pinset_signalset WHERE pinset_id = ?";
 	static const char *LINK_QUERY = "INSERT INTO pinset_signalset (pinset_id, signalset_id, pin_bga_row, pin_number) "
 					"VALUES (:psetId, :ssetId, :bgaRow, :pinNumber)";
 	static sqlite3_stmt *insStmt, *updStmt, *delStmt, *lnkStmt;

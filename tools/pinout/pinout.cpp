@@ -15,7 +15,7 @@ using namespace cccurses;
 using namespace sjabloon430::tools;
 using namespace sjabloon430::tools::pinout;
 
-void addPinsetsToOrderables(sqlite3 *, vector<db::Signalset> &, vector<db::Orderable> &);
+void addPinsetsToOrderables(sqlite3 *, const vector<db::Signalset> &, vector<db::Orderable> &);
 void convertDbToView(const vector<db::Orderable> &, const vector<db::Signalset> &, ui::PinSetView &);
 void convertViewToDb(const ui::PinSetView &, vector<db::Signalset> &);
 void printShortcuts(Window &win);
@@ -122,6 +122,7 @@ int main() {
 		db::linkOrderableToPinset(db, ordbls);
 
 		db::exportPinoutData(db, selectedId);
+		// it would make sense that these are removed and all dev's and odbls are in files per datasheet ...
 		db::exportDevicesWithoutPinout(db);
 		db::exportOrderablesWithoutPinout(db);
 
@@ -156,30 +157,39 @@ int main() {
 	return EXIT_SUCCESS;
 }
 
-void addPinsetsToOrderables(sqlite3 *db, vector<db::Signalset> &ssets, vector<db::Orderable> &odbls) {
+void addPinsetsToOrderables(sqlite3 *db, const vector<db::Signalset> &ssets, vector<db::Orderable> &odbls) {
 	vector<db::Pinset> psets;
-	unordered_map<Package, int> configset; // default config set creation basically
+	// config sets are not yet implemented, but right now it seems logical to me that they would be
+	// a list of orderables
+	// calling this function once for each config set with a different list of odbls may be correct
+	unordered_map<Package, int> pkgToPinset;
 
 	for ( db::Orderable &o : odbls ) {
-		// pinset doesn't have to come from database, YET because there are no config sets
-		// pinsetId should be created already? basic config set -> 1 pinset per pkg
-		// but signalset links need to be reset and total pins recounted
-		db::Pinset p;
-		if ( o.pinsetId == 0 ) { // create default configset, pinset per pkg
-			o.pinsetId = configset[o.pkg];
-		}
-		p.id = o.pinsetId;
-		p.totalPins = 0; // calculated anew
+		// if the pinset has not been saved yet, it is not in the pkgToPinset map
+		// and thus needs to be saved in order to reflect signalset updates for that PACKAGE
+		// subsequent uses do not need to be saved, and if pinset is not retrieved from database
+		// doing so will clear & OVERWRITE signalsets each time
+		if ( pkgToPinset[o.pkg] == 0 ) {
+			// pinset doesn't have to come from database, YET because there are no config sets
+			// but if orderable has a pinset linked to it, it is assumed to exist and should be updated
+			db::Pinset p;
+			p.id = o.pinsetId;
+			p.totalPins = 0; // calculated again below
 
-		for ( db::Signalset &s : ssets ) {
-			// always add signalset for correct index, but do not count it!
-			Pin pin = s.pins[o.pkg];
-			p.totalPins += pin.empty() ? 0 : 1;
-			p.signalsets[pin] = s;
-		}
-		db::saveOrUpdatePinset(db, p);
-		if ( configset[o.pkg] == 0 ) {
-			configset[o.pkg] = p.id;
+			for ( const db::Signalset &s : ssets ) {
+				// always add signalset for correct index, but do not count it if empty!
+				Pin pin = s.pins.at(o.pkg);
+				p.totalPins += pin.empty() ? 0 : 1;
+				p.signalsets[pin] = s;
+			}
+
+			db::saveOrUpdatePinset(db, p);
+			o.pinsetId = p.id;
+			pkgToPinset[o.pkg] = p.id; // will overwrite should be the same anyway
+		} else {
+			if ( o.pinsetId == 0 ) { // reuse pinsets for default config set if not yet linked
+				o.pinsetId = pkgToPinset[o.pkg];
+			}
 		}
 	}
 }
