@@ -141,7 +141,8 @@ void convertDbToView(const vector<db::Orderable> &ordbls, const vector<db::Signa
 	// orderables should be used in DB query? part of config set?
 	for ( const db::Signalset &ss : signalsets ) {
 		ui::PinView pv;
-		pv.signalset = ss;
+		pv.cview.signalsetId = ss.id;
+		pv.cview.signals = ss.signals;
 		pv.pins = ss.pins;
 		vw.pinViews.push_back(pv);
 	}

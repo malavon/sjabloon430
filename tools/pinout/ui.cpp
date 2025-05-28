@@ -3,6 +3,7 @@
 namespace sjabloon430 { namespace tools { namespace pinout { namespace ui {
 
 using namespace cccurses;
+using namespace sjabloon430::tools::pinout::db;
 
 class PinsetEventer : public FormEventHandler {
   public:
@@ -168,7 +169,7 @@ void drawPinSet(Window &win, int &row, const vector<Package> &pkgs, unordered_ma
 	}
 
 	col++;
-	for ( const string &sgn : pv.signalset.signals ) {
+	for ( const string &sgn : pv.cview.signals ) {
 		win.add(row, col, sgn);
 		win.add(row, col + FIELD_WIDTH_SIGNAL + 1, signals[sgn]);
 		row++;
@@ -209,12 +210,12 @@ void editPinSet(Window &win, int &row, const vector<Package> &pkgs, unordered_ma
 		pv.pins[pkgs[i]] = Pin{bga, nr};
 	}
 
-	pv.signalset.signals.clear();
+	pv.cview.signals.clear();
 	for ( const pair<Field, Field> &sgnAndDesc : pev.getSignalsVector() ) {
 		string sgn = sgnAndDesc.first.buffer<string>();
 		string desc = sgnAndDesc.second.buffer<string>();
 		if ( !sgn.empty() ) {
-			pv.signalset.signals.push_back(sgn);
+			pv.cview.signals.push_back(sgn);
 			// only allow editing if description is empty?
 			// actually, only allow addition?
 			if ( signals[sgn].empty() ) {
@@ -259,7 +260,7 @@ void drawPinSetEditingWindow(Window &win, PinSetView &vw) {
 		string pstr = pin.bgaRow + to_string(pin.number);
 		pinTotal += pstr.length();
 	}
-	if ( pinTotal > 0 && !pv.signalset.signals.empty() ) {
+	if ( pinTotal > 0 && !pv[0].empty() ) {
 		vw.pinViews.push_back(pv);
 	}
 }
@@ -390,7 +391,7 @@ void reorderPackages(vector<Package> &pkgs) {
 		}
 
 		center.moveCursor(WIN_HEIGHT - 3, WIN_WIDTH - 3); // naive way of moving cursor where it doesn't bother as much
-		    // should hide it somehow TODO
+			// should hide it somehow TODO
 		center.paint();
 	} while ( (pressedKey = wgetch(center)) != KEY_ENTER && pressedKey != 10 );
 }
