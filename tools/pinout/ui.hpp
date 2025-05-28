@@ -47,6 +47,8 @@ struct PinSetView {
 	 * if -1, either same or indicate that all pins are view only
 	 */
 	int editIdx = -1;
+	/* selection index, for browsing; 0-based */
+	int selIdx = 0;
 };
 
 // partial drawing functions

@@ -18,7 +18,7 @@ using namespace sjabloon430::tools::pinout;
 void addPinsetsToOrderables(sqlite3 *, const vector<db::Signalset> &, vector<db::Orderable> &);
 void convertDbToView(const vector<db::Orderable> &, const vector<db::Signalset> &, ui::PinSetView &);
 void convertViewToDb(const ui::PinSetView &, vector<db::Signalset> &);
-void mainApplicationLoop(Window &win, ui::PinSetView vw);
+
 void printShortcuts(Window &win);
 
 static const string WIDEST("MSP430F6459-HIREL");
@@ -108,7 +108,27 @@ int main() {
 		vw.signalDescs = db::listAllSignalDescriptions(db);
 		convertDbToView(ordbls, signalsets, vw);
 
-		mainApplicationLoop(pins, vw);
+		int tempChar = 0;
+		do {
+			vw.editIdx = -1;
+			switch ( tempChar ) {
+				case KEY_UP:
+					vw.selIdx = max(0, vw.selIdx - 1);
+					break;
+				case KEY_DOWN:
+					// size() is 1 higher than max to allow selecting pin at the end?
+					vw.selIdx = min(static_cast<int>(vw.pinViews.size()), vw.selIdx + 1);
+					break;
+				case KEY_ENTER:
+				case 10 /* RETURN */:
+					vw.editIdx = vw.selIdx;
+					break;
+				case 27 /*ESCAPE*/:
+					break;
+			}
+
+			ui::drawPinSetEditingWindow(pins, vw);
+		} while ( (tempChar = wgetch(pins)) != 27 ); // ESC key for exit
 
 		db::saveSignals(db, vw.signalDescs);
 		db::exportSignals(db);
@@ -153,14 +173,6 @@ int main() {
 	endCurses();
 
 	return EXIT_SUCCESS;
-}
-
-void mainApplicationLoop(Window &win, ui::PinSetView vw) {
-	int tempChar = 0;
-	do {
-		ui::drawPinSetEditingWindow(win, vw);
-
-	} while ( (tempChar = wgetch(win)) != 27 ); // ESC key for exit
 }
 
 void addPinsetsToOrderables(sqlite3 *db, const vector<db::Signalset> &ssets, vector<db::Orderable> &odbls) {
@@ -209,7 +221,7 @@ void convertDbToView(const vector<db::Orderable> &ordbls, const vector<db::Signa
 	for ( const db::Signalset &ss : signalsets ) {
 		ui::PinView pv;
 		pv.signalset = ss;
-		pv.pins = ss.pins;
+		pv.pins = ss.pins; // TODO: didn't belong in signalset at all
 		vw.pinViews.push_back(pv);
 	}
 }
