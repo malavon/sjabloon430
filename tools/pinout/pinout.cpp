@@ -13,8 +13,11 @@ using namespace cccurses;
 using namespace sjabloon430::tools::pinout;
 namespace dbf = sjabloon430::tools::db;
 using sjabloon430::tools::Package;
+using sjabloon430::tools::Pin;
 
+void addPinsetsToOrderables(sqlite3 *, const vector<db::Signalset> &, vector<db::Orderable> &);
 void convertDbToView(const vector<db::Orderable> &, const vector<db::Signalset> &, ui::PinSetView &);
+void convertViewToDb(const ui::PinSetView &vw, vector<db::Signalset> &signalsets);
 void printShortcuts(Window &win);
 
 static const int WIDEST_MODEL_LENGTH = strlen("MSP430F6459-HIREL"); /* hardcoded longest model */
@@ -94,6 +97,9 @@ int main() {
 		// /signalsets/pinsets are also linked to orderables and thus model/package
 		vector<db::Signalset> signalsets = db::findSignalsetsByDatasheet(db, selectedId);
 
+		// does not yet use config sets, but this is where the logic could go
+		addPinsetsToOrderables(db, signalsets, ordbls);
+
 		ui::reorderPackages(pkgs);
 		ui::PinSetView vw{pkgs};
 		vw.signalDescs = db::listAllSignalDescriptions(db);
@@ -107,9 +113,14 @@ int main() {
 		db::saveSignals(db, vw.signalDescs);
 		dbf::exportSignals(db);
 
-		// db::saveSignalsets(db, signalsets);
+		convertViewToDb(vw, signalsets);
+		db::saveSignalsets(db, signalsets);
+
+		addPinsetsToOrderables(db, signalsets, ordbls);
+		db::linkOrderableToPinset(db, ordbls);
 
 		dbf::exportDataForDatasheet(db, selectedId);
+		// it would make sense that these are removed and all dev's and odbls are in files per datasheet ...
 		dbf::exportDevicesWithoutPinout(db);
 		dbf::exportOrderablesWithoutPinout(db);
 
@@ -144,6 +155,47 @@ int main() {
 	return EXIT_SUCCESS;
 }
 
+void addPinsetsToOrderables(sqlite3 *db, const vector<db::Signalset> &ssets, vector<db::Orderable> &odbls) {
+	vector<db::Pinset> psets;
+	// config sets are not yet implemented, but right now it seems logical to me that they would be
+	// a list of orderables
+	// calling this function once for each config set with a different list of odbls may be correct
+	unordered_map<Package, int> pkgToPinset;
+
+	for ( db::Orderable &o : odbls ) {
+		// if the pinset has not been saved yet, it is not in the pkgToPinset map
+		// and thus needs to be saved in order to reflect signalset updates for that PACKAGE
+		// subsequent uses do not need to be saved, and if pinset is not retrieved from database
+		// doing so will clear & OVERWRITE signalsets each time
+		if ( pkgToPinset[o.pkg] == 0 ) {
+			// pinset doesn't have to come from database, YET because there are no config sets
+			// but if orderable has a pinset linked to it, it is assumed to exist and should be updated
+			db::Pinset p;
+			p.id = o.pinsetId;
+			p.totalPins = 0; // calculated again below
+
+			for ( const db::Signalset &s : ssets ) {
+				// always add signalset for correct index, but do not count it if empty!
+				if ( s.pins.find(o.pkg) != s.pins.end() ) {
+					Pin pin = s.pins.at(o.pkg);
+					p.totalPins++;
+					// this can only store a single empty/null pin...
+					// so I stopped inserting those
+					p.signalsets[pin] = s;
+				}
+			}
+
+			db::saveOrUpdatePinset(db, p);
+			o.pinsetId = p.id;
+			pkgToPinset[o.pkg] = p.id; // will overwrite should be the same anyway
+		} else {
+			if ( o.pinsetId == 0 ) { // reuse pinsets for default config set if not yet linked
+				o.pinsetId = pkgToPinset[o.pkg];
+			}
+		}
+	}
+}
+
 void convertDbToView(const vector<db::Orderable> & /*ordbls*/, const vector<db::Signalset> &signalsets, ui::PinSetView &vw) {
 	// orderables should be used in DB query? part of config set?
 	for ( const db::Signalset &ss : signalsets ) {
@@ -152,6 +204,18 @@ void convertDbToView(const vector<db::Orderable> & /*ordbls*/, const vector<db::
 		pv.cview.signals = ss.signals;
 		pv.pins = ss.pins;
 		vw.pinViews.push_back(pv);
+	}
+}
+
+void convertViewToDb(const ui::PinSetView &vw, vector<db::Signalset> &signalsets) {
+	signalsets.clear();
+
+	for ( const ui::PinView &pv : vw.pinViews ) {
+		db::Signalset s;
+		s.id = pv.cview.signalsetId;
+		s.signals = pv.cview.signals;
+		s.pins = pv.pins;
+		signalsets.push_back(s);
 	}
 }
 
