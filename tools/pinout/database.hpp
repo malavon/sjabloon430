@@ -17,6 +17,11 @@ namespace sjabloon430 { namespace tools {
 struct Pin {
 	string bgaRow;
 	int number;
+
+	bool empty() const {
+		return bgaRow.empty() && number <= 0;
+	}
+
 	bool operator==(const Pin &o) const {
 		return bgaRow == o.bgaRow && number == o.number;
 	}
@@ -75,14 +80,14 @@ struct Orderable {
 struct Pinset {
 	int id = 0; // auto-increment
 	int totalPins;
-	unordered_map<Pin, struct Signalset *> signalsets;
+	unordered_map<Pin, struct Signalset> signalsets;
 };
 
 struct Signalset {
 	int id = 0;	  // auto-increment
 	int parentId = 0; // 0 == NULL
 	vector<string> signals;
-	unordered_map<Package, Pin> pins;
+	unordered_map<Package, Pin> pins; // this construct can store only a single empty/null pin!
 };
 
 /* SQLite 3 init & database import/export */
@@ -97,14 +102,18 @@ DatabaseTotals countSupported(sqlite3 *db);
 Datasheet findDatasheet(sqlite3 *db, const string id);
 vector<string> findModelsByDatasheet(sqlite3 *db, const string datasheetId);
 vector<Orderable> findOrderablesByDatasheet(sqlite3 *db, const string datasheetId);
-vector<Signalset> findSignalsetsByDatasheet(sqlite3 *db, const string datasheetId);
 vector<Package> findPackagesByDatasheet(sqlite3 *db, const string datasheetId);
 vector<Pinset> findPinsetsByDatasheet(sqlite3 *db, const string datasheetId);
+vector<Signalset> findSignalsetsByDatasheet(sqlite3 *db, const string datasheetId);
 unordered_map<string, string> listAllModelsAndDatasheets(sqlite3 *db);
 unordered_map<string, string> listAllSignalDescriptions(sqlite3 *db);
 
 /* Modify DB, inserts return inserted rows */
+int linkOrderableToPinset(sqlite3 *, const vector<Orderable> &);
+
+int saveOrUpdatePinset(sqlite3 *db, Pinset &ps); // assumes signal sets are all in DB!
 int saveSignals(sqlite3 *db, unordered_map<string, string> signals);
+int saveSignalsets(sqlite3 *db, vector<Signalset> &sets); // assumes signals are all in DB!
 
 }}}} // namespace sjabloon430::tools::pinout::db
 
