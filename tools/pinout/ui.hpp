@@ -31,7 +31,7 @@ struct PinView {
 	// one pin per package
 	unordered_map<Package, Pin> pins;
 	// multiple signals are common; indexed! begin/first = default
-	vector<string> signals;
+	db::Signalset signalset;
 };
 
 struct PinSetView {
