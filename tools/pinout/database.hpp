@@ -104,8 +104,11 @@ unordered_map<string, string> listAllModelsAndDatasheets(sqlite3 *db);
 unordered_map<string, string> listAllSignalDescriptions(sqlite3 *db);
 
 /* Modify DB, inserts return inserted rows */
+int linkOrderableToPinset(sqlite3 *, const vector<Orderable> &);
+
 int saveSignals(sqlite3 *db, unordered_map<string, string> signals);
 int saveSignalsets(sqlite3 *db, vector<Signalset> &sets); // assumes signals are all in DB!
+int savePinsets(sqlite3 *db, vector<Pinset> &sets);	  // assumes signal sets are all in DB!
 
 }}} // namespace sjabloon430::tools::db
 
