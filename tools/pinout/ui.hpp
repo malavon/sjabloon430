@@ -35,6 +35,17 @@ struct PinView {
 		assert(idx == 0);
 		return cview.signals;
 	}
+	bool hasPins() const {
+		for ( const std::pair<const Package, Pin> &pr : pins ) {
+			if ( !pr.second.empty() ) {
+				return true;
+			}
+		}
+		return false;
+	}
+	bool hasPinsAndSignals() const {
+		return hasPins() && !cview.signals.empty();
+	}
 };
 
 struct PinSetView {
@@ -51,6 +62,8 @@ struct PinSetView {
 	 * if -1, either same or indicate that all pins are view only
 	 */
 	int editIdx = -1;
+	/* selection index, for browsing; 0-based */
+	unsigned int selIdx = 0;
 };
 
 // partial drawing functions
@@ -63,6 +76,7 @@ void editPinSet(Window &, int &row, const vector<string> &pkgs, unordered_map<st
 void drawPinSetEditingWindow(Window &win, PinSetView &pinView);
 void drawSetConfigWindow(BorderedWindow &, const vector<string> &models, const vector<Package> &packages);
 void drawTopWindow(BorderedWindow &, const db::Datasheet &, const db::DatabaseTotals &ttl, const db::DatabaseTotals &sprtd);
+void loopPinsetEditing(Window &, PinSetView &);
 void reorderPackages(vector<Package> &pkgs); // given vector is reordered in-place
 string searchDatasheet(const unordered_map<string, string> &dsModels, const int modelFieldWidth);
 
