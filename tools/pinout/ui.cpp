@@ -10,13 +10,17 @@ using namespace sjabloon430::tools::pinout::db;
 class PinsetEventer : public FormEventHandler {
   public:
 	PinsetEventer(Window &win, EventEmittingForm<PinsetEventer> &form, const vector<Package> &pkgs,
-		      unordered_map<string, string> &signals, int sgnCol) :
+		      unordered_map<string, string> &signals, vector<string> initSignals, int sgnCol) :
 	    window(win), form(form), packages(pkgs), signalAndDescMap(signals), signalColumn(sgnCol) {
 		row = 0; // row is locally inside the derived window!
 		descColumn = sgnCol + FIELD_WIDTH_SIGNAL + 1;
 
+		for ( const string &signal : initSignals ) {
+			addSignal(signal);
+		}
 		// add single set of fields, none exist yet
 		addExtraFieldPair();
+		form.repost();
 	}
 
   private:
@@ -48,8 +52,15 @@ class PinsetEventer : public FormEventHandler {
 		signalAndDescFields.push_back(pair<Field, Field>(sgnField, descField));
 		previousSignals.push_back("");
 
-		form.repost();
 		row++;
+	}
+
+	void addSignal(const string signal) {
+		addExtraFieldPair();
+		pair<Field, Field> pr = *signalAndDescFields.rbegin();
+		pr.first.setBuffer(signal);
+		pr.second.setBuffer(signalAndDescMap[signal]); // assume a description always exists
+		pr.second.optionsActiveAndEditable(Toggle::OFF);
 	}
 
 	void fieldHopped() {
@@ -117,7 +128,7 @@ class PinsetEventer : public FormEventHandler {
 	}
 
   public:
-	const vector<pair<Field, Field>> &getSignalsVector() const {
+	const vector<pair<Field, Field>> &getFieldVector() const {
 		return signalAndDescFields;
 	}
 
@@ -144,8 +155,6 @@ class PinsetEventer : public FormEventHandler {
 
 void drawPinSetHeader(Window &win, const int hdrRow, const vector<Package> &pkgs) {
 	int col = 0;
-
-	col = 0;
 	for ( const Package &pkg : pkgs ) {
 		col += HEADER_WIDTH_PKG + 1;
 		string conc = pkg.drawing + to_string(pkg.pins);
@@ -160,15 +169,9 @@ void drawPinSetHeader(Window &win, const int hdrRow, const vector<Package> &pkgs
 	win.paint();
 }
 
+// this function renders a pinset; it assumes that there is enough room available to render 1 signal/line
+// +1 line for a horizontal ruler below the last signal
 void drawPinSet(Window &win, int &row, const vector<Package> &pkgs, unordered_map<string, string> &signals, const PinView &pv) {
-	int maxRows = win.maxRows();
-	if ( row + std::max(3 /*always 1 line; 2?3?*/, static_cast<int>(pv[0].size())) > maxRows ) {
-		int rowsToScroll = row + 1 + pv[0].size() - maxRows;
-		win.scroll(rowsToScroll);
-		row -= rowsToScroll;
-	}
-
-	mvwhline(win, row++, 1, 0, min(win.maxCols() - 2, 79)); // capped at 80, esthaetics
 	int col = 0;
 	for ( const Package &pkg : pkgs ) {
 		col += HEADER_WIDTH_PKG + 1;
@@ -184,7 +187,7 @@ void drawPinSet(Window &win, int &row, const vector<Package> &pkgs, unordered_ma
 	col++;
 	int descCol = col + FIELD_WIDTH_SIGNAL + 1;
 	// cut off descriptions if need be
-	int maxDescLength = std::max(FIELD_WIDTH_DESC, win.size().cols - descCol - 1);
+	int maxDescLength = std::max(FIELD_WIDTH_DESC, win.maxCols() - descCol - 1);
 	const string CUT_CHARS = "...";
 	for ( const string &sgn : pv[0] ) {
 		win.add(row, col, sgn);
@@ -195,24 +198,19 @@ void drawPinSet(Window &win, int &row, const vector<Package> &pkgs, unordered_ma
 		}
 		row++;
 	}
+	mvwhline(win, row++, 1, 0, min(win.maxCols() - 2, 79)); // capped at 80, esthaetics
 }
 
 void editPinSet(Window &win, int &row, const vector<Package> &pkgs, unordered_map<string, string> &signals, PinView &pv) {
 	// calculate to allow enough lines to print line, header & form
 	int maxRows = win.maxRows();
-	if ( row + 2 + MAX_SIGNALS > maxRows ) {
-		int rowsToScroll = row + 2 + MAX_SIGNALS - maxRows;
+	int rowsToScroll = row + 2 + MAX_SIGNALS - maxRows;
+	if ( rowsToScroll > 0 ) {
 		win.scroll(rowsToScroll);
 		row -= rowsToScroll;
 	}
 
-	if ( maxRows > 16 ) { // don't print the ruler if the lines are really, really compressed
-		mvwhline(win, row++, 1, 0, min(win.maxCols() - 2, 79));
-	}
-	// editing field always gets a header, unless there is no room for it
-	if ( maxRows > MAX_SIGNALS ) {
-		drawPinSetHeader(win, row++, pkgs);
-	}
+	win.paint();
 
 	Window formWin = win.deriveWindow(MAX_SIGNALS, 0, row, 0);
 
@@ -226,6 +224,9 @@ void editPinSet(Window &win, int &row, const vector<Package> &pkgs, unordered_ma
 		Field fld = Field(1, FIELD_WIDTH_PIN, 0, col - FIELD_WIDTH_PIN);
 		fld.justify(JUSTIFY_RIGHT);
 		fld.optionAutoSkip(Toggle::OFF);
+		if ( !pv.pins[pkgs[i]].empty() ) {
+			fld.setBuffer(pv.pins[pkgs[i]]); // implicit cast to string
+		}
 		fb.addField(fld);
 		pinFields[i] = fld;
 	}
@@ -233,7 +234,7 @@ void editPinSet(Window &win, int &row, const vector<Package> &pkgs, unordered_ma
 	EventEmittingForm<PinsetEventer> form = fb.build<EventEmittingForm<PinsetEventer>>(formWin);
 
 	int sgnCol = col + 1;
-	PinsetEventer pev(formWin, form, pkgs, signals, sgnCol);
+	PinsetEventer pev(formWin, form, pkgs, signals, pv[0], sgnCol);
 
 	form.loop(pev);
 
@@ -251,8 +252,8 @@ void editPinSet(Window &win, int &row, const vector<Package> &pkgs, unordered_ma
 		}
 	}
 
-	pv.cview.signals.clear();
-	for ( const pair<Field, Field> &sgnAndDesc : pev.getSignalsVector() ) {
+	pv[0].clear();
+	for ( const pair<Field, Field> &sgnAndDesc : pev.getFieldVector() ) {
 		string sgn = sgnAndDesc.first.buffer<string>();
 		string desc = sgnAndDesc.second.buffer<string>();
 		if ( !sgn.empty() ) {
@@ -269,34 +270,56 @@ void editPinSet(Window &win, int &row, const vector<Package> &pkgs, unordered_ma
 
 // Window drawing functions
 
-// TODO: window should scroll working
+// render all pinviews up to the selected index at least
+// MVP: this function keeps the selected index on the last row unless it's on the very first screen
+// it might be nicer if it behaves like a text editor: scrollin upwards from below until the first line is reached
 void drawPinSetEditingWindow(Window &win, PinSetView &vw) {
-	win.erase(); // erase window necessary? erases hotkeys printed in main
-
-	int row = 0;
-	if ( !vw.pinViews.empty() ) {
-		drawPinSetHeader(win, row++, vw.pkgs);
+	if ( vw.editIdx < 0 ) {
+		// erasing window IS necessary to clean everything up BUT ...
+		// when editIdx is set, it is set to selIdx meaning everything _can_ simply stay in the same place
+		// and the editing form has its own subwindow, which _is_ cleared anyway
+		// so no global clear necessary AND the sets below the edited one are still displayed without redrawing!
+		win.erase();
 	}
-	for ( PinView &pv : vw.pinViews ) {
-		// drawPinSetHeader(win, row++, vw.pkgs);
-		// this line overwrites the header written for edit
-		drawPinSet(win, row, vw.pkgs, vw.signalDescs, pv);
-	}
+	int maxRows = win.maxRows();
 
-	PinView pv;
-	editPinSet(win, row, vw.pkgs, vw.signalDescs, pv);
-	// TODO: check deletion?
+	int row = 0, idx = 0, rowsToScroll = 0;
+	for ( ui::PinView &pv : vw.pinViews ) {
+		// rowsToScroll = row + 1 /*horizontal ruler*/ + pv.signals.size() - maxRows + 1 + (idx == vw.selIdx ? 1 : 0);
+		rowsToScroll = row + 1 /* horizontal ruler */ + pv[0].size() - maxRows + 1;
+		if ( idx <= vw.selIdx && rowsToScroll > 0 ) {
+			win.scroll(rowsToScroll);
+			row -= rowsToScroll;
+		}
 
-	// only add pin view if at least one pin & one signal
-	// to verify: count pin (string) length, since the map itself is not empty!
-	int pinTotal = 0;
-	for ( auto it = pv.pins.begin(); it != pv.pins.end() && pinTotal == 0; it++ ) {
-		Pin pin = it->second;
-		string pstr = pin.bgaRow + to_string(pin.number);
-		pinTotal += pstr.length();
-	}
-	if ( pinTotal > 0 && !pv[0].empty() ) {
-		vw.pinViews.push_back(pv);
+		if ( idx == vw.editIdx ) {
+			// Signalset pv;					   // TODO
+			editPinSet(win, row, vw.pkgs, vw.signalDescs, pv); // scrolls window for now
+			// data has been added to given Signalset but is only valid if at least one pin is filled
+			// signals without pins are useless
+			// for ( const std::pair<Package, Pin> &pr : pv.pins ) {
+			// 	if ( !pr.second.empty() ) {
+			// 		vw.pinViews.push_back(pv); // TODO
+			// 		break; // yes, break :)
+			// 	}
+			// }
+			vw.editIdx = -1; // reset edit index
+		}
+		if ( idx == vw.selIdx ) {
+			// if the window was scrolled, scroll 1 more to ensure that the header fits
+			win.enableAttributes(WA_BOLD);
+			drawPinSetHeader(win, row++, vw.pkgs);
+			for ( int i = 0; i < pv[0].size(); i++ ) {
+				win.add(row + i, 1, ">");
+			}
+		} else {
+			win.disableAttributes(WA_BOLD);
+		}
+		if ( idx <= vw.selIdx | rowsToScroll <= 0 ) {
+			drawPinSet(win, row, vw.pkgs, vw.signalDescs, pv);
+		}
+
+		idx++;
 	}
 }
 
@@ -376,6 +399,30 @@ void drawTopWindow(BorderedWindow &win, const Datasheet &ds, const DatabaseTotal
 		}
 	}
 	win.paint();
+}
+
+void loopPinsetEditing(Window &win, ui::PinSetView &vw) {
+	int tempChar = 0;
+	do {
+		vw.editIdx = -1;
+		switch ( tempChar ) {
+			case KEY_UP:
+				vw.selIdx = max(0, vw.selIdx - 1);
+				break;
+			case KEY_DOWN:
+				// size() is 1 higher than max to allow selecting pin at the end?
+				vw.selIdx = min(static_cast<int>(vw.pinViews.size()), vw.selIdx + 1);
+				break;
+			case KEY_ENTER:
+			case 10 /* RETURN */:
+				vw.editIdx = vw.selIdx;
+				break;
+			case 27 /*ESCAPE*/:
+				break;
+		}
+
+		ui::drawPinSetEditingWindow(win, vw);
+	} while ( (tempChar = wgetch(win)) != 27 ); // ESC key for exit
 }
 
 // reordering packages, given vector is reordered

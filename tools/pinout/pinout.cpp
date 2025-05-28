@@ -108,10 +108,7 @@ int main() {
 		vw.signalDescs = db::listAllSignalDescriptions(db);
 		convertDbToView(ordbls, signalsets, vw);
 
-		int tempChar = 0;
-		do {
-			ui::drawPinSetEditingWindow(pins, vw);
-		} while ( (tempChar = wgetch(pins)) != 27 ); // ESC key for exit
+		ui::loopPinsetEditing(pins, vw);
 
 		db::saveSignals(db, vw.signalDescs);
 		dbf::exportSignals(db);

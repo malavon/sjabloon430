@@ -25,6 +25,10 @@ struct Pin {
 	bool operator==(const Pin &o) const {
 		return bgaRow == o.bgaRow && number == o.number;
 	}
+
+	operator const string() {
+		return bgaRow + (number == 0 ? "" : std::to_string(number));
+	}
 };
 
 struct Package {
