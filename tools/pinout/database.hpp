@@ -17,6 +17,11 @@ namespace sjabloon430 { namespace tools {
 struct Pin {
 	string bgaRow;
 	int number;
+
+	bool empty() const {
+		return bgaRow.empty() && number <= 0;
+	}
+
 	bool operator==(const Pin &o) const {
 		return bgaRow == o.bgaRow && number == o.number;
 	}
@@ -75,7 +80,7 @@ struct Orderable {
 struct Pinset {
 	int id = 0; // auto-increment
 	int totalPins;
-	unordered_map<Pin, struct Signalset *> signalsets;
+	unordered_map<Pin, struct Signalset> signalsets;
 };
 
 struct Signalset {
@@ -108,7 +113,7 @@ int linkOrderableToPinset(sqlite3 *, const vector<Orderable> &);
 
 int saveSignals(sqlite3 *db, unordered_map<string, string> signals);
 int saveSignalsets(sqlite3 *db, vector<Signalset> &sets); // assumes signals are all in DB!
-int savePinsets(sqlite3 *db, vector<Pinset> &sets);	  // assumes signal sets are all in DB!
+int saveOrUpdatePinset(sqlite3 *db, Pinset &ps);	  // assumes signal sets are all in DB!
 
 }}} // namespace sjabloon430::tools::db
 
