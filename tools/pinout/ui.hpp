@@ -28,10 +28,23 @@ static const char *SIGNAL_HDR("SIGNAL");
 static const char *DESCRIPTION_HDR("DESCRIPTION");
 
 struct PinView {
+	// this struct was conceived to prevent using a db:: scoped object in the ui (like db::Signalset)
+	// and once parenting/configsets has been implemented it will be much more useful
+	// hindsight(c) powered by rebase (R)
+	struct Link {
+		int signalsetId = 0;
+		// parentsetId = 0; // not sure if needed, don't use unless proven useful
+		vector<string> signals;
+		// indexed! first = (pin) default
+		bool hasSignals() const {
+			return !signals.empty();
+		}
+	};
 	// one pin per package
 	unordered_map<Package, Pin> pins;
-	// multiple signals are common; indexed! begin/first = default
 	db::Signalset signalset;
+	// Link link;
+	// vector<Link> links;
 
 	bool hasPins() const {
 		for ( const std::pair<Package, Pin> &pr : pins ) {
