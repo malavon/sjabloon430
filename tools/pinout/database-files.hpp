@@ -23,8 +23,10 @@ struct ExportConfig {
 
 // export from a simple query, cannot export joined tables etc
 void exportFromPrepStmt(sqlite3_stmt *statement, const string fileName, const ExportConfig &config = ExportConfig{});
+void exportOrderablesWithoutPinout(sqlite3 *db);
+void exportPinoutData(sqlite3 *db, const string &datasheetId);
 void exportSignals(sqlite3 *db);
 void importDatabase(sqlite3 *db, std::function<void(const std::string &file, const char *error)> callback);
 
-}}}
+}}} // namespace sjabloon430::tools::db
 #endif // SJABLOON430_TOOLS_DATABASE_FILES_HPP

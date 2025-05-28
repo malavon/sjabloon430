@@ -401,4 +401,56 @@ int saveSignals(sqlite3 *db, unordered_map<string, string> signals) {
 	return insertedRows;
 }
 
+int saveSignalsets(sqlite3 *db, vector<Signalset> &sets) {
+	static const char *INSERT_QUERY = "INSERT INTO signalset(datasheet_idx, parent_id) VALUES (?, NULL)";
+	static const char *DELETE_LINKS = "DELETE FROM signalset_signal WHERE signalset_id= ?";
+	static const char *INSERT_LINK = "INSERT INTO signalset_signal (signalset_id, signal_id, idx) "
+					 "VALUES (:ssetId, :sgnId, :idx)";
+	static sqlite3_stmt *insStmt, *delStmt, *lnkStmt;
+	if ( insStmt == nullptr ) { // assume both are null
+		prepare(db, &insStmt, INSERT_QUERY);
+		prepare(db, &delStmt, DELETE_LINKS);
+		prepare(db, &lnkStmt, INSERT_LINK);
+	}
+
+	int alteredRows = 0, rc, datasheetIdx = 0;
+	for ( Signalset &s : sets ) {
+		sqlite3_reset(insStmt);
+		rc = sqlite3_bind_int(insStmt, 1, datasheetIdx++); // TODO: should be updated if already in DB
+		assert(SQLITE_OK == rc);
+		if ( s.id == 0 ) {
+			rc = sqlite3_step(insStmt);
+			assert(SQLITE_DONE == rc);	      // NOT SQLITE_ROW
+			s.id = sqlite3_last_insert_rowid(db); // TODO: correct????
+			alteredRows++;
+		} else {
+			// new signalset doesn't have any signals assigned
+			// for all others: delete all signals
+			sqlite3_reset(delStmt);
+			rc = sqlite3_bind_int(delStmt, 1, s.id);
+			assert(SQLITE_OK == rc);
+			sqlite3_reset(lnkStmt);
+			if ( SQLITE_DONE == sqlite3_step(lnkStmt) ) {
+				alteredRows += sqlite3_changes(db);
+			}
+		}
+
+		int idx = 0;
+		// TODO: will fail if signals in DB already?
+		for ( const string &sgn : s.signals ) {
+			sqlite3_reset(lnkStmt);
+			rc = sqlite3_bind_int(lnkStmt, 1, s.id);
+			assert(SQLITE_OK == rc);
+			rc = sqlite3_bind_text(lnkStmt, 2, sgn.c_str(), -1, SQLITE_STATIC);
+			assert(SQLITE_OK == rc);
+			rc = sqlite3_bind_int(lnkStmt, 3, idx++);
+			assert(SQLITE_OK == rc);
+			// execute, ignore errors for duplicates but reset statement before next
+			if ( SQLITE_DONE == sqlite3_step(lnkStmt) ) {
+				alteredRows++;
+			}
+		}
+	}
+	return alteredRows;
+}
 }}} // namespace sjabloon430::tools::db

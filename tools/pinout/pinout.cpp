@@ -16,6 +16,7 @@ using namespace sjabloon430::tools;
 using namespace sjabloon430::tools::pinout;
 
 void convertDbToView(const vector<db::Orderable> &, const vector<db::Signalset> &, ui::PinSetView &);
+void convertViewToDb(const ui::PinSetView &, vector<db::Signalset> &);
 void printShortcuts(Window &win);
 
 static const string WIDEST("MSP430F6459-HIREL");
@@ -110,6 +111,12 @@ int main() {
 		db::saveSignals(db, vw.signalDescs);
 		db::exportSignals(db);
 
+		convertViewToDb(vw, signalsets);
+		db::saveSignalsets(db, signalsets);
+
+		db::exportPinoutData(db, selectedId);
+		db::exportOrderablesWithoutPinout(db);
+
 		// TODO: input up/down & other hotkeys, basically the bulk of the application?
 		// or should this be in the main application?
 		// much more logical I think, since DB access is required for saving
@@ -148,6 +155,13 @@ void convertDbToView(const vector<db::Orderable> &ordbls, const vector<db::Signa
 		pv.signalset = ss;
 		pv.pins = ss.pins;
 		vw.pinViews.push_back(pv);
+	}
+}
+void convertViewToDb(const ui::PinSetView &vw, vector<db::Signalset> &signalsets) {
+	signalsets.clear();
+
+	for ( const ui::PinView &pv : vw.pinViews ) {
+		signalsets.push_back(pv.signalset);
 	}
 }
 
