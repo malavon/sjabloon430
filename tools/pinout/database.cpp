@@ -249,14 +249,13 @@ vector<Pinset> findPinsetsByDatasheet(sqlite3 *db, const vector<Signalset> sgnse
 vector<Signalset> findSignalsetsByDatasheet(sqlite3 *db, const string datasheetId) {
 	// this function assumes index is continuous from 0 to n
 
-	static const char *SSET_QUERY =
-	    "SELECT DISTINCT datasheet_idx, ss.id signalset_id, ss.parent_id, drawing, pins, pin_bga_row, pin_number "
-	    "FROM signalset ss "
-	    "INNER JOIN pinset_signalset psss ON ss.id = psss.signalset_id "
-	    "INNER JOIN orderable o ON o.pinset_id = psss.pinset_id "
-	    "INNER JOIN device d ON o.device_id = d.model "
-	    "WHERE d.datasheet_id = ? "
-	    "ORDER BY datasheet_idx ASC, ss.parent_id ASC, ss.id ASC";
+	static const char *SSET_QUERY = "SELECT DISTINCT datasheet_idx, ss.id signalset_id, ss.parent_id "
+					"FROM signalset ss "
+					"INNER JOIN pinset_signalset psss ON ss.id = psss.signalset_id "
+					"INNER JOIN orderable o ON o.pinset_id = psss.pinset_id "
+					"INNER JOIN device d ON o.device_id = d.model "
+					"WHERE d.datasheet_id = ? "
+					"ORDER BY datasheet_idx ASC, ss.parent_id ASC, ss.id ASC";
 
 	static const char *SGNS_QUERY = "SELECT idx, signal_id "
 					"FROM signalset_signal sss "
@@ -274,27 +273,12 @@ vector<Signalset> findSignalsetsByDatasheet(sqlite3 *db, const string datasheetI
 	assert(SQLITE_OK == rc);
 
 	vector<Signalset> result;
-	Signalset s;
-	int lastId = 0, id = 0;
-	int vrIdx = -1;
 	while ( sqlite3_step(stmtSset) == SQLITE_ROW ) {
-		// datasheet_idx = sqlite3_column_int(stmt, 0);
-		id = sqlite3_column_int(stmtSset, 1);
-		if ( lastId != id ) {
-			lastId = id;
-			s = Signalset();
-			s.id = id;
-			s.parentId = sqlite3_column_int(stmtSset, 2);
-			result.push_back(s);
-			vrIdx++;
-		}
-		string drw = reinterpret_cast<const char *>(sqlite3_column_text(stmtSset, 3));
-		int pins = sqlite3_column_int(stmtSset, 4);
-		const unsigned char *dbBga = sqlite3_column_text(stmtSset, 5);
-		string bgaRow = (dbBga == nullptr) ? "" : reinterpret_cast<const char *>(dbBga);
-		int pinNumber = sqlite3_column_int(stmtSset, 6);
-		s.pins[Package{drw, pins}] = Pin{bgaRow, pinNumber};
-		result[vrIdx] = s; // isn't necessary? no copy-semantics?
+		Signalset s;
+		// int datasheetIdx = sqlite3_column_int(stmt, 0);
+		s.id = sqlite3_column_int(stmtSset, 1);
+		s.parentId = sqlite3_column_int(stmtSset, 2);
+		result.push_back(s);
 	}
 
 	for ( Signalset &s : result ) {
