@@ -489,7 +489,7 @@ void loopPinsetEditing(Window &win, PinSetView &vw) {
 // reordering packages, given vector is reordered
 void reorderPackages(vector<Package> &pkgs) {
 	static const string TEXT = "Reorder packages as they are in the datasheet";
-	static const string KEYS = "TAB: Select | Arrow Left/Right: Move | Enter: Confirm";
+	static const string KEYS = "TAB/STAB Select L/R Move Enter/Return Confirm"; // only here for calculations
 	static const int TEXT_WIDTH = max(TEXT.length(), KEYS.length());
 
 	int PKGS_WIDTH = pkgs.size() * (HEADER_WIDTH_PKG + 1) - 1;
@@ -500,8 +500,11 @@ void reorderPackages(vector<Package> &pkgs) {
 	// TODO: doesn't care about resizing or too small a screen
 	BorderedWindow center(WIN_HEIGHT, WIN_WIDTH, (LINES - WIN_HEIGHT) / 2, (COLS - WIN_WIDTH) / 2);
 	center.setTitle("Ordering");
-	center.add(0, (WIN_WIDTH - TEXT.length()) / 2 - 1, TEXT);
-	center.add(1, (WIN_WIDTH - KEYS.length()) / 2 - 1, KEYS);
+	center.add(0, (center.maxCols() - TEXT.length()) / 2, TEXT);
+	center.moveCursor(1, (center.maxCols() - KEYS.length()) / 2 - 1);
+	displayHotkey(center, "Select", "TAB/STAB");
+	displayHotkey(center, "Move", vector<chtype>{ACS_LARROW, '/', ACS_RARROW});
+	displayHotkey(center, "Confirm", "Enter/Return");
 
 	int totalPkgsLength = -1;
 	for ( const Package &pkg : pkgs ) {
@@ -609,4 +612,22 @@ string searchDatasheet(const unordered_map<string, string> &dsModels, const int 
 	}
 	return dsId;
 }
+
+// hotkey helpers
+void displayHotkey(Window &win, const string &text, const vector<chtype> &keys) {
+	win.add(' ');
+	for ( const chtype key : keys ) {
+		win.add(key | A_STANDOUT);
+	}
+	win.add(' ');
+	win.add(text);
+}
+
+void displayHotkey(Window &win, const string &text, const string &key) {
+	win.add(' ');
+	win.add(key, A_STANDOUT);
+	win.add(' ');
+	win.add(text);
+}
+
 }}}} // namespace sjabloon430::tools::pinout::ui
