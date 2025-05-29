@@ -216,23 +216,15 @@ void convertViewToDb(const ui::PinSetView &vw, vector<db::Signalset> &signalsets
 	}
 }
 
-// this function assumes the screen is on the defaultSet position to make it simpler
-void printShortcut(Window &window, const string &key, const string &text) {
-	window.add(' ');
-	window.add(key, A_STANDOUT);
-	window.add(' ');
-	window.add(text);
-}
-
-void printShortcuts(Window &hotkeyWin) {
+void printShortcuts(Window &win) {
 	const int LINE = 0;
 
-	hotkeyWin.moveCursor(LINE, 0);
-	printShortcut(hotkeyWin, "ESC", "QUIT");
-	printShortcut(hotkeyWin, "F1", "Help");
-	printShortcut(hotkeyWin, "F2", "Search");
-	printShortcut(hotkeyWin, "PgUp/PgDn", "Up/Down");
-	printShortcut(hotkeyWin, "Ctrl+e", "Edit Mode");
-	printShortcut(hotkeyWin, "Ctrl+s", "Save");
-	printShortcut(hotkeyWin, "F5-F9", "Set #");
+	win.moveCursor(LINE, 0);
+	ui::displayHotkey(win, "QUIT", "ESC");
+	ui::displayHotkey(win, "Help", "F1");
+	ui::displayHotkey(win, "Search", "F2");
+	ui::displayHotkey(win, "Up/Down", "PgUp/PgDn");
+	ui::displayHotkey(win, "Edit mode", "Ctrl+e");
+	ui::displayHotkey(win, "Save", "Ctrl+s");
+	ui::displayHotkey(win, "Set #", "F5-F9");
 }
