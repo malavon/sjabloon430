@@ -485,16 +485,10 @@ void loopPinsetEditing(Window &win, Window &hot, PinSetView &vw) {
 					vw.pinViews.erase(vw.pinViews.begin() + vw.selIdx);
 				}
 				break;
-			case KEY_F(4):
-				// activeConfig = activeConfig >= configsetWindows.size() - 1 ? 0 : activeConfig + 1;
-				// for ( int c = 0; c < configsetWindows.size(); c++ ) {
-				// 	if ( c == activeConfig ) {
-				// 		configsetWindows[c].enableAttributes(WA_BOLD);
-				// 	} else {
-				// 		configsetWindows[c].disableAttributes(WA_BOLD);
-				// 	}
-				// 	ui::drawSetConfigWindow(configsetWindows[c], models, pkgs);
-				// }
+			case KEY_F(5):
+			case KEY_F(6):
+			case KEY_F(7):
+				// ui::filterForConfigset(pkgs, models, ordbls);
 				break;
 			case 27 /*ESCAPE*/: // open a menu or something, probably beyond MVP though
 				break;
@@ -504,6 +498,76 @@ void loopPinsetEditing(Window &win, Window &hot, PinSetView &vw) {
 		displayBrowseHotkeys(hot); // default hotkeys
 		vw.editIdx = -1;	   // reset editIdx otherwise editing would never stop
 	} while ( (tempChar = wgetch(win)) != 27 ); // ESC key for exit
+}
+
+// used to create config set, display packages & devices for the user to filter them
+vector<db::Orderable> filterForConfigset(const vector<Package> &pkgs, const vector<string> &models,
+					 vector<db::Orderable> &odbls) {
+	static const string TEXT = "Select devices OR packages to use.";
+	static const string KEYS = "U/D Move TAB/STAB Models/Packages SPACE Select RETURN Confirm"; // marker for length
+	static const int TEXT_WIDTH = max(TEXT.length(), KEYS.length());
+
+	int WIN_WIDTH = max(TEXT_WIDTH, max(HEADER_WIDTH_PKG + 1, 18)) + 2 /* Whitespace Left/right  */ + 2 /* border */;
+	int WIN_HEIGHT = std::max(pkgs.size(), models.size()) + 3 /* text & empty line */ + 1 /* empty line */ + 2 /* border */;
+
+	BorderedWindow center(WIN_HEIGHT, WIN_WIDTH, (LINES - WIN_HEIGHT) / 2, (COLS - WIN_WIDTH) / 2);
+	center.setTitle("Filter");
+	center.add(0, (center.maxCols() - TEXT.length()) / 2 - 1, TEXT);
+	center.moveCursor(1, (center.maxCols() - KEYS.length()) / 2 - 1);
+	displayHotkey(center, "Move", vector<chtype>{ACS_UARROW, '/', ACS_DARROW});
+	displayHotkey(center, "Models/Packages", "TAB/STAB");
+	displayHotkey(center, "Select", "SPACE");
+	displayHotkey(center, "Confirm", "RETURN");
+	center.paint();
+
+	enum { MODELS = 0, PACKAGES = 1 };
+	// using arrays for these greatly simplifies below code
+	// of course, using some sort of selection box would do this even more :)
+	unsigned int selIdx[2] = {0, 0},
+		     maxIdx[] = {static_cast<unsigned int>(models.size() - 1), static_cast<unsigned int>(pkgs.size() - 1)};
+	int intIdx = MODELS; // working with index creates shortest code
+	// selection masks; using entire int-space; 15 models is maximum in database though
+	// this is the clever bit ... right?
+	int bitMsks[] = {-1, -1};
+
+	int pressedKey = 0;
+	do {
+		switch ( pressedKey ) {
+			case 9 /* tab */:
+			case KEY_BTAB:
+				intIdx = intIdx == MODELS ? PACKAGES : MODELS;
+				break;
+			case KEY_UP:
+				selIdx[intIdx] = selIdx[intIdx] > 0 ? selIdx[intIdx] - 1 : maxIdx[intIdx];
+				break;
+			case KEY_DOWN:
+				selIdx[intIdx] = selIdx[intIdx] < maxIdx[intIdx] ? selIdx[intIdx] + 1 : 0;
+				break;
+			case ' ':
+				bitMsks[intIdx] ^= 1 << selIdx[intIdx];
+				break;
+		}
+
+		int colMdl = 4;
+		int colPkg = center.maxCols() - HEADER_WIDTH_PKG - 4 - 4;
+		int row = 3;
+		for ( int i = 0; i < models.size(); i++ ) {
+			center.add(row + i, colMdl, bitMsks[0] & (1 << i) ? " [X] " : " [ ] ");
+			center.add(models[i], i == selIdx[0] && intIdx == 0 ? A_STANDOUT : A_NORMAL);
+		}
+		for ( int i = 0; i < pkgs.size(); i++ ) {
+			center.add(row + i, colPkg, pkgs[i], i == selIdx[1] && intIdx == 1 ? A_STANDOUT : A_NORMAL);
+			center.add(row + i, colPkg + HEADER_WIDTH_PKG, bitMsks[1] & (1 << i) ? "[X] " : "[ ] ");
+		}
+
+		// naive way of moving cursor where it doesn't bother as much, should hide it somehow TODO
+		center.moveCursor(center.maxRows() - 1, center.maxCols() - 1);
+		center.paint();
+	} while ( (pressedKey = wgetch(center)) != KEY_ENTER && pressedKey != 10 );
+
+	vector<db::Orderable> fltrd;
+	for ( const db::Orderable &o : odbls ) { }
+	return fltrd;
 }
 
 // reordering packages, given vector is reordered

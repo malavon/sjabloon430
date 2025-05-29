@@ -92,7 +92,7 @@ void drawSetConfigWindow(BorderedWindow &, const vector<db::Orderable> odbls);
 void drawSetConfigWindow(BorderedWindow &, const vector<string> &models, const vector<Package> &packages);
 void drawTopWindow(BorderedWindow &, const db::Datasheet &, const db::DatabaseTotals &ttl, const db::DatabaseTotals &sprtd);
 vector<db::Orderable> filterForConfigset(const vector<Package> &, const vector<string> &models, vector<db::Orderable> &);
-void loopPinsetEditing(Window &, Window &hotKeys, PinSetView &);
+void loopPinsetEditing(Window &pinset, Window &hotkeys, PinSetView &);
 void reorderPackages(vector<Package> &pkgs); // given vector is reordered in-place
 string searchDatasheet(const unordered_map<string, string> &dsModels, const int widestModelLength);
 

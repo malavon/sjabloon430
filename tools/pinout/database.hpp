@@ -37,6 +37,9 @@ struct Package {
 	bool operator==(const Package &o) const {
 		return drawing == o.drawing && pins == o.pins;
 	}
+	operator const string() const {
+		return drawing + std::to_string(pins);
+	}
 };
 }} // namespace sjabloon430::tools
 
@@ -77,6 +80,7 @@ struct Datasheet {
 
 struct Orderable {
 	string name; // also id (never linked to... useless)
+	string model;
 	Package pkg;
 	int pinsetId; // link?
 };
