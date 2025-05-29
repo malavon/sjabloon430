@@ -141,7 +141,7 @@ vector<string> findModelsByDatasheet(sqlite3 *db, const string datasheetId) {
 }
 
 vector<Orderable> findOrderablesByDatasheet(sqlite3 *db, const string datasheetId) {
-	static const char *QUERY = "SELECT name, drawing, pins, pinset_id "
+	static const char *QUERY = "SELECT name, device_id, drawing, pins, pinset_id "
 				   "FROM orderable o "
 				   "INNER JOIN device d ON o.device_id = d.model "
 				   "WHERE datasheet_id = ? "
@@ -158,15 +158,13 @@ vector<Orderable> findOrderablesByDatasheet(sqlite3 *db, const string datasheetI
 
 	vector<Orderable> result;
 	while ( sqlite3_step(stmt) == SQLITE_ROW ) {
-		string name = reinterpret_cast<const char *>(sqlite3_column_text(stmt, 0));
-		string drw = reinterpret_cast<const char *>(sqlite3_column_text(stmt, 1));
-		int pins = sqlite3_column_int(stmt, 2);
-		int pinsetId = sqlite3_column_int(stmt, 3);
-		Orderable ord{
-			name, Package{drw, pins},
-			  pinsetId
-			  };
-		result.push_back(ord);
+		Orderable o;
+		o.name = reinterpret_cast<const char *>(sqlite3_column_text(stmt, 0));
+		o.model = reinterpret_cast<const char *>(sqlite3_column_text(stmt, 1));
+		o.pkg.drawing = reinterpret_cast<const char *>(sqlite3_column_text(stmt, 2));
+		o.pkg.pins = sqlite3_column_int(stmt, 3);
+		o.pinsetId = sqlite3_column_int(stmt, 4);
+		result.push_back(o);
 	}
 	return result;
 }
@@ -247,6 +245,7 @@ vector<Pinset> findPinsetsByDatasheet(sqlite3 *db, const vector<Signalset> sgnse
 
 	return ps;
 }
+
 vector<Signalset> findSignalsetsByDatasheet(sqlite3 *db, const string datasheetId) {
 	// this function assumes index is continuous from 0 to n
 
