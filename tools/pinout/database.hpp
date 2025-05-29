@@ -37,7 +37,13 @@ struct Package {
 	bool operator==(const Package &o) const {
 		return drawing == o.drawing && pins == o.pins;
 	}
-	operator const string() const {
+	bool operator!=(const Package &o) const { // for comparison with iterators
+		return drawing != o.drawing || pins != o.pins;
+	}
+	bool operator<(const Package &o) const { // for addition to (ordered) std::set
+		return drawing < o.drawing || (pins < o.pins && drawing == o.drawing);
+	}
+	operator const string() const { // for consistency and ease-of-use
 		return drawing + std::to_string(pins);
 	}
 };

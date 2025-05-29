@@ -105,7 +105,7 @@ int main() {
 		vw.signalDescs = db::listAllSignalDescriptions(db);
 		convertDbToView(ordbls, signalsets, vw);
 
-		ui::loopPinsetEditing(pins, hotkeys, vw);
+		ui::loopPinsetEditing(pins, hotkeys, newSet, vw, ordbls);
 
 		db::saveSignals(db, vw.signalDescs);
 		dbf::exportSignals(db);

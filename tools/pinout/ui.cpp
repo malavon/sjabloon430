@@ -1,6 +1,7 @@
 #include "ui.hpp"
 
 #include <cstdio>
+#include <set>
 
 namespace sjabloon430 { namespace tools { namespace pinout { namespace ui {
 
@@ -398,6 +399,17 @@ void drawPinSetEditingWindow(Window &win, PinSetView &vw) {
 	}
 }
 
+void drawSetConfigWindow(BorderedWindow &win, const vector<db::Orderable> odbls) {
+	win.clear();
+	std::set<string> models;
+	std::set<Package> pkgs;
+	for ( const Orderable &o : odbls ) {
+		models.insert(o.model);
+		pkgs.insert(o.pkg);
+	}
+	drawSetConfigWindow(win, vector<string>(models.begin(), models.end()), vector<Package>(pkgs.begin(), pkgs.end()));
+}
+
 void drawSetConfigWindow(BorderedWindow &win, const vector<string> &models, const vector<Package> &pkgs) {
 	const int MAX_PKG_LEN = 6;
 	const int COL_HDR = 1;
@@ -476,7 +488,7 @@ void drawTopWindow(BorderedWindow &win, const Datasheet &ds, const DatabaseTotal
 	win.paint();
 }
 
-void loopPinsetEditing(Window &win, Window &hot, PinSetView &vw) {
+void loopPinsetEditing(Window &win, Window &hot, BorderedWindow &config, ui::PinSetView &vw, vector<db::Orderable> &ordbls) {
 	int tempChar = 0;
 	do {
 		switch ( tempChar ) {
@@ -490,7 +502,7 @@ void loopPinsetEditing(Window &win, Window &hot, PinSetView &vw) {
 			case KEY_ENTER:
 			case 10 /* RETURN */:
 				vw.editIdx = vw.selIdx;
-				displayEditHotkeys(win);
+				displayEditHotkeys(hot);
 				break;
 			case KEY_IC /* insert */:
 				// insert and edit; will be removed by ui code if no signals are inserted!
@@ -506,9 +518,18 @@ void loopPinsetEditing(Window &win, Window &hot, PinSetView &vw) {
 				break;
 			case KEY_F(5):
 			case KEY_F(6):
-			case KEY_F(7):
-				// ui::filterForConfigset(pkgs, models, ordbls);
-				break;
+			case KEY_F(7): {
+				std::set<string> models;
+				std::set<Package> pkgs;
+				for ( const db::Orderable &o : ordbls ) {
+					models.insert(o.model);
+					pkgs.insert(o.pkg);
+				}
+				vector<string> mv(models.begin(), models.end());
+				vector<Package> pv(pkgs.begin(), pkgs.end());
+				vector<db::Orderable> newo = ui::filterForConfigset(pv, mv, ordbls);
+				ui::drawSetConfigWindow(config, newo);
+			} break;
 			case 27 /*ESCAPE*/: // open a menu or something, probably beyond MVP though
 				break;
 		}
@@ -520,14 +541,13 @@ void loopPinsetEditing(Window &win, Window &hot, PinSetView &vw) {
 }
 
 // used to create config set, display packages & devices for the user to filter them
-vector<db::Orderable> filterForConfigset(const vector<Package> &pkgs, const vector<string> &models,
-					 vector<db::Orderable> &odbls) {
-	static const string TEXT = "Select devices OR packages to use.";
+vector<db::Orderable> filterForConfigset(const vector<Package> &ps, const vector<string> &ms, const vector<db::Orderable> &os) {
+	static const string TEXT = "Select devices OR packages to use for the set.";
 	static const string KEYS = "U/D Move TAB/STAB Models/Packages SPACE Select RETURN Confirm"; // marker for length
 	static const int TEXT_WIDTH = max(TEXT.length(), KEYS.length());
 
 	int WIN_WIDTH = max(TEXT_WIDTH, max(FIELD_WIDTH_PKG + 1, 18)) + 2 /* Whitespace Left/right  */ + 2 /* border */;
-	int WIN_HEIGHT = std::max(pkgs.size(), models.size()) + 3 /* text & empty line */ + 1 /* empty line */ + 2 /* border */;
+	int WIN_HEIGHT = std::max(ps.size(), ms.size()) + 3 /* text & empty line */ + 1 /* empty line */ + 2 /* border */;
 
 	BorderedWindow center(WIN_HEIGHT, WIN_WIDTH, (LINES - WIN_HEIGHT) / 2, (COLS - WIN_WIDTH) / 2);
 	center.setTitle("Filter");
@@ -542,7 +562,7 @@ vector<db::Orderable> filterForConfigset(const vector<Package> &pkgs, const vect
 	enum { MODELS = 0, PACKAGES = 1 };
 	// using arrays for these greatly simplifies below code
 	// of course, using some sort of selection box would do this even more :)
-	unsigned long selIdx[2] = {0, 0}, maxIdx[] = {models.size() - 1, pkgs.size() - 1};
+	unsigned long selIdx[2] = {0, 0}, maxIdx[] = {ms.size() - 1, ps.size() - 1};
 	int intIdx = MODELS; // working with index creates shortest code
 	// selection masks; using entire int-space; 15 models is maximum in database though
 	// this is the clever bit ... right?
@@ -569,12 +589,12 @@ vector<db::Orderable> filterForConfigset(const vector<Package> &pkgs, const vect
 		int colMdl = 4;
 		int colPkg = center.maxCols() - FIELD_WIDTH_PKG - 4 - 4;
 		int row = 3;
-		for ( size_t i = 0; i < models.size(); i++ ) {
+		for ( size_t i = 0; i < ms.size(); i++ ) {
 			center.add(row + i, colMdl, bitMsks[0] & (1 << i) ? " [X] " : " [ ] ");
-			center.add(models[i], i == selIdx[0] && intIdx == 0 ? A_STANDOUT : A_NORMAL);
+			center.add(ms[i], i == selIdx[0] && intIdx == 0 ? A_STANDOUT : A_NORMAL);
 		}
-		for ( size_t i = 0; i < pkgs.size(); i++ ) {
-			center.add(row + i, colPkg, pkgs[i], i == selIdx[1] && intIdx == 1 ? A_STANDOUT : A_NORMAL);
+		for ( size_t i = 0; i < ps.size(); i++ ) {
+			center.add(row + i, colPkg, ps[i], i == selIdx[1] && intIdx == 1 ? A_STANDOUT : A_NORMAL);
 			center.add(row + i, colPkg + FIELD_WIDTH_PKG, bitMsks[1] & (1 << i) ? "[X] " : "[ ] ");
 		}
 
@@ -583,7 +603,23 @@ vector<db::Orderable> filterForConfigset(const vector<Package> &pkgs, const vect
 		center.paint();
 	} while ( (pressedKey = wgetch(center)) != KEY_ENTER && pressedKey != 10 );
 
-	return odbls;
+	vector<db::Orderable> fltrd;
+	for ( const db::Orderable &o : os ) {
+		unsigned int mdlIdx = 0, pkgIdx = 0;
+		// there is no find/search with indices in C++? :'(
+		// can maybe solved with one of the newer std::* thingies
+		for ( vector<string>::const_iterator it = ms.begin(); it < ms.end() && *it != o.model; it++, mdlIdx++ ) { }
+		for ( vector<Package>::const_iterator it = ps.cbegin(); it < ps.end() && *it != o.pkg; it++, pkgIdx++ ) { }
+
+		// asserts will never hit if models/packages/orderables are correctly retrieved from the DB
+		assert(mdlIdx < ms.size());
+		assert(pkgIdx < ps.size());
+
+		if ( bitMsks[MODELS] & (1 << mdlIdx) && bitMsks[PACKAGES] & (1 << pkgIdx) ) {
+			fltrd.push_back(o);
+		}
+	}
+	return fltrd;
 }
 
 // reordering packages, given vector is reordered
