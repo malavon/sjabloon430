@@ -84,24 +84,24 @@ struct Datasheet {
 	string revDate;
 };
 
+// before Orderable because of the link, cannot forward-declare?
+struct Pinset {
+	int id = 0; // auto-increment
+	int pins = 0;
+	unordered_map<Pin, struct Signalset> signalsets;
+};
+
 struct Orderable {
 	string name; // also id (never linked to... useless)
 	string model;
 	Package pkg;
-	int pinsetId; // link?
-};
-
-struct Pinset {
-	int id = 0; // auto-increment
-	int totalPins;
-	unordered_map<Pin, struct Signalset> signalsets;
+	Pinset pinset; // reference to correct object, if pinset.id != 0
 };
 
 struct Signalset {
 	int id = 0;	  // auto-increment
 	int parentId = 0; // 0 == NULL
 	vector<string> signals;
-	unordered_map<Package, Pin> pins; // this construct can store only a single empty/null pin!
 };
 
 /* SQLite 3 init & database import/export */
@@ -115,16 +115,15 @@ DatabaseTotals countSupported(sqlite3 *db);
 
 Datasheet findDatasheet(sqlite3 *db, const string id);
 vector<string> findModelsByDatasheet(sqlite3 *db, const string datasheetId);
-vector<Orderable> findOrderablesByDatasheet(sqlite3 *db, const string datasheetId);
+vector<Orderable> findOrderablesByDatasheet(sqlite3 *db, const string datasheetId, const vector<Pinset> &);
 vector<Package> findPackagesByDatasheet(sqlite3 *db, const string datasheetId);
-vector<Pinset> findPinsetsByDatasheet(sqlite3 *db, const string datasheetId);
+vector<Pinset> findPinsetsByDatasheet(sqlite3 *db, const string &datasheetId, const vector<Signalset> &);
 vector<Signalset> findSignalsetsByDatasheet(sqlite3 *db, const string datasheetId);
 unordered_map<string, string> listAllModelsAndDatasheets(sqlite3 *db);
 unordered_map<string, string> listAllSignalDescriptions(sqlite3 *db);
 
 /* Modify DB, inserts return inserted rows */
-int linkOrderableToPinset(sqlite3 *, const vector<Orderable> &);
-
+int linkOrderableToItsPinset(sqlite3 *db, const Orderable &odbl);
 int saveOrUpdateSignalsets(sqlite3 *db, vector<Signalset> &sets); // assumes signals are all in DB!
 int saveOrUpdatePinset(sqlite3 *db, Pinset &ps);		  // assumes signalsets are all in DB!
 int saveSignals(sqlite3 *db, unordered_map<string, string> signals);
