@@ -15,9 +15,10 @@ namespace dbf = sjabloon430::tools::db;
 using sjabloon430::tools::Package;
 using sjabloon430::tools::Pin;
 
-void addPinsetsToOrderables(sqlite3 *, const vector<db::Signalset> &, vector<db::Orderable> &);
+void addPinsetsToOrderables(sqlite3 *, vector<db::Orderable> &);
 void convertDbToView(const vector<db::Orderable> &, const vector<db::Signalset> &, ui::PinSetView &);
-void convertViewToDb(const ui::PinSetView &, vector<db::Signalset> &);
+void convertAndSaveViewToDb(const ui::PinSetView &, vector<db::Signalset> &);
+void convertAndSaveViewToDb(sqlite3 *db, const ui::PinSetView &, vector<db::Orderable> &);
 
 static const int WIDEST_MODEL_LENGTH = strlen("MSP430F6459-HIREL"); /* hardcoded longest model */
 static const int WIN_TOP_HEIGHT = 6;
@@ -91,14 +92,13 @@ int main() {
 		ui::drawSetConfigWindow(newSet, {"MOCKUP"}, {Package{"MOCKUP", 22}});
 		/* clang-format on */
 
-		// TODO: get pins from DB
-		// orderables are used to create config sets (the thing at the right :p) -> but not yet implemented
-		vector<db::Orderable> ordbls = db::findOrderablesByDatasheet(db, selectedId);
 		// /signalsets/pinsets are also linked to orderables and thus model/package
 		vector<db::Signalset> signalsets = db::findSignalsetsByDatasheet(db, selectedId);
-
 		// does not yet use config sets, but this is where the logic could go
-		addPinsetsToOrderables(db, signalsets, ordbls);
+		vector<db::Pinset> pinsets = db::findPinsetsByDatasheet(db, selectedId, signalsets);
+		// orderables are used to create config sets (the thing at the right :p) -> but not yet implemented
+		vector<db::Orderable> ordbls = db::findOrderablesByDatasheet(db, selectedId, pinsets);
+		addPinsetsToOrderables(db, ordbls);
 
 		ui::reorderPackages(pkgs);
 		ui::PinSetView vw{pkgs};
@@ -110,11 +110,7 @@ int main() {
 		db::saveSignals(db, vw.signalDescs);
 		dbf::exportSignals(db);
 
-		convertViewToDb(vw, signalsets);
-		db::saveOrUpdateSignalsets(db, signalsets);
-
-		addPinsetsToOrderables(db, signalsets, ordbls);
-		db::linkOrderableToPinset(db, ordbls);
+		convertAndSaveViewToDb(db, vw, ordbls);
 
 		dbf::exportDataForDatasheet(db, selectedId);
 		// it would make sense that these are removed and all dev's and odbls are in files per datasheet ...
@@ -152,42 +148,31 @@ int main() {
 	return EXIT_SUCCESS;
 }
 
-void addPinsetsToOrderables(sqlite3 *db, const vector<db::Signalset> &ssets, vector<db::Orderable> &odbls) {
-	vector<db::Pinset> psets;
+void addPinsetsToOrderables(sqlite3 *db, vector<db::Orderable> &odbls) {
 	// config sets are not yet implemented, but right now it seems logical to me that they would be
 	// a list of orderables
 	// calling this function once for each config set with a different list of odbls may be correct
-	unordered_map<Package, int> pkgToPinset;
+	unordered_map<Package, int> pkgToIdx; // will make copies, not references
+	vector<db::Pinset> pinsets;	      // handy to get references from
 
+	// first iterate all and list pinsets in case a few orderables have pinsets and a few don't
+	// don't rely on ordering and make sure to not create a new pinset when it's already in the db
 	for ( db::Orderable &o : odbls ) {
-		// if the pinset has not been saved yet, it is not in the pkgToPinset map
-		// and thus needs to be saved in order to reflect signalset updates for that PACKAGE
-		// subsequent uses do not need to be saved, and if pinset is not retrieved from database
-		// doing so will clear & OVERWRITE signalsets each time
-		if ( pkgToPinset[o.pkg] == 0 ) {
-			// pinset doesn't have to come from database, YET because there are no config sets
-			// but if orderable has a pinset linked to it, it is assumed to exist and should be updated
-			db::Pinset p;
-			p.id = o.pinsetId;
-			p.totalPins = 0; // calculated again below
+		if ( o.pinset.id != 0 && pkgToIdx.find(o.pkg) == pkgToIdx.end() ) {
+			pkgToIdx[o.pkg] = pinsets.size();
+			pinsets.push_back(o.pinset);
+		}
+	}
 
-			for ( const db::Signalset &s : ssets ) {
-				// always add signalset for correct index, but do not count it if empty!
-				if ( s.pins.find(o.pkg) != s.pins.end() ) {
-					Pin pin = s.pins.at(o.pkg);
-					p.totalPins++;
-					// this can only store a single empty/null pin...
-					// so I stopped inserting those
-					p.signalsets[pin] = s;
-				}
-			}
-
-			db::saveOrUpdatePinset(db, p);
-			o.pinsetId = p.id;
-			pkgToPinset[o.pkg] = p.id; // will overwrite should be the same anyway
-		} else {
-			if ( o.pinsetId == 0 ) { // reuse pinsets for default config set if not yet linked
-				o.pinsetId = pkgToPinset[o.pkg];
+	// only then link the other (may be new) orderables, if need be create a new pinset
+	for ( db::Orderable &o : odbls ) {
+		if ( o.pinset.id == 0 ) {
+			if ( pkgToIdx.find(o.pkg) == pkgToIdx.end() ) {
+				db::saveOrUpdatePinset(db, o.pinset);
+				pkgToIdx[o.pkg] = pinsets.size();
+				pinsets.push_back(o.pinset);
+			} else {
+				o.pinset = pinsets[pkgToIdx[o.pkg]];
 			}
 		}
 	}
@@ -199,19 +184,55 @@ void convertDbToView(const vector<db::Orderable> &ordbls, const vector<db::Signa
 		ui::PinView pv;
 		pv.cview.signalsetId = ss.id;
 		pv.cview.signals = ss.signals;
-		pv.pins = ss.pins;
+
+		for ( const db::Orderable &o : ordbls ) {
+			for ( const pair<Pin, db::Signalset> &pr : o.pinset.signalsets ) {
+				if ( pr.second.id == ss.id ) {
+					pv.pins[o.pkg] = pr.first;
+					break;
+				}
+			}
+		}
 		vw.pinViews.push_back(pv);
 	}
 }
 
-void convertViewToDb(const ui::PinSetView &vw, vector<db::Signalset> &signalsets) {
-	signalsets.clear();
+void convertAndSaveViewToDb(sqlite3 *db, const ui::PinSetView &vw, vector<db::Orderable> &odbls) {
+	vector<db::Signalset> signalsets; // kept locally only?
+
+	// reset pinset total counts, needs to be recalculated after edit
+	// note that pinsets are supposed to all have a valid id already in this function
+	for ( db::Orderable &o : odbls ) {
+		o.pinset.pins = 0;
+	}
 
 	for ( const ui::PinView &pv : vw.pinViews ) {
 		db::Signalset s;
 		s.id = pv.cview.signalsetId;
 		s.signals = pv.cview.signals;
-		s.pins = pv.pins;
 		signalsets.push_back(s);
+	}
+	// save to database to ensure ids are valid
+	db::saveOrUpdateSignalsets(db, signalsets);
+
+	int idx = 0;
+	for ( const db::Signalset &ss : signalsets ) {
+		// using the fact that PinView has same index as Signalset!
+		ui::PinView pv = vw.pinViews[idx++];
+		for ( const pair<Package, Pin> &pr : pv.pins ) {
+			for ( db::Orderable &o : odbls ) {
+				if ( o.pkg == pr.first && !pr.second.empty() ) {
+					o.pinset.signalsets[pr.second] = ss;
+					o.pinset.pins++;
+				}
+			}
+		}
+	}
+
+	for ( db::Orderable &o : odbls ) {
+		// TODO: are these references? if so, no need to update n times
+		// if not: they should really be!!!
+		db::saveOrUpdatePinset(db, o.pinset);
+		db::linkOrderableToItsPinset(db, o);
 	}
 }
