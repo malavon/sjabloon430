@@ -6,11 +6,12 @@
 
 -- Table: pinset
 CREATE TABLE IF NOT EXISTS pinset (
-    id            INTEGER PRIMARY KEY AUTOINCREMENT,
-    parent_id     INTEGER REFERENCES pinset (id) ON DELETE RESTRICT
-                                                 ON UPDATE CASCADE,
-    pins          INTEGER NOT NULL,
-    comment       TEXT
+    id        INTEGER PRIMARY KEY AUTOINCREMENT
+                      NOT NULL,
+    parent_id INTEGER REFERENCES pinset (id) ON DELETE RESTRICT
+                                             ON UPDATE CASCADE,
+    pins      INTEGER NOT NULL,
+    comment   TEXT
 )
 STRICT;
 
@@ -37,3 +38,4 @@ CREATE TABLE IF NOT EXISTS pinset_signalset (
 )
 WITHOUT ROWID,
 STRICT;
+

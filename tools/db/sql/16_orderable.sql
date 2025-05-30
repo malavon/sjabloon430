@@ -14,7 +14,8 @@ CREATE TABLE IF NOT EXISTS orderable (
                         NOT NULL,
     drawing     TEXT    NOT NULL,
     pins        INTEGER NOT NULL,
-    pinset_id   INTEGER REFERENCES pinset (id) ON DELETE RESTRICT,
+    pinset_id   INTEGER REFERENCES pinset (id) ON DELETE RESTRICT
+                                               ON UPDATE CASCADE,
     status      TEXT    NOT NULL,
     msl_level   INTEGER,
     op_temp_min INTEGER,
