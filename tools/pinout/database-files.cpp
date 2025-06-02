@@ -251,7 +251,8 @@ void exportOrderablePinsetsFor(sqlite3 *db, const string &datasheetId, const str
 				   "INNER JOIN device d ON d.model = o.device_id "
 				   "WHERE pinset_id IS NOT NULL "
 				   "AND d.datasheet_id = ? "
-				   "ORDER BY pinset_id ASC, d.model ASC, o.name ASC";
+				   "ORDER BY drawing ASC, pins ASC, pinset_id ASC, d.model ASC, o.name ASC";
+
 	static sqlite3_stmt *stmt;
 	if ( stmt == nullptr ) {
 		prepare(db, &stmt, QUERY);
@@ -263,6 +264,7 @@ void exportOrderablePinsetsFor(sqlite3 *db, const string &datasheetId, const str
 	expConf.colWidths = {MAX_WIDTH_NULL, MAX_WIDTH_PINSET}; // first is condition, which is name and not formatted
 	exportFromPrepStmt(stmt, filename, expConf);
 }
+
 void exportPinsetsFor(sqlite3 *db, const string &datasheetId, const string filename, ExportConfig expConf) {
 	static const char *QUERY = "SELECT ps.* "
 				   "FROM pinset ps "
