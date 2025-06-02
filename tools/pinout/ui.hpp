@@ -29,7 +29,9 @@ static const char *DESCRIPTION_HDR("DESCRIPTION");
 
 class Configset {
   public:
-	Configset(vector<db::Orderable> &vod) : odbls(vod) { }
+	Configset() { }
+
+	Configset(const vector<db::Orderable> &vod) : odbls(vod) { }
 
 	const vector<string> toModels() const {
 		std::set<string> models;
@@ -49,6 +51,10 @@ class Configset {
 
 	const vector<db::Orderable> orderables() const {
 		return odbls;
+	}
+
+	void add(db::Orderable &o) {
+		odbls.push_back(o);
 	}
 
   private:
