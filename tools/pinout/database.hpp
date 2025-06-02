@@ -89,6 +89,7 @@ struct Datasheet {
 // before Orderable because of the link, cannot forward-declare?
 struct Pinset {
 	int id = 0; // auto-increment
+	int parentId = 0;
 	int pins = 0;
 	unordered_map<Pin, struct Signalset> signalsets;
 };
