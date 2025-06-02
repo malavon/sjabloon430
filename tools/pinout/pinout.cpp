@@ -16,7 +16,8 @@ using sjabloon430::tools::Package;
 using sjabloon430::tools::Pin;
 
 void addPinsetsToOrderables(sqlite3 *, vector<db::Orderable> &);
-void convertDbToView(const vector<db::Orderable> &, const vector<db::Signalset> &, ui::PinSetView &);
+void convertDbToView(const vector<db::Signalset> &signalsets, const vector<db::Pinset> &pinsets,
+		     vector<db::Orderable> &orderables, ui::PinSetView &vw);
 void convertAndSaveViewToDb(const ui::PinSetView &, vector<db::Signalset> &);
 void convertAndSaveViewToDb(sqlite3 *db, const ui::PinSetView &, vector<db::Orderable> &);
 
@@ -98,9 +99,8 @@ int main() {
 		ui::reorderPackages(pkgs);
 		ui::PinSetView vw{pkgs};
 		vw.signalDescs = db::listAllSignalDescriptions(db);
-		convertDbToView(ordbls, signalsets, vw);
+		convertDbToView(signalsets, pinsets, ordbls, vw);
 
-		vw.csets.push_back(ui::Configset(ordbls));
 		ui::drawSetConfigWindow(defaultSet, vw.csets[0]);
 
 		ui::loopPinsetEditing(pins, top, newSet, vw);
@@ -176,14 +176,38 @@ void addPinsetsToOrderables(sqlite3 *db, vector<db::Orderable> &odbls) {
 	}
 }
 
-void convertDbToView(const vector<db::Orderable> &ordbls, const vector<db::Signalset> &signalsets, ui::PinSetView &vw) {
+void convertDbToView(const vector<db::Signalset> &signalsets, const vector<db::Pinset> &pinsets,
+		     vector<db::Orderable> &orderables, ui::PinSetView &vw) {
+	// logic: * all pinsets without parents are part of the default config set
+	//	  * all pinsets that have default pinsets as parent, are the second config set
+	//	  * all pinsets that have second ... etc
+	set<int> pids = {0};
+	while ( !pids.empty() ) {
+		set<int> next;
+		ui::Configset curr;
+		for ( db::Orderable &o : orderables ) {
+			if ( pids.find(o.pinset.parentId) != pids.end() ) {
+				next.insert(o.pinset.id);
+				curr.add(o);
+			}
+		}
+		// if this assert hits, there are 2 configsets with the same parent ... which is not supported
+		// either the user has made a big error, or there are datasheets in which this is really, really
+		// required (in which case my message to the reader is: sorry ... <hihi>)
+		assert(next.size() <= vw.pkgs.size());
+		if ( !next.empty() ) {
+			vw.csets.push_back(curr);
+		}
+		pids = next;
+	}
+
 	// orderables should be used in DB query? part of config set?
 	for ( const db::Signalset &ss : signalsets ) {
 		ui::PinView pv;
 		pv.cview.signalsetId = ss.id;
 		pv.cview.signals = ss.signals;
 
-		for ( const db::Orderable &o : ordbls ) {
+		for ( const db::Orderable &o : orderables ) {
 			for ( const pair<Pin, db::Signalset> &pr : o.pinset.signalsets ) {
 				if ( pr.second.id == ss.id ) {
 					pv.pins[o.pkg] = pr.first;
