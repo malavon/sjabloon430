@@ -84,14 +84,9 @@ int main() {
 				     + 2 /* headers */ + 2 /* borders */;
 		BorderedWindow defaultSet(defaultSetHeight, WIN_CONFIGSET_WIDTH, 0, COLS - WIN_CONFIGSET_WIDTH);
 		defaultSet.setTitle("Default");
-		ui::drawSetConfigWindow(defaultSet, models, pkgs);
 
 		BorderedWindow newSet(defaultSetHeight, WIN_CONFIGSET_WIDTH, defaultSetHeight, COLS - WIN_CONFIGSET_WIDTH);
 		newSet.setTitle("Set F5");
-		// newSet.add(0, 1, "F5: Create new set");
-		/* clang-format off */ // does not format, TODO
-		ui::drawSetConfigWindow(newSet, {"MOCKUP"}, {Package{"MOCKUP", 22}});
-		/* clang-format on */
 
 		// /signalsets/pinsets are also linked to orderables and thus model/package
 		vector<db::Signalset> signalsets = db::findSignalsetsByDatasheet(db, selectedId);
@@ -106,7 +101,10 @@ int main() {
 		vw.signalDescs = db::listAllSignalDescriptions(db);
 		convertDbToView(ordbls, signalsets, vw);
 
-		ui::loopPinsetEditing(pins, hotkeys, newSet, vw, ordbls);
+		vw.csets.push_back(ui::Configset(ordbls));
+		ui::drawSetConfigWindow(defaultSet, vw.csets[0]);
+
+		ui::loopPinsetEditing(pins, top, newSet, vw);
 
 		db::saveSignals(db, vw.signalDescs);
 		dbf::exportSignals(db);
