@@ -1,6 +1,7 @@
 #ifndef UI_HPP
 #define UI_HPP
 
+#include <set>
 #include <unordered_map>
 
 #include "database.hpp"
@@ -25,6 +26,34 @@ static const int MAX_SIGNALS = 10;
 
 static const char *SIGNAL_HDR("SIGNAL");
 static const char *DESCRIPTION_HDR("DESCRIPTION");
+
+class Configset {
+  public:
+	Configset(vector<db::Orderable> &vod) : odbls(vod) { }
+
+	const vector<string> toModels() const {
+		std::set<string> models;
+		for ( const db::Orderable &o : odbls ) {
+			models.insert(o.model);
+		}
+		return vector<string>(models.begin(), models.end());
+	}
+
+	const vector<Package> toPkgs() const {
+		std::set<Package> pkgs;
+		for ( const db::Orderable &o : odbls ) {
+			pkgs.insert(o.pkg);
+		}
+		return vector<Package>(pkgs.begin(), pkgs.end());
+	}
+
+	const vector<db::Orderable> orderables() const {
+		return odbls;
+	}
+
+  private:
+	vector<db::Orderable> odbls;
+};
 
 struct PinView {
 	// this struct was conceived to prevent using a db:: scoped object in the ui (like db::Signalset)
@@ -70,6 +99,7 @@ struct PinSetView {
 	unordered_map<string, string> signalDescs;
 	// each item on the screen
 	vector<PinView> pinViews;
+	vector<Configset> csets;
 	/*
 	 * index of pin that is edited
 	 * if higher than pins.size(), add at end
@@ -88,12 +118,10 @@ void editPinSet(Window &, int &row, const vector<string> &pkgs, unordered_map<st
 
 // Window drawing functions
 void drawPinSetEditingWindow(Window &win, PinSetView &pinView);
-void drawSetConfigWindow(BorderedWindow &, const vector<db::Orderable> odbls);
-void drawSetConfigWindow(BorderedWindow &, const vector<string> &models, const vector<Package> &packages);
+void drawSetConfigWindow(BorderedWindow &, const Configset &cset);
 void drawTopWindow(BorderedWindow &, const db::Datasheet &, const db::DatabaseTotals &ttl, const db::DatabaseTotals &sprtd);
-vector<db::Orderable> filterForConfigset(const vector<Package> &, const vector<string> &ms, const vector<db::Orderable> &);
-void loopPinsetEditing(Window &pinset, Window &hotkeys, BorderedWindow &config, ui::PinSetView &,
-		       vector<db::Orderable> &ordbls);
+Configset filterForConfigset(const Configset &cset);
+void loopPinsetEditing(Window &pinset, Window &hotkeys, BorderedWindow &config, ui::PinSetView &);
 void reorderPackages(vector<Package> &pkgs); // given vector is reordered in-place
 string searchDatasheet(const unordered_map<string, string> &dsModels, const int widestModelLength);
 

@@ -3,6 +3,7 @@
 
 #include <sqlite3.h>
 
+#include <set>
 #include <string>
 #include <unordered_map>
 #include <vector>
@@ -13,7 +14,8 @@ using std::vector;
 
 namespace sjabloon430 { namespace tools {
 
-/* Simple data objects which are not really database-related */
+/* Simple structs which are not really database-related */
+
 struct Pin {
 	string bgaRow;
 	int number;
