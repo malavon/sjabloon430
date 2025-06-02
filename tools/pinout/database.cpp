@@ -208,24 +208,30 @@ vector<Package> findPackagesByDatasheet(sqlite3 *db, const string datasheetId) {
 
 // fills pinset using data already in database, but Signalsets already in memory
 vector<Pinset> findPinsetsByDatasheet(sqlite3 *db, const string &datasheetId, const vector<Signalset> &sgnsets) {
-	static const char *QUERY = "SELECT pss.pinset_id, pss.signalset_id, pin_bga_row, pin_number "
-				   "from pinset_signalset pss "
-				   "WHERE pss.pinset_id IN ( "
-				   "	SELECT o.pinset_id "
+	static const char *QUERY = "SELECT id, parent_id, pins, pss.signalset_id, pss.pin_bga_row, pss.pin_number "
+				   "FROM pinset p "
+				   "INNER JOIN pinset_signalset pss ON (p.id=pss.pinset_id) "
+				   // todo: inner join on 2 columns works; is this standard SQL?
+				   // also: actually wrong? parent pinset has (a few) different signalsets which
+				   // are children themselves
+				   // "INNER JOIN pinset_signalset pss ON (p.id=pss.pinset_id OR p.parent_id=pss.pinset_id) "
+				   "WHERE p.id IN ("
+				   "	SELECT distinct o.pinset_id "
 				   "	FROM orderable o "
 				   "	INNER JOIN device d ON o.device_id = d.model "
-				   "	WHERE d.datasheet_id = ?) "
-				   "ORDER BY pss.pinset_id ASC";
+				   "	WHERE d.datasheet_id = ? "
+				   "	order by o.pinset_id ASC )"
+				   "ORDER BY p.id ASC";
 
 	static sqlite3_stmt *stmt;
 	if ( stmt == nullptr ) { // assume both are null
 		prepare(db, &stmt, QUERY);
 	}
 
-	unordered_map<int, int> id2idx; // id->vector index!
+	unordered_map<int, int> id2ssIdx; // id->vector index!
 	int vtIdx = 0;
 	for ( const Signalset &ss : sgnsets ) {
-		id2idx[ss.id] = vtIdx++;
+		id2ssIdx[ss.id] = vtIdx++;
 	}
 
 	sqlite3_reset(stmt);
@@ -237,15 +243,17 @@ vector<Pinset> findPinsetsByDatasheet(sqlite3 *db, const string &datasheetId, co
 	while ( rc == SQLITE_ROW ) {
 		Pinset p;
 		p.id = sqlite3_column_int(stmt, 0);
+		p.parentId = sqlite3_column_int(stmt, 1);
+		p.pins = sqlite3_column_int(stmt, 3); // will be updated by application, not verified/calculated here
 		while ( sqlite3_column_int(stmt, 0) == p.id ) {
-			int sgnStId = sqlite3_column_int(stmt, 1);
+			int sgnStId = sqlite3_column_int(stmt, 3);
 
-			const unsigned char *bgaRow = sqlite3_column_text(stmt, 2);
+			const unsigned char *bgaRow = sqlite3_column_text(stmt, 4);
 			Pin key;
 			key.bgaRow = bgaRow == nullptr ? "" : string(reinterpret_cast<const char *>(bgaRow));
-			key.number = sqlite3_column_int(stmt, 3);
+			key.number = sqlite3_column_int(stmt, 5);
 
-			p.signalsets[key] = sgnsets[id2idx[sgnStId]];
+			p.signalsets[key] = sgnsets[id2ssIdx[sgnStId]];
 			rc = sqlite3_step(stmt);
 		}
 		ps.push_back(p);
