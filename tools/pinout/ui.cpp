@@ -399,28 +399,19 @@ void drawPinSetEditingWindow(Window &win, PinSetView &vw) {
 	}
 }
 
-void drawSetConfigWindow(BorderedWindow &win, const vector<db::Orderable> odbls) {
-	win.clear();
-	std::set<string> models;
-	std::set<Package> pkgs;
-	for ( const Orderable &o : odbls ) {
-		models.insert(o.model);
-		pkgs.insert(o.pkg);
-	}
-	drawSetConfigWindow(win, vector<string>(models.begin(), models.end()), vector<Package>(pkgs.begin(), pkgs.end()));
-}
-
-void drawSetConfigWindow(BorderedWindow &win, const vector<string> &models, const vector<Package> &pkgs) {
+void drawSetConfigWindow(BorderedWindow &win, const Configset &cset) {
 	const int MAX_PKG_LEN = 6;
 	const int COL_HDR = 1;
 	const int COL_DATA = 2;
 
+	win.clear();
 	int lr = 0;
 	win.add(lr++, COL_HDR, "Models:");
-	for ( const string &model : models ) {
+	for ( const string &model : cset.toModels() ) {
 		win.add(lr++, COL_DATA, model);
 	}
 
+	vector<Package> pkgs = cset.toPkgs();
 	win.add(lr++, COL_HDR, "Packages:");
 	for ( size_t i = 0; i < pkgs.size(); i++ ) {
 		const string pkg = pkgs[i].drawing + to_string(pkgs[i].pins);
@@ -488,8 +479,9 @@ void drawTopWindow(BorderedWindow &win, const Datasheet &ds, const DatabaseTotal
 	win.paint();
 }
 
-void loopPinsetEditing(Window &win, Window &hot, BorderedWindow &config, ui::PinSetView &vw, vector<db::Orderable> &ordbls) {
+void loopPinsetEditing(Window &win, Window &hot, BorderedWindow &config, ui::PinSetView &vw) {
 	int tempChar = 0;
+	int ncset = 0;
 	do {
 		switch ( tempChar ) {
 			case KEY_UP:
@@ -518,18 +510,15 @@ void loopPinsetEditing(Window &win, Window &hot, BorderedWindow &config, ui::Pin
 				break;
 			case KEY_F(5):
 			case KEY_F(6):
-			case KEY_F(7): {
-				std::set<string> models;
-				std::set<Package> pkgs;
-				for ( const db::Orderable &o : ordbls ) {
-					models.insert(o.model);
-					pkgs.insert(o.pkg);
+			case KEY_F(7):
+				if ( tempChar - KEY_F(5) >= ncset ) { // do not allow creating a set that already exists
+					vw.csets.push_back(ui::filterForConfigset(vw.csets[0] /* default set */));
+					ui::drawSetConfigWindow(config, vw.csets[++ncset]);
+				} else {
+					// activate set? modify set?
 				}
-				vector<string> mv(models.begin(), models.end());
-				vector<Package> pv(pkgs.begin(), pkgs.end());
-				vector<db::Orderable> newo = ui::filterForConfigset(pv, mv, ordbls);
-				ui::drawSetConfigWindow(config, newo);
-			} break;
+				break;
+
 			case 27 /*ESCAPE*/: // open a menu or something, probably beyond MVP though
 				break;
 		}
@@ -541,11 +530,13 @@ void loopPinsetEditing(Window &win, Window &hot, BorderedWindow &config, ui::Pin
 }
 
 // used to create config set, display packages & devices for the user to filter them
-vector<db::Orderable> filterForConfigset(const vector<Package> &ps, const vector<string> &ms, const vector<db::Orderable> &os) {
+Configset filterForConfigset(const Configset &cset) {
 	static const string TEXT = "Select devices OR packages to use for the set.";
 	static const string KEYS = "U/D Move TAB/STAB Models/Packages SPACE Select RETURN Confirm"; // marker for length
 	static const int TEXT_WIDTH = max(TEXT.length(), KEYS.length());
 
+	vector<Package> ps = cset.toPkgs();
+	vector<string> ms = cset.toModels();
 	int WIN_WIDTH = max(TEXT_WIDTH, max(FIELD_WIDTH_PKG + 1, 18)) + 2 /* Whitespace Left/right  */ + 2 /* border */;
 	int WIN_HEIGHT = std::max(ps.size(), ms.size()) + 3 /* text & empty line */ + 1 /* empty line */ + 2 /* border */;
 
@@ -604,7 +595,7 @@ vector<db::Orderable> filterForConfigset(const vector<Package> &ps, const vector
 	} while ( (pressedKey = wgetch(center)) != KEY_ENTER && pressedKey != 10 );
 
 	vector<db::Orderable> fltrd;
-	for ( const db::Orderable &o : os ) {
+	for ( const db::Orderable &o : cset.orderables() ) {
 		unsigned int mdlIdx = 0, pkgIdx = 0;
 		// there is no find/search with indices in C++? :'(
 		// can maybe solved with one of the newer std::* thingies
@@ -619,7 +610,7 @@ vector<db::Orderable> filterForConfigset(const vector<Package> &ps, const vector
 			fltrd.push_back(o);
 		}
 	}
-	return fltrd;
+	return Configset(fltrd);
 }
 
 // reordering packages, given vector is reordered
