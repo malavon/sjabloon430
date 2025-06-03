@@ -124,10 +124,10 @@ void editPinSet(Window &, int &row, const vector<string> &pkgs, unordered_map<st
 
 // Window drawing functions
 void drawPinSetEditingWindow(Window &win, PinSetView &pinView);
-void drawSetConfigWindow(BorderedWindow &, const Configset &cset);
+void drawSetConfigWindow(Window &, const Configset &cset);
 void drawTopWindow(BorderedWindow &, const db::Datasheet &, const db::DatabaseTotals &ttl, const db::DatabaseTotals &sprtd);
 Configset filterForConfigset(const Configset &cset);
-void loopPinsetEditing(Window &pinset, Window &hotkeys, BorderedWindow &config, ui::PinSetView &);
+void loopPinsetEditing(Window &pinset, Window &hotkeys, Window &config, ui::PinSetView &);
 void reorderPackages(vector<Package> &pkgs); // given vector is reordered in-place
 string searchDatasheet(const unordered_map<string, string> &dsModels, const int widestModelLength);
 
