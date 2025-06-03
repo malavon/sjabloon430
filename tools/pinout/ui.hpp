@@ -53,10 +53,10 @@ struct PinView {
 	struct ConfigView {
 		int signalsetId = 0;
 		// parentsetId = 0; // not sure if needed, don't use unless proven useful
-		// indexed! first = (pin) default
+		// indexed! first = (pin) default, may contain empty strings when parenting!
 		vector<string> signals;
 	};
-	ConfigView cview;
+	vector<ConfigView> cviews; // empty by default, needs to be inserted!
 	// one pin per package
 	unordered_map<Package, Pin> pins;
 	// experiment: getting/setting signals can happen through the [] operator to get to
@@ -64,11 +64,11 @@ struct PinView {
 	// then again, will NOT break compilation once it is no longer a single one ...
 	vector<string> &operator[](int idx) {
 		assert(idx == 0);
-		return cview.signals;
+		return cviews[idx].signals;
 	}
 	const vector<string> &operator[](int idx) const {
 		assert(idx == 0);
-		return cview.signals;
+		return cviews[idx].signals;
 	}
 	bool hasPins() const {
 		for ( const std::pair<const Package, Pin> &pr : pins ) {
@@ -79,7 +79,7 @@ struct PinView {
 		return false;
 	}
 	bool hasPinsAndSignals() const {
-		return hasPins() && !cview.signals.empty();
+		return hasPins() && !cviews[0].signals.empty();
 	}
 };
 
