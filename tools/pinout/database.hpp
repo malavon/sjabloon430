@@ -104,6 +104,7 @@ struct Orderable {
 struct Signalset {
 	int id = 0;	  // auto-increment
 	int parentId = 0; // 0 == NULL
+	int datasheetIdx = 0;
 	vector<string> signals;
 };
 
