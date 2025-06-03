@@ -399,7 +399,7 @@ void drawPinSetEditingWindow(Window &win, PinSetView &vw) {
 	}
 }
 
-void drawSetConfigWindow(BorderedWindow &win, const Configset &cset) {
+void drawSetConfigWindow(Window &win, const Configset &cset) {
 	const int MAX_PKG_LEN = 6;
 	const int COL_HDR = 1;
 	const int COL_DATA = 2;
@@ -479,9 +479,21 @@ void drawTopWindow(BorderedWindow &win, const Datasheet &ds, const DatabaseTotal
 	win.paint();
 }
 
-void loopPinsetEditing(Window &win, Window &hot, BorderedWindow &config, ui::PinSetView &vw) {
-	int tempChar = 0;
-	int ncset = 0;
+void loopPinsetEditing(Window &win, Window &hot, Window &config, ui::PinSetView &vw) {
+	// initially render configsets to screen
+	for ( const ui::Configset &cs : vw.csets ) {
+		// todo: move this logic somewhere less annoying?
+		// int defaultSetHeight = cs.toModels().size()   /* one line per model */
+		// 		     + cs.toPkgs().size() / 2 /* packages are max 5 wide, 2 pkgs/line */
+		// 		     + cs.toPkgs().size() % 2 /* when odd, 1 extra pkg, 1 extra line */
+		// 		     + 2 /* headers */ + 2 /* borders */;
+
+		// ui::Window der = config.deriveWindow(defaultSetHeight, config.maxCols() - 2, 1, 1);
+		ui::drawSetConfigWindow(config, cs);
+	}
+
+	unsigned int tempChar = 0;
+	// int ncset = 0;
 	do {
 		switch ( tempChar ) {
 			case KEY_UP:
@@ -511,9 +523,11 @@ void loopPinsetEditing(Window &win, Window &hot, BorderedWindow &config, ui::Pin
 			case KEY_F(5):
 			case KEY_F(6):
 			case KEY_F(7):
-				if ( tempChar - KEY_F(5) >= ncset ) { // do not allow creating a set that already exists
-					vw.csets.push_back(ui::filterForConfigset(vw.csets[0] /* default set */));
-					ui::drawSetConfigWindow(config, vw.csets[++ncset]);
+				// if ( tempChar - KEY_F(5) >= ncset ) { // do not allow creating a set that already exists
+				if ( tempChar - KEY_F(5) < vw.csets.size() ) {
+					// vw.csets.push_back(ui::filterForConfigset(vw.csets[0] /* default set */));
+					int idx = tempChar - KEY_F(5);
+					ui::drawSetConfigWindow(config, vw.csets[idx]);
 				} else {
 					// activate set? modify set?
 				}

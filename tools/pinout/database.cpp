@@ -244,7 +244,7 @@ vector<Pinset> findPinsetsByDatasheet(sqlite3 *db, const string &datasheetId, co
 		Pinset p;
 		p.id = sqlite3_column_int(stmt, 0);
 		p.parentId = sqlite3_column_int(stmt, 1);
-		p.pins = sqlite3_column_int(stmt, 3); // will be updated by application, not verified/calculated here
+		p.pins = sqlite3_column_int(stmt, 2); // will be updated by application, not verified/calculated here
 		while ( sqlite3_column_int(stmt, 0) == p.id ) {
 			int sgnStId = sqlite3_column_int(stmt, 3);
 
