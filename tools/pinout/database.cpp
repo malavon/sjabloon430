@@ -291,7 +291,7 @@ vector<Signalset> findSignalsetsByDatasheet(sqlite3 *db, const string datasheetI
 	vector<Signalset> result;
 	while ( sqlite3_step(stmtSset) == SQLITE_ROW ) {
 		Signalset s;
-		// int datasheetIdx = sqlite3_column_int(stmt, 0);
+		s.datasheetIdx = sqlite3_column_int(stmtSset, 0);
 		s.id = sqlite3_column_int(stmtSset, 1);
 		s.parentId = sqlite3_column_int(stmtSset, 2);
 		result.push_back(s);
