@@ -194,21 +194,34 @@ void convertDbToView(const vector<db::Signalset> &signalsets, const vector<db::P
 	// ... and then "fix" the default set to use all Orderables
 	vw.csets[0] = ui::Configset(orderables);
 
-	// orderables should be used in DB query? part of config set?
+	// create view objects in advance to reduce complexity in conversion code below
+	int maxDsIdx = -1; // -1, not 0; otherwise no signalsets result in 1 PinView!!!
 	for ( const db::Signalset &ss : signalsets ) {
+		maxDsIdx = max(maxDsIdx, ss.datasheetIdx);
+	}
+	for ( int i = 0; i <= maxDsIdx; i++ ) {
 		ui::PinView pv;
-		pv.cview.signalsetId = ss.id;
-		pv.cview.signals = ss.signals;
-
-		for ( const db::Orderable &o : orderables ) {
-			for ( const pair<Pin, db::Signalset> &pr : o.pinset.signalsets ) {
-				if ( pr.second.id == ss.id ) {
-					pv.pins[o.pkg] = pr.first;
-					break;
-				}
-			}
+		for ( int c = vw.csets.size(); c > 0; c-- ) {
+			pv.cviews.push_back(ui::PinView::ConfigView());
 		}
 		vw.pinViews.push_back(pv);
+	}
+
+	int csetIdx = 0;
+	for ( const ui::Configset &cs : vw.csets ) {
+		for ( const db::Orderable &o : cs.orderables() ) {
+			// for ( const db::Orderable &o : orderables ) {
+			for ( const pair<Pin, db::Signalset> &pr : o.pinset.signalsets ) {
+				Pin p = pr.first;
+				db::Signalset ss = pr.second;
+
+				ui::PinView &pv = vw.pinViews[ss.datasheetIdx];
+				pv.cviews[csetIdx].signalsetId = ss.id;
+				pv.cviews[csetIdx].signals = ss.signals;
+				pv.pins[o.pkg] = p;
+			}
+		}
+		csetIdx++;
 	}
 }
 
@@ -222,10 +235,13 @@ void convertAndSaveViewToDb(sqlite3 *db, const ui::PinSetView &vw, vector<db::Or
 	}
 
 	for ( const ui::PinView &pv : vw.pinViews ) {
-		db::Signalset s;
-		s.id = pv.cview.signalsetId;
-		s.signals = pv.cview.signals;
-		signalsets.push_back(s);
+		for ( const ui::PinView::ConfigView &cv : pv.cviews ) {
+			db::Signalset s;
+			s.id = cv.signalsetId;
+			s.signals = cv.signals;
+			// todo: parent id?
+			signalsets.push_back(s);
+		}
 	}
 	// save to database to ensure ids are valid
 	db::saveOrUpdateSignalsets(db, signalsets);
