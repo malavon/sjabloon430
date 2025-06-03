@@ -79,15 +79,7 @@ int main() {
 		vector<Package> pkgs = db::findPackagesByDatasheet(db, selectedDS.id);
 		// packages are also used for sets
 
-		int defaultSetHeight = models.size()   /* one line per model */
-				     + pkgs.size() / 2 /* packages are max 5 wide, 2 pkgs/line */
-				     + pkgs.size() % 2 /* when odd, 1 extra pkg, 1 extra line */
-				     + 2 /* headers */ + 2 /* borders */;
-		BorderedWindow defaultSet(defaultSetHeight, WIN_CONFIGSET_WIDTH, 0, COLS - WIN_CONFIGSET_WIDTH);
-		defaultSet.setTitle("Default");
-
-		BorderedWindow newSet(defaultSetHeight, WIN_CONFIGSET_WIDTH, defaultSetHeight, COLS - WIN_CONFIGSET_WIDTH);
-		newSet.setTitle("Set F5");
+		Window configs(LINES, WIN_CONFIGSET_WIDTH, 0, COLS - WIN_CONFIGSET_WIDTH);
 
 		// /signalsets/pinsets are also linked to orderables and thus model/package
 		vector<db::Signalset> signalsets = db::findSignalsetsByDatasheet(db, selectedId);
@@ -102,9 +94,7 @@ int main() {
 		vw.signalDescs = db::listAllSignalDescriptions(db);
 		convertDbToView(signalsets, pinsets, ordbls, vw);
 
-		ui::drawSetConfigWindow(defaultSet, vw.csets[0]);
-
-		ui::loopPinsetEditing(pins, top, newSet, vw);
+		ui::loopPinsetEditing(pins, hotkeys, configs, vw);
 
 		db::saveSignals(db, vw.signalDescs);
 		dbf::exportSignals(db);
@@ -201,6 +191,8 @@ void convertDbToView(const vector<db::Signalset> &signalsets, const vector<db::P
 		}
 		pids = next;
 	}
+	// ... and then "fix" the default set to use all Orderables
+	vw.csets[0] = ui::Configset(orderables);
 
 	// orderables should be used in DB query? part of config set?
 	for ( const db::Signalset &ss : signalsets ) {
