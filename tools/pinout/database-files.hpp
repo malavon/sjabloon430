@@ -19,6 +19,7 @@ struct ExportConfig {
 	bool appendFile = false;
 	Tx tx = Tx::BOTH;
 	SQL sql = SQL::INSERT;
+	std::vector<int> colWidths;
 };
 
 // only publicly-accessible functions are declared here; privately used ones are in the .cpp file
