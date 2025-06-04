@@ -16,10 +16,8 @@ using sjabloon430::tools::Package;
 using sjabloon430::tools::Pin;
 
 void addPinsetsToOrderables(sqlite3 *, vector<db::Orderable> &);
-void convertDbToView(const vector<db::Signalset> &signalsets, const vector<db::Pinset> &pinsets,
-		     vector<db::Orderable> &orderables, ui::PinSetView &vw);
-void convertAndSaveViewToDb(const ui::PinSetView &, vector<db::Signalset> &);
-void convertAndSaveViewToDb(sqlite3 *db, const ui::PinSetView &, vector<db::Orderable> &);
+void convertDbToView(const vector<db::Signalset> &signalsets, vector<db::Orderable> &orderables, ui::PinSetView &vw);
+void convertAndSaveViewToDb(sqlite3 *db, ui::PinSetView &, vector<db::Orderable> &);
 
 static const int WIDEST_MODEL_LENGTH = strlen("MSP430F6459-HIREL"); /* hardcoded longest model */
 static const int WIN_TOP_HEIGHT = 6;
@@ -91,7 +89,7 @@ int main() {
 		ui::reorderPackages(pkgs);
 		ui::PinSetView vw{pkgs};
 		vw.signalDescs = db::listAllSignalDescriptions(db);
-		convertDbToView(signalsets, pinsets, ordbls, vw);
+		convertDbToView(signalsets, ordbls, vw);
 
 		ui::loopPinsetEditing(pins, hotkeys, configs, vw);
 
@@ -166,8 +164,7 @@ void addPinsetsToOrderables(sqlite3 *db, vector<db::Orderable> &odbls) {
 	}
 }
 
-void convertDbToView(const vector<db::Signalset> &signalsets, const vector<db::Pinset> &pinsets,
-		     vector<db::Orderable> &orderables, ui::PinSetView &vw) {
+void convertDbToView(const vector<db::Signalset> &signalsets, vector<db::Orderable> &orderables, ui::PinSetView &vw) {
 	// logic: * all pinsets without parents are part of the default config set
 	//	  * all pinsets that have default pinsets as parent, are the second config set
 	//	  * all pinsets that have second ... etc
@@ -224,45 +221,59 @@ void convertDbToView(const vector<db::Signalset> &signalsets, const vector<db::P
 	}
 }
 
-void convertAndSaveViewToDb(sqlite3 *db, const ui::PinSetView &vw, vector<db::Orderable> &odbls) {
-	vector<db::Signalset> signalsets; // kept locally only?
-
+void convertAndSaveViewToDb(sqlite3 *db, ui::PinSetView &vw, vector<db::Orderable> &odbls) {
 	// reset pinset total counts, needs to be recalculated after edit
 	// note that pinsets are supposed to all have a valid id already in this function
 	for ( db::Orderable &o : odbls ) {
 		o.pinset.pins = 0;
 	}
 
-	for ( const ui::PinView &pv : vw.pinViews ) {
-		for ( const ui::PinView::ConfigView &cv : pv.cviews ) {
+	vector<db::Signalset> signalsets, parents; // kept locally only?
+	// save signalsets one config set at a time; parenting then by index
+	int ssIdx = 0, cIdx = 0;
+	for ( vector<ui::Configset>::iterator csetIt = vw.csets.begin(); csetIt < vw.csets.end(); csetIt++, cIdx++ ) {
+		ssIdx = 0;
+		for ( const ui::PinView &pv : vw.pinViews ) {
+			// for ( const ui::PinView::ConfigView &cv : pv.cviews ) {
+			ui::PinView::ConfigView cv = pv.cviews[cIdx];
 			db::Signalset s;
 			s.id = cv.signalsetId;
 			s.signals = cv.signals;
-			// todo: parent id?
-			signalsets.push_back(s);
+			if ( !parents.empty() && parents[ssIdx].id != s.id ) {
+				db::Signalset &pt = parents[ssIdx];
+				if ( s.signals != pt.signals ) { // TODO: is this actually a comparison??
+					s.parentId = pt.id;
+					signalsets.push_back(s);
+				} else {
+					signalsets.push_back(pt); // do not use another signalset if signals are equal
+				}
+			} else {
+				signalsets.push_back(s);
+			}
+			ssIdx++;
 		}
-	}
-	// save to database to ensure ids are valid
-	db::saveOrUpdateSignalsets(db, signalsets);
+		db::saveOrUpdateSignalsets(db, signalsets);
 
-	int idx = 0;
-	for ( const db::Signalset &ss : signalsets ) {
-		// using the fact that PinView has same index as Signalset!
-		ui::PinView pv = vw.pinViews[idx++];
-		for ( const pair<Package, Pin> &pr : pv.pins ) {
-			for ( db::Orderable &o : odbls ) {
-				if ( o.pkg == pr.first && !pr.second.empty() ) {
-					o.pinset.signalsets[pr.second] = ss;
-					o.pinset.pins++;
+		ssIdx = 0;
+		for ( const ui::PinView &pv : vw.pinViews ) {
+			// using fact that PinView is present even if no pins present and
+			// for every config set the same amount of signalsets exist
+			db::Signalset &ss = signalsets[ssIdx++];
+			for ( const pair<Package, Pin> &pr : pv.pins ) {
+				for ( db::Orderable &o : (*csetIt).orderables() ) {
+					if ( o.pkg == pr.first && !pr.second.empty() ) {
+						o.pinset.signalsets[pr.second] = ss;
+						o.pinset.pins++;
+					}
 				}
 			}
 		}
-	}
 
-	for ( db::Orderable &o : odbls ) {
-		// TODO: are these references? if so, no need to update n times
-		// if not: they should really be!!!
-		db::saveOrUpdatePinset(db, o.pinset);
-		db::linkOrderableToItsPinset(db, o);
+		for ( db::Orderable &o : (*csetIt).orderables() ) {
+			db::saveOrUpdatePinset(db, o.pinset);
+			db::linkOrderableToItsPinset(db, o);
+		}
+		parents = signalsets;
+		signalsets.clear();
 	}
 }
