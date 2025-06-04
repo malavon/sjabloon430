@@ -20,6 +20,8 @@ struct ExportConfig {
 	Tx tx = Tx::BOTH;
 	SQL sql = SQL::INSERT;
 
+	std::vector<int> colWidths;
+
 	ExportConfig appendOverride(bool app) {
 		ExportConfig res(*this);
 		res.appendFile = app;

@@ -1,11 +1,13 @@
 #include "database-files.hpp"
 
 #include <cassert>
+#include <cstring>
 #include <filesystem>
 #include <fstream>
 #include <functional>
 #include <iostream>
 #include <set>
+#include <sstream>
 
 #ifndef DB_DIRECTORY
   #error "add -DDB_DIRECTORY=\"...\" to the compiler command line"
@@ -15,13 +17,15 @@ using namespace std;
 using namespace std::filesystem;
 
 namespace sjabloon430 { namespace tools { namespace db {
+// constants for formatting of column widths
+int MAX_WIDTH_NULL = 4;
 
 // privately used functions forward declarations
 
 // export from a simple query, cannot export joined tables etc
 void exportFromPrepStmt(sqlite3_stmt *statement, const string fileName, const ExportConfig &config = ExportConfig{});
-string insertStringFromResultSet(sqlite3_stmt *stmt);
-string updateStringFromResultSet(sqlite3_stmt *stmt, int whereColumns = 1);
+string insertStringFromResultSet(sqlite3_stmt *stmt, const vector<int> &widths = {});
+string updateStringFromResultSet(sqlite3_stmt *stmt, const vector<int> &widths = {}, int whereColumns = 1);
 
 enum class ColumnDecl { NULL_VALUE, NUMBER, TEXT };
 
@@ -56,45 +60,51 @@ ColumnDecl inferColumnDecl(sqlite3_stmt *stmt, int idx) {
 	}
 }
 
-string insertStringFromResultSet(sqlite3_stmt *stmt) {
+string paddingTo(const int actual, const vector<int> &widths, int idx) {
+	if ( widths.size() > idx && actual < widths[idx] /* required width */ ) {
+		string pad;
+		pad.resize(widths[idx] - actual, ' ');
+		return pad;
+	}
+	return "";
+}
+
+string insertStringFromResultSet(sqlite3_stmt *stmt, const vector<int> &widths) {
 	const int columns = sqlite3_column_count(stmt);
 	if ( columns == 0 ) {
 		return "ERROR NO COLUMNS";
 	}
 
 	const char *table = sqlite3_column_table_name(stmt, 0);
-	string insert = "INSERT INTO ";
-	insert += table;
-	insert += " (";
+	stringstream insert;
+	insert << "INSERT INTO ";
+	insert << table;
+	insert << " (";
 	for ( int c = 0; c < columns; c++ ) {
-		insert += inferColumnName(stmt, c);
-		insert += ", ";
+		insert << (c > 0 ? ", " : "") << inferColumnName(stmt, c);
 	}
-	insert.erase(insert.size() - strlen(", ")); // remove last ", "
-	insert += ") VALUES (";
+	insert << ") VALUES (";
 
 	for ( int c = 0; c < columns; c++ ) {
+		insert << (c > 0 ? ", " : "");
 		ColumnDecl cd = inferColumnDecl(stmt, c);
 		const char *value = reinterpret_cast<const char *>(sqlite3_column_text(stmt, c));
 		if ( ColumnDecl::NULL_VALUE == cd ) {
-			insert += "NULL";
+			insert << paddingTo(MAX_WIDTH_NULL, widths, c) << "NULL";
 		} else if ( ColumnDecl::NUMBER == cd ) {
-			insert += value;
+			insert << paddingTo(strlen(value), widths, c) << value;
 		} else /* ColumnDecl::Text */ {
-			insert += "'";
-			insert += value;
-			insert += "'";
+			insert << '\'' << value << '\'' << paddingTo(strlen(value) + 2 /* quotes */, widths, c);
 		}
-		insert += ", ";
+		const char *type = sqlite3_column_decltype(stmt, c);
 	}
-	insert.erase(insert.size() - strlen(", ")); // remove last ", "
-	insert += ");";
+	insert << ");";
 
-	return insert;
+	return insert.str();
 }
 
 // creates an update string from a resultset, first column is required to be the key on which to update!
-string updateStringFromResultSet(sqlite3_stmt *stmt, int whereColumns) {
+string updateStringFromResultSet(sqlite3_stmt *stmt, const vector<int> &widths, int whereColumns) {
 	const int columns = sqlite3_column_count(stmt);
 	if ( columns <= whereColumns ) {
 		return "ERROR NOT ENOUGH COLUMNS";
@@ -103,34 +113,33 @@ string updateStringFromResultSet(sqlite3_stmt *stmt, int whereColumns) {
 	const char *table = sqlite3_column_table_name(stmt, 0);
 	string sql = "UPDATE ";
 	sql += table;
-	string updates = " SET ";
-	string condition = " WHERE ";
+	stringstream updates;
+	updates << " SET ";
+	stringstream condition;
+	condition << " WHERE ";
 
-	string sub;
+	stringstream sub;
 	for ( int c = 0; c < columns; c++ ) {
-		sub = (c > 1) ? "," : ""; // first is id, second is first update, only second update requires a comma
-		sub += inferColumnName(stmt, c);
-		sub += " = ";
+		sub << (c > 1 && c != whereColumns + 1 ? "," : "");
+		sub << inferColumnName(stmt, c) << " = ";
 		ColumnDecl cd = inferColumnDecl(stmt, c);
 		const char *value = reinterpret_cast<const char *>(sqlite3_column_text(stmt, c));
 		if ( ColumnDecl::NULL_VALUE == cd ) {
-			sub += "NULL"; // only allowed for updates, not condition ...
+			sub << paddingTo(MAX_WIDTH_NULL, widths, c) << "NULL";
 		} else if ( ColumnDecl::NUMBER == cd ) {
-			sub += value;
-		} else /* ColumnDecl::Text */ {
-			sub += "'";
-			sub += value;
-			sub += "'";
+			sub << paddingTo(strlen(value), widths, c) << value;
+		} else {
+			sub << '\'' << value << '\'' << paddingTo(strlen(value) + 2 /* quotes */, widths, c);
 		}
 
-		if ( c < whereColumns ) {
-			condition += sub;
-		} else {
-			updates += sub;
+		if ( c == whereColumns - 1 ) {
+			condition << sub.str();
+			sub = stringstream(); // sub.clear does not work???
 		}
 	}
+	updates << sub.str();
 
-	return sql + updates + condition + ";";
+	return sql + updates.str() + condition.str() + ";";
 }
 
 void exportFromPrepStmt(sqlite3_stmt *stmt, const string fileName, const ExportConfig &config) {
@@ -155,9 +164,9 @@ void exportFromPrepStmt(sqlite3_stmt *stmt, const string fileName, const ExportC
 	int rc = sqlite3_step(stmt);
 	while ( rc == SQLITE_ROW ) {
 		if ( config.sql == ExportConfig::SQL::INSERT ) {
-			out << insertStringFromResultSet(stmt) << endl;
+			out << insertStringFromResultSet(stmt, config.colWidths) << endl;
 		} else {
-			out << updateStringFromResultSet(stmt) << endl;
+			out << updateStringFromResultSet(stmt, config.colWidths) << endl;
 		}
 		if ( (rc = sqlite3_step(stmt)) == SQLITE_DONE ) { // one more endline AFTER block for this query
 			out << endl;
