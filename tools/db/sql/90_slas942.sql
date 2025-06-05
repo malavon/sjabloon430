@@ -270,10 +270,6 @@ INSERT INTO signalset_signal (signalset_id, idx, signal_id) VALUES (30, 1, 'XIN'
 INSERT INTO signalset_signal (signalset_id, idx, signal_id) VALUES (31, 0, 'DVSS'     );
 INSERT INTO signalset_signal (signalset_id, idx, signal_id) VALUES (32, 0, 'DVCC'     );
 
-UPDATE orderable SET pinset_id = 1 WHERE name = 'MSP430FR2533IRHBR';
-UPDATE orderable SET pinset_id = 1 WHERE name = 'MSP430FR2533IRHBT';
-UPDATE orderable SET pinset_id = 1 WHERE name = 'MSP430FR2633IRHBR';
-UPDATE orderable SET pinset_id = 1 WHERE name = 'MSP430FR2633IRHBT';
 UPDATE orderable SET pinset_id = 2 WHERE name = 'MSP430FR2533IDA'  ;
 UPDATE orderable SET pinset_id = 2 WHERE name = 'MSP430FR2533IDAR' ;
 UPDATE orderable SET pinset_id = 2 WHERE name = 'MSP430FR2633IDA'  ;
@@ -282,6 +278,10 @@ UPDATE orderable SET pinset_id = 3 WHERE name = 'MSP430FR2532IRGER';
 UPDATE orderable SET pinset_id = 3 WHERE name = 'MSP430FR2532IRGET';
 UPDATE orderable SET pinset_id = 3 WHERE name = 'MSP430FR2632IRGER';
 UPDATE orderable SET pinset_id = 3 WHERE name = 'MSP430FR2632IRGET';
+UPDATE orderable SET pinset_id = 1 WHERE name = 'MSP430FR2533IRHBR';
+UPDATE orderable SET pinset_id = 1 WHERE name = 'MSP430FR2533IRHBT';
+UPDATE orderable SET pinset_id = 1 WHERE name = 'MSP430FR2633IRHBR';
+UPDATE orderable SET pinset_id = 1 WHERE name = 'MSP430FR2633IRHBT';
 UPDATE orderable SET pinset_id = 4 WHERE name = 'MSP430FR2632IYQWR';
 UPDATE orderable SET pinset_id = 4 WHERE name = 'MSP430FR2632IYQWT';
 UPDATE orderable SET pinset_id = 4 WHERE name = 'MSP430FR2633IYQWR';
