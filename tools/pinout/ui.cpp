@@ -612,7 +612,7 @@ Configset filterForConfigset(const Configset &cset) {
 	} while ( (pressedKey = wgetch(center)) != KEY_ENTER && pressedKey != 10 );
 
 	vector<db::Orderable> fltrd;
-	for ( const db::Orderable &o : cset.orderables() ) {
+	for ( const db::Orderable &o : cset.orderablesView() ) {
 		unsigned int mdlIdx = 0, pkgIdx = 0;
 		// there is no find/search with indices in C++? :'(
 		// can maybe solved with one of the newer std::* thingies
