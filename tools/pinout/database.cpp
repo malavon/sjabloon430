@@ -439,7 +439,7 @@ int saveOrUpdatePinset(sqlite3 *db, Pinset &ps) { // assumes signal sets are all
 	return alteredRows;
 }
 
-int saveOrUpdateSignalsets(sqlite3 *db, vector<Signalset> &sets) {
+int saveOrUpdateSignalset(sqlite3 *db, Signalset &ss) {
 	static const char *INSERT = "INSERT INTO signalset(datasheet_idx, parent_id) VALUES (?, NULL)";
 	static const char *UPDATE = "UPDATE signalset SET datasheet_idx = ?, parent_id = ? WHERE id = ?";
 	static const char *UNLINK = "DELETE FROM signalset_signal WHERE signalset_id= ?";
@@ -453,58 +453,55 @@ int saveOrUpdateSignalsets(sqlite3 *db, vector<Signalset> &sets) {
 		prepare(db, &lnkStmt, DOLINK);
 	}
 
-	int alteredRows = 0, rc, datasheetIdx = 0;
-	for ( Signalset &s : sets ) {
+	int alteredRows = 0, rc;
+	if ( ss.id == 0 ) {
 		sqlite3_reset(insStmt);
-		rc = sqlite3_bind_int(insStmt, 1, datasheetIdx);
+		rc = sqlite3_bind_int(insStmt, 1, ss.datasheetIdx);
 		assert(SQLITE_OK == rc);
-		if ( s.id == 0 ) {
-			rc = sqlite3_step(insStmt);
-			assert(SQLITE_DONE == rc);
-			s.id = sqlite3_last_insert_rowid(db);
-			alteredRows++;
-			// new signalset doesn't have any signals assigned, no deletes necessary
+		rc = sqlite3_step(insStmt);
+		assert(SQLITE_DONE == rc);
+		ss.id = sqlite3_last_insert_rowid(db);
+		alteredRows++;
+		// new signalset doesn't have any signals assigned, no deletes necessary
+	} else {
+		sqlite3_reset(updStmt);
+		rc = sqlite3_bind_int(updStmt, 1, ss.datasheetIdx);
+		assert(SQLITE_OK == rc);
+		if ( ss.parentId == 0 ) {
+			rc = sqlite3_bind_null(updStmt, 2);
 		} else {
-			sqlite3_reset(updStmt);
-			rc = sqlite3_bind_int(updStmt, 1, datasheetIdx);
-			assert(SQLITE_OK == rc);
-			if ( s.parentId == 0 ) {
-				rc = sqlite3_bind_null(updStmt, 2);
-			} else {
-				rc = sqlite3_bind_int(updStmt, 2, s.parentId);
-			}
-			assert(SQLITE_OK == rc);
-			rc = sqlite3_bind_int(updStmt, 3, s.id);
-			assert(SQLITE_OK == rc);
-			if ( SQLITE_DONE == sqlite3_step(updStmt) ) {
-				alteredRows += sqlite3_changes(db);
-			}
-
-			// for all others: delete all signals
-			sqlite3_reset(delStmt);
-			rc = sqlite3_bind_int(delStmt, 1, s.id);
-			assert(SQLITE_OK == rc);
-			if ( SQLITE_DONE == sqlite3_step(delStmt) ) {
-				alteredRows += sqlite3_changes(db);
-			}
+			rc = sqlite3_bind_int(updStmt, 2, ss.parentId);
+		}
+		assert(SQLITE_OK == rc);
+		rc = sqlite3_bind_int(updStmt, 3, ss.id);
+		assert(SQLITE_OK == rc);
+		if ( SQLITE_DONE == sqlite3_step(updStmt) ) {
+			alteredRows += sqlite3_changes(db);
 		}
 
-		int idx = 0;
-		// TODO: will fail if signals in DB already?
-		for ( const string &sgn : s.signals ) {
-			sqlite3_reset(lnkStmt);
-			rc = sqlite3_bind_int(lnkStmt, 1, s.id);
-			assert(SQLITE_OK == rc);
-			rc = sqlite3_bind_text(lnkStmt, 2, sgn.c_str(), -1, SQLITE_STATIC);
-			assert(SQLITE_OK == rc);
-			rc = sqlite3_bind_int(lnkStmt, 3, idx++);
-			assert(SQLITE_OK == rc);
-			// execute, ignore errors for duplicates but reset statement before next
-			if ( SQLITE_DONE == sqlite3_step(lnkStmt) ) {
-				alteredRows++;
-			}
+		// for all others: delete all signals
+		sqlite3_reset(delStmt);
+		rc = sqlite3_bind_int(delStmt, 1, ss.id);
+		assert(SQLITE_OK == rc);
+		if ( SQLITE_DONE == sqlite3_step(delStmt) ) {
+			alteredRows += sqlite3_changes(db);
 		}
-		datasheetIdx++;
+	}
+
+	int idx = 0;
+	// TODO: will fail if signals in DB already?
+	for ( const string &sgn : ss.signals ) {
+		sqlite3_reset(lnkStmt);
+		rc = sqlite3_bind_int(lnkStmt, 1, ss.id);
+		assert(SQLITE_OK == rc);
+		rc = sqlite3_bind_text(lnkStmt, 2, sgn.c_str(), -1, SQLITE_STATIC);
+		assert(SQLITE_OK == rc);
+		rc = sqlite3_bind_int(lnkStmt, 3, idx++);
+		assert(SQLITE_OK == rc);
+		// execute, ignore errors for duplicates but reset statement before next
+		if ( SQLITE_DONE == sqlite3_step(lnkStmt) ) {
+			alteredRows++;
+		}
 	}
 	return alteredRows;
 }
