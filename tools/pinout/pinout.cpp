@@ -212,7 +212,10 @@ void convertDbToView(const vector<db::Signalset> &signalsets, vector<db::Orderab
 
 				ui::PinView &pv = vw.pinViews[ss.datasheetIdx];
 				pv.cviews[csetIdx].signalsetId = ss.id;
-				pv.cviews[csetIdx].signals = ss.signals;
+				// only set signals if not same as parent (tested by id only, coming straight from DB)
+				if ( csetIdx == 0 || ss.id != pv.cviews[csetIdx - 1].signalsetId ) {
+					pv.cviews[csetIdx].signals = ss.signals;
+				}
 				pv.pins[o.pkg] = p;
 			}
 		}
@@ -229,23 +232,23 @@ void convertAndSaveViewToDb(sqlite3 *db, ui::PinSetView &vw, vector<db::Orderabl
 		for ( const ui::PinView &pv : vw.pinViews ) {
 			// for ( const ui::PinView::ConfigView &cv : pv.cviews ) {
 			ui::PinView::ConfigView cv = pv.cviews[cIdx];
-			db::Signalset s;
-			s.id = cv.signalsetId;
-			s.signals = cv.signals;
-			if ( !parents.empty() && parents[ssIdx].id != s.id ) {
+			db::Signalset ss;
+			ss.id = cv.signalsetId;
+			ss.datasheetIdx = ssIdx;
+			ss.signals = cv.signals;
+			if ( !parents.empty() ) {
 				db::Signalset &pt = parents[ssIdx];
-				if ( s.signals != pt.signals ) { // TODO: is this actually a comparison??
-					s.parentId = pt.id;
-					signalsets.push_back(s);
-				} else {
-					signalsets.push_back(pt); // do not use another signalset if signals are equal
+				// only save signalset if it's different from its parent
+				// based on id, if 0-id this also works (parent is already saved, thus has a valid id)
+				if ( pt.id != ss.id ) {
+					db::saveOrUpdateSignalset(db, ss);
 				}
 			} else {
-				signalsets.push_back(s);
+				db::saveOrUpdateSignalset(db, ss);
 			}
+			signalsets.push_back(ss); // always added to list for linking, even if same as parent
 			ssIdx++;
 		}
-		db::saveOrUpdateSignalsets(db, signalsets);
 
 		// reset pinset total counts, needs to be recalculated after edit
 		// note that pinsets are supposed to all have a valid id already in this function
