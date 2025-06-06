@@ -373,6 +373,9 @@ void drawPinSetEditingWindow(Window &win, PinSetView &vw) {
 	// at last option editing means inserting a new one
 	if ( vw.editIdx == static_cast<int>(vw.pinViews.size()) ) {
 		PinView pv;
+		for ( size_t i = vw.csets.size(); i > 0; i-- ) {
+			pv.cviews.push_back(PinView::ConfigView());
+		}
 		scrollToAccomodate(win, MAX_SIGNALS + 1 /* header */, row);
 		drawPinSetHeader(win, row++, vw.pkgs);
 		editPinSet(win, row, vw.pkgs, vw.signalDescs, pv);
