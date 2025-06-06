@@ -49,7 +49,11 @@ class Configset {
 		return vector<Package>(pkgs.begin(), pkgs.end());
 	}
 
-	vector<db::Orderable> orderables() const {
+	vector<db::Orderable> &orderables() {
+		return odbls;
+	}
+
+	const vector<db::Orderable> &orderablesView() const {
 		return odbls;
 	}
 

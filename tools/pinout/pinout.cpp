@@ -205,8 +205,7 @@ void convertDbToView(const vector<db::Signalset> &signalsets, vector<db::Orderab
 
 	int csetIdx = 0;
 	for ( const ui::Configset &cs : vw.csets ) {
-		for ( const db::Orderable &o : cs.orderables() ) {
-			// for ( const db::Orderable &o : orderables ) {
+		for ( const db::Orderable &o : cs.orderablesView() ) {
 			for ( const pair<Pin, db::Signalset> &pr : o.pinset.signalsets ) {
 				Pin p = pr.first;
 				db::Signalset ss = pr.second;
@@ -222,12 +221,6 @@ void convertDbToView(const vector<db::Signalset> &signalsets, vector<db::Orderab
 }
 
 void convertAndSaveViewToDb(sqlite3 *db, ui::PinSetView &vw, vector<db::Orderable> &odbls) {
-	// reset pinset total counts, needs to be recalculated after edit
-	// note that pinsets are supposed to all have a valid id already in this function
-	for ( db::Orderable &o : odbls ) {
-		o.pinset.pins = 0;
-	}
-
 	vector<db::Signalset> signalsets, parents; // kept locally only?
 	// save signalsets one config set at a time; parenting then by index
 	int ssIdx = 0, cIdx = 0;
@@ -253,6 +246,12 @@ void convertAndSaveViewToDb(sqlite3 *db, ui::PinSetView &vw, vector<db::Orderabl
 			ssIdx++;
 		}
 		db::saveOrUpdateSignalsets(db, signalsets);
+
+		// reset pinset total counts, needs to be recalculated after edit
+		// note that pinsets are supposed to all have a valid id already in this function
+		for ( db::Orderable &o : (*csetIt).orderables() ) {
+			o.pinset.pins = 0;
+		}
 
 		ssIdx = 0;
 		for ( const ui::PinView &pv : vw.pinViews ) {
