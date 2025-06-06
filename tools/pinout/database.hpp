@@ -128,8 +128,8 @@ unordered_map<string, string> listAllSignalDescriptions(sqlite3 *db);
 
 /* Modify DB, inserts return inserted rows */
 int linkOrderableToItsPinset(sqlite3 *db, const Orderable &odbl);
-int saveOrUpdateSignalsets(sqlite3 *db, vector<Signalset> &sets); // assumes signals are all in DB!
-int saveOrUpdatePinset(sqlite3 *db, Pinset &ps);		  // assumes signalsets are all in DB!
+int saveOrUpdateSignalset(sqlite3 *db, Signalset &sets); // assumes signals are all in DB!
+int saveOrUpdatePinset(sqlite3 *db, Pinset &ps);	 // assumes signalsets are all in DB!
 int saveSignals(sqlite3 *db, unordered_map<string, string> signals);
 
 }}}} // namespace sjabloon430::tools::pinout::db
