@@ -294,7 +294,7 @@ void editPinSet(Window &win, int &row, const vector<Package> &pkgs, unordered_ma
 // MVP: this function keeps the selected index on the last row unless it's on the very first screen
 // it might be nicer if it behaves like a text editor: scrollin upwards from below until the first line is reached
 void drawPinSetEditingWindow(Window &win, PinSetView &vw) {
-	if ( vw.editIdx < 0 ) {
+	if ( vw.editIdx < 0 || vw.selIdx == vw.pinViews.size() ) {
 		// erasing window IS necessary to clean everything up BUT ...
 		// when editIdx is set, it is set to selIdx meaning everything _can_ simply stay in the same place
 		// and the editing form has its own subwindow, which _is_ cleared anyway
@@ -375,7 +375,7 @@ void drawPinSetEditingWindow(Window &win, PinSetView &vw) {
 	// scrolled/selected all the way to the botton
 	// render an empty placeholder
 	if ( vw.selIdx == vw.pinViews.size() ) {
-		scrollToAccomodate(win, 2, row);
+		scrollToAccomodate(win, MAX_SIGNALS + 1 /* header */, row); // scroll as if editing
 		win.enableAttributes(WA_BOLD);
 		drawPinSetHeader(win, row++, vw.pkgs);
 		win.add(row++, 1, "> End of signals reached. Inserting will add a new signalset.");
