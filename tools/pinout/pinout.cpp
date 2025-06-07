@@ -187,8 +187,6 @@ void convertDbToView(const vector<db::Signalset> &signalsets, vector<db::Orderab
 		}
 		pids = next;
 	}
-	// ... and then "fix" the default set to use all Orderables
-	vw.csets[0] = ui::Configset(orderables);
 
 	// create view objects in advance to reduce complexity in conversion code below
 	int maxDsIdx = -1; // -1, not 0; otherwise no signalsets result in 1 PinView!!!
@@ -211,9 +209,9 @@ void convertDbToView(const vector<db::Signalset> &signalsets, vector<db::Orderab
 				db::Signalset ss = pr.second;
 
 				ui::PinView &pv = vw.pinViews[ss.datasheetIdx];
-				pv.cviews[csetIdx].signalsetId = ss.id;
-				// only set signals if not same as parent (tested by id only, coming straight from DB)
+				// only set signals if id not same as parent (OK because it's coming straight from DB)
 				if ( csetIdx == 0 || ss.id != pv.cviews[csetIdx - 1].signalsetId ) {
+					pv.cviews[csetIdx].signalsetId = ss.id;
 					pv.cviews[csetIdx].signals = ss.signals;
 				}
 				pv.pins[o.pkg] = p;
@@ -221,6 +219,9 @@ void convertDbToView(const vector<db::Signalset> &signalsets, vector<db::Orderab
 		}
 		csetIdx++;
 	}
+
+	// ... and then "fix" the default set to use all Orderables
+	vw.csets[0] = ui::Configset(orderables); // breaks conversion, nothing broken when removed???
 }
 
 void convertAndSaveViewToDb(sqlite3 *db, ui::PinSetView &vw, vector<db::Orderable> & /*odbls*/) {
@@ -230,21 +231,23 @@ void convertAndSaveViewToDb(sqlite3 *db, ui::PinSetView &vw, vector<db::Orderabl
 	for ( vector<ui::Configset>::iterator csetIt = vw.csets.begin(); csetIt < vw.csets.end(); csetIt++, cIdx++ ) {
 		ssIdx = 0;
 		for ( const ui::PinView &pv : vw.pinViews ) {
-			// for ( const ui::PinView::ConfigView &cv : pv.cviews ) {
 			ui::PinView::ConfigView cv = pv.cviews[cIdx];
 			db::Signalset ss;
 			ss.id = cv.signalsetId;
 			ss.datasheetIdx = ssIdx;
 			ss.signals = cv.signals;
-			if ( !parents.empty() ) {
-				db::Signalset &pt = parents[ssIdx];
-				// only save signalset if it's different from its parent
-				// based on id, if 0-id this also works (parent is already saved, thus has a valid id)
-				if ( pt.id != ss.id ) {
-					db::saveOrUpdateSignalset(db, ss);
-				}
-			} else {
+			if ( parents.empty() ) {
 				db::saveOrUpdateSignalset(db, ss);
+			} else {
+				db::Signalset &pt = parents[ssIdx];
+				ss.parentId = pt.id;
+				// only save signalset if it's different from its parent
+				// based on id, if zero this also works (parent is already saved, thus has a valid id)
+				if ( pt.id != ss.id && !ss.signals.empty() ) { // signals can contain all empty strings ...
+					db::saveOrUpdateSignalset(db, ss);
+				} else {
+					ss = pt;
+				}
 			}
 			signalsets.push_back(ss); // always added to list for linking, even if same as parent
 			ssIdx++;
@@ -259,8 +262,11 @@ void convertAndSaveViewToDb(sqlite3 *db, ui::PinSetView &vw, vector<db::Orderabl
 		ssIdx = 0;
 		for ( const ui::PinView &pv : vw.pinViews ) {
 			// using fact that PinView is present even if no pins present and
-			// for every config set the same amount of signalsets exist
-			db::Signalset &ss = signalsets[ssIdx++];
+			// for every config set the same amount of signalsets exist in-memory
+			db::Signalset &ss = signalsets[ssIdx];
+			if ( ss.signals.empty() && !parents.empty() ) {
+				ss = parents[ssIdx];
+			}
 			for ( const pair<const Package, Pin> &pr : pv.pins ) {
 				for ( db::Orderable &o : (*csetIt).orderables() ) {
 					if ( o.pkg == pr.first && !pr.second.empty() ) {
@@ -269,6 +275,7 @@ void convertAndSaveViewToDb(sqlite3 *db, ui::PinSetView &vw, vector<db::Orderabl
 					}
 				}
 			}
+			ssIdx++;
 		}
 
 		for ( db::Orderable &o : (*csetIt).orderables() ) {

@@ -303,9 +303,9 @@ vector<Signalset> findSignalsetsByDatasheet(sqlite3 *db, const string datasheetI
 		assert(SQLITE_OK == rc);
 		// assumes idx is continuous and starts at 0 -> incorrect once parents are used ...
 		while ( sqlite3_step(stmtSgns) == SQLITE_ROW ) {
-			// idx = sqlite3_column_int(stmtSgns, 0)
+			int dsIdx = sqlite3_column_int(stmtSgns, 0);
 			string sgn = reinterpret_cast<const char *>(sqlite3_column_text(stmtSgns, 1));
-			s.signals.push_back(sgn);
+			s.signals[dsIdx] = sgn;
 		}
 	}
 
@@ -440,7 +440,7 @@ int saveOrUpdatePinset(sqlite3 *db, Pinset &ps) { // assumes signal sets are all
 }
 
 int saveOrUpdateSignalset(sqlite3 *db, Signalset &ss) {
-	static const char *INSERT = "INSERT INTO signalset(datasheet_idx, parent_id) VALUES (?, NULL)";
+	static const char *INSERT = "INSERT INTO signalset(datasheet_idx, parent_id) VALUES (?, ?)";
 	static const char *UPDATE = "UPDATE signalset SET datasheet_idx = ?, parent_id = ? WHERE id = ?";
 	static const char *UNLINK = "DELETE FROM signalset_signal WHERE signalset_id= ?";
 	static const char *DOLINK = "INSERT INTO signalset_signal (signalset_id, signal_id, idx) "
@@ -457,6 +457,12 @@ int saveOrUpdateSignalset(sqlite3 *db, Signalset &ss) {
 	if ( ss.id == 0 ) {
 		sqlite3_reset(insStmt);
 		rc = sqlite3_bind_int(insStmt, 1, ss.datasheetIdx);
+		assert(SQLITE_OK == rc);
+		if ( ss.parentId == 0 ) {
+			rc = sqlite3_bind_null(insStmt, 2);
+		} else {
+			rc = sqlite3_bind_int(insStmt, 2, ss.parentId);
+		}
 		assert(SQLITE_OK == rc);
 		rc = sqlite3_step(insStmt);
 		assert(SQLITE_DONE == rc);
@@ -488,15 +494,13 @@ int saveOrUpdateSignalset(sqlite3 *db, Signalset &ss) {
 		}
 	}
 
-	int idx = 0;
-	// TODO: will fail if signals in DB already?
-	for ( const string &sgn : ss.signals ) {
+	for ( const std::pair<const unsigned int, string> &sgn : ss.signals ) {
 		sqlite3_reset(lnkStmt);
 		rc = sqlite3_bind_int(lnkStmt, 1, ss.id);
 		assert(SQLITE_OK == rc);
-		rc = sqlite3_bind_text(lnkStmt, 2, sgn.c_str(), -1, SQLITE_STATIC);
+		rc = sqlite3_bind_text(lnkStmt, 2, sgn.second.c_str(), -1, SQLITE_STATIC);
 		assert(SQLITE_OK == rc);
-		rc = sqlite3_bind_int(lnkStmt, 3, idx++);
+		rc = sqlite3_bind_int(lnkStmt, 3, sgn.first);
 		assert(SQLITE_OK == rc);
 		// execute, ignore errors for duplicates but reset statement before next
 		if ( SQLITE_DONE == sqlite3_step(lnkStmt) ) {

@@ -57,8 +57,8 @@ struct PinView {
 	struct ConfigView {
 		int signalsetId = 0;
 		// parentsetId = 0; // not sure if needed, don't use unless proven useful
-		// indexed! first = (pin) default, may contain empty strings when parenting!
-		vector<string> signals;
+		// indexed! 0 = (pin) default, does NOT contain empty strings
+		unordered_map<unsigned int, string> signals;
 	};
 	vector<ConfigView> cviews; // empty by default, needs to be inserted!
 	// one pin per package
@@ -66,13 +66,11 @@ struct PinView {
 	// experiment: getting/setting signals can happen through the [] operator to get to
 	// the one and only configview (in the future, multiple signalsets will be required)
 	// then again, will NOT break compilation once it is no longer a single one ...
-	vector<string> &operator[](int idx) {
-		assert(idx == 0);
-		return cviews[idx].signals;
+	unordered_map<unsigned int, string> &operator[](unsigned int idx) {
+		return cviews.at(idx).signals;
 	}
-	const vector<string> &operator[](int idx) const {
-		assert(idx == 0);
-		return cviews[idx].signals;
+	const unordered_map<unsigned int, string> &operator[](unsigned int idx) const {
+		return cviews.at(idx).signals;
 	}
 	bool hasPins() const {
 		for ( const std::pair<const Package, Pin> &pr : pins ) {
