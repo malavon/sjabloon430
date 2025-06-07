@@ -105,7 +105,8 @@ struct Signalset {
 	int id = 0;	  // auto-increment
 	int parentId = 0; // 0 == NULL
 	int datasheetIdx = 0;
-	vector<string> signals;
+	// vector<string> signals;
+	unordered_map<int, string> signals;
 };
 
 /* SQLite 3 init & database import/export */
