@@ -24,18 +24,24 @@ void displayEditHotkeys(Window &);
 void displayHotkey(Window &win, const string &text, const vector<chtype> &keys);
 void displayHotkey(Window &win, const string &text, const string &key);
 
+static const char CHAR_CONFIGSET = '*';
+
 class PinsetEventer : public FormEventHandler {
   public:
 	PinsetEventer(Window &win, EventEmittingForm<PinsetEventer> &form, const vector<Package> &pkgs,
-		      unordered_map<string, string> &signals, vector<string> initSignals, int sgnCol) :
+		      unordered_map<string, string> &signals, vector<PinView::ConfigView> initCviews, int sgnCol) :
 	    window(win), form(form), packages(pkgs), signalAndDescMap(signals), signalColumn(sgnCol) {
 		row = 0; // row is locally inside the derived window!
-		descColumn = sgnCol + FIELD_WIDTH_SIGNAL + 1;
+		descColumn = sgnCol + FIELD_WIDTH_SIGNAL + 1 /* blank */;
 
-		for ( const string &signal : initSignals ) {
-			addSignal(signal);
+		string c = "";
+		for ( PinView::ConfigView &cv : initCviews ) {
+			for ( const pair<int, string> &idxdSgn : cv.signals ) {
+				addSignal(idxdSgn.first, idxdSgn.second, c);
+			}
+			c += CHAR_CONFIGSET; // add an asterisk to indicate config set, not sure if definitive
 		}
-		// add single set of fields, none exist yet
+		// add single set of fields to add a new signal
 		addExtraFieldPair();
 		form.repost();
 	}
@@ -72,12 +78,15 @@ class PinsetEventer : public FormEventHandler {
 		row++;
 	}
 
-	void addSignal(const string signal) {
-		addExtraFieldPair();
-		pair<Field, Field> pr = *signalAndDescFields.rbegin();
-		pr.first.setBuffer(signal);
+	void addSignal(const int idx, const string signal, const string cv) {
+		while ( signalAndDescFields.size() <= idx ) {
+			addExtraFieldPair();
+		}
+		pair<Field, Field> pr = signalAndDescFields[idx];
+		pr.first.setBuffer(cv + signal);
 		string desc = signalAndDescMap[signal];
 		pr.second.setBuffer(desc); // assume a description always exists
+		previousSignals[idx] = signal;
 	}
 
 	void fieldHopped() {
@@ -102,6 +111,11 @@ class PinsetEventer : public FormEventHandler {
 			Field &desc = pr.second;
 
 			string signalTxt = sgn.buffer<string>();
+			// cut off characters indicating a configset
+			int cfIdx = -1;
+			if ( (cfIdx = signalTxt.find_last_of(CHAR_CONFIGSET)) != string::npos ) {
+				signalTxt = signalTxt.substr(cfIdx + 1);
+			}
 			// only do anything IF the signal has changed
 			if ( signalTxt != previousSignals[idx] ) {
 				// this way it is set to false UNLESS the very last iteration sets it to true
@@ -210,20 +224,30 @@ void drawPinSet(Window &win, int &row, const vector<Package> &pkgs, unordered_ma
 	}
 
 	col++;
-	int descCol = col + FIELD_WIDTH_SIGNAL + 1;
+	int ccRow = row, descCol = col + FIELD_WIDTH_SIGNAL + 1;
 	// cut off descriptions if need be
 	int maxDescLength = std::max(FIELD_WIDTH_DESC, win.maxCols() - descCol - 1);
 	const string CUT_CHARS = "...";
-	for ( const string &sgn : pv[0] ) {
-		if ( row < win.maxRows() ) {
-			win.add(row, col, sgn);
-			if ( signals[sgn].length() > maxDescLength ) {
-				win.add(row, descCol, signals[sgn].substr(0, maxDescLength - CUT_CHARS.length()) + CUT_CHARS);
-			} else {
-				win.add(row, descCol, signals[sgn]);
+	string configChar = "", sgn;
+	int sgnIdx = 0;
+	for ( int c = 0; c < pv.cviews.size(); c++, configChar += CHAR_CONFIGSET ) {
+		for ( const pair<int, string> &indexedSignal : pv[c] ) {
+			sgnIdx = indexedSignal.first;
+			sgn = indexedSignal.second;
+			if ( ccRow + sgnIdx < win.maxRows() && !sgn.empty() ) {
+				win.moveCursor(ccRow + sgnIdx, col);
+				win.add(configChar);
+				win.add(sgn);
+				if ( signals[sgn].length() > maxDescLength ) {
+					win.add(ccRow + sgnIdx, descCol,
+						signals[sgn].substr(0, maxDescLength - CUT_CHARS.length()) + CUT_CHARS);
+				} else {
+					win.add(ccRow + sgnIdx, descCol, signals[sgn]);
+				}
+				row++; // for each printed signal, row is advanced; it'll even out with cached row
 			}
+			sgnIdx++;
 		}
-		row++;
 	}
 }
 
@@ -243,16 +267,28 @@ void formToSignalData(PinView &pv, unordered_map<string, string> &signals, const
 		}
 	}
 
-	pv[0].clear();
+	for ( PinView::ConfigView &cv : pv.cviews ) {
+		cv.signals.clear();
+	}
+	int cfIdx = 0, cfCharIdx = 0, sgnIdx = 0;
 	for ( const pair<Field, Field> &sgnAndDesc : pev.getFieldVector() ) {
 		string sgn = sgnAndDesc.first.buffer<string>();
 		string desc = sgnAndDesc.second.buffer<string>();
 		if ( !sgn.empty() ) {
-			pv[0].push_back(sgn);
+			cfIdx = 0;
+			if ( (cfCharIdx = sgn.find_last_of(CHAR_CONFIGSET)) != string::npos ) {
+				cfIdx = std::min(cfCharIdx + 1, static_cast<int>(pv.cviews.size()) - 1);
+				sgn = sgn.substr(cfCharIdx + 1);
+			}
+
+			pv[cfIdx][sgnIdx] = sgn;
+
+			// add signal descriptions for new signals
 			if ( signals[sgn].empty() ) {
 				signals[sgn] = desc;
 			}
 		}
+		sgnIdx++;
 	}
 }
 
@@ -279,7 +315,7 @@ void editPinSet(Window &win, int &row, const vector<Package> &pkgs, unordered_ma
 	EventEmittingForm<PinsetEventer> form = fb.build<EventEmittingForm<PinsetEventer>>(formWin);
 
 	int sgnCol = col + 1;
-	PinsetEventer pev(formWin, form, pkgs, signals, pv[0], sgnCol);
+	PinsetEventer pev(formWin, form, pkgs, signals, pv.cviews, sgnCol);
 
 	form.loop(pev);
 	formWin.erase(); // important, erase only the form part of the window

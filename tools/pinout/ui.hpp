@@ -16,8 +16,8 @@ using namespace cccurses;
 // using 4 is however logical, esthetic purposes 1 empty character always
 static const int FIELD_WIDTH_PIN = 4;
 // signal is max ... TODO=
-static const int FIELD_WIDTH_SIGNAL = 8;
-static const int FIELD_WIDTH_DESC = 20;
+static const int FIELD_WIDTH_SIGNAL = 8 + 2 /* configset characters, max 2 */;
+static const int FIELD_WIDTH_DESC = 10;
 // packages (drawing + pins) are up to 6 wide, so always format them at 6
 static const int HEADER_WIDTH_PKG = 6;
 
@@ -72,8 +72,8 @@ struct PinView {
 	struct ConfigView {
 		int signalsetId = 0;
 		// parentsetId = 0; // not sure if needed, don't use unless proven useful
-		// indexed! first = (pin) default, may contain empty strings when parenting!
-		vector<string> signals;
+		// indexed! 0 = (pin) default, does NOT contain empty strings
+		unordered_map<int, string> signals;
 	};
 	vector<ConfigView> cviews; // empty by default, needs to be inserted!
 	// one pin per package
@@ -81,13 +81,11 @@ struct PinView {
 	// experiment: getting/setting signals can happen through the [] operator to get to
 	// the one and only configview (in the future, multiple signalsets will be required)
 	// then again, will NOT break compilation once it is no longer a single one ...
-	vector<string> &operator[](int idx) {
-		assert(idx == 0);
-		return cviews[idx].signals;
+	unordered_map<int, string> &operator[](int idx) {
+		return cviews.at(idx).signals;
 	}
-	const vector<string> &operator[](int idx) const {
-		assert(idx == 0);
-		return cviews[idx].signals;
+	const unordered_map<int, string> &operator[](int idx) const {
+		return cviews.at(idx).signals;
 	}
 	bool hasPins() const {
 		for ( const std::pair<Package, Pin> &pr : pins ) {
