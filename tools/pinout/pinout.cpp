@@ -42,9 +42,11 @@ int main() {
 	{
 		BorderedWindow top(WIN_TOP_HEIGHT, COLS - WIN_CONFIGSET_WIDTH, 0, 0);
 		// TODO: no border, separate with hline or something?
-		Window hotkeys = top.deriveWindow(1, top.maxCols(), ROW_HOTKEYS, 0);
+		Window hotkeys = top.deriveWindow<Window>(1, top.maxCols(), ROW_HOTKEYS, 0);
 		Window pins(LINES - 6, COLS - WIN_CONFIGSET_WIDTH, 6, 0);
 		pins.optionScrollable(Toggle::ON);
+		BorderedWindow configs(LINES, WIN_CONFIGSET_WIDTH, 0, COLS - WIN_CONFIGSET_WIDTH);
+		configs.setTitle("Config: default");
 
 		Window &statusWin = pins;
 		statusWin.add(0, 0, "Imported SQLite DB from files:\n");
@@ -76,8 +78,6 @@ int main() {
 
 		vector<Package> pkgs = db::findPackagesByDatasheet(db, selectedDS.id);
 		// packages are also used for sets
-
-		Window configs(LINES, WIN_CONFIGSET_WIDTH, 0, COLS - WIN_CONFIGSET_WIDTH);
 
 		// /signalsets/pinsets are also linked to orderables and thus model/package
 		vector<db::Signalset> signalsets = db::findSignalsetsByDatasheet(db, selectedId);
