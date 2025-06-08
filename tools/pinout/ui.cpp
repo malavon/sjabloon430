@@ -293,7 +293,7 @@ void formToSignalData(PinView &pv, unordered_map<string, string> &signals, const
 }
 
 void editPinSet(Window &win, int &row, const vector<Package> &pkgs, unordered_map<string, string> &signals, PinView &pv) {
-	Window formWin = win.deriveWindow(MAX_SIGNALS, 0, row, 0);
+	Window formWin = win.deriveWindow<Window>(MAX_SIGNALS, 0, row, 0);
 
 	FormBuilder fb;
 	Field pinFields[pkgs.size()];
@@ -419,13 +419,17 @@ void drawPinSetEditingWindow(Window &win, PinSetView &vw) {
 	}
 }
 
-void drawSetConfigWindow(Window &win, const Configset &cset) {
+void drawSetConfigWindow(BorderedWindow &win, int &lr, const Configset &cset) {
 	const int MAX_PKG_LEN = 6;
 	const int COL_HDR = 1;
 	const int COL_DATA = 2;
 
-	win.clear();
-	int lr = 0;
+	// TODO: calculate something?
+	int requiredRows = cset.toModels().size()   /* one line per model */
+			 + cset.toPkgs().size() / 2 /* packages are max 5 wide, 2 pkgs/line */
+			 + cset.toPkgs().size() % 2 /* when odd, 1 extra pkg, 1 extra line */
+			 + 2 /* headers */ + 2 /* borders */;
+
 	win.add(lr++, COL_HDR, "Models:");
 	for ( const string &model : cset.toModels() ) {
 		win.add(lr++, COL_DATA, model);
@@ -438,8 +442,7 @@ void drawSetConfigWindow(Window &win, const Configset &cset) {
 		if ( i % 2 == 0 ) {
 			win.add(lr, COL_DATA, pkg);
 		} else {
-			win.add(lr, COL_DATA + MAX_PKG_LEN + 1 + (MAX_PKG_LEN - pkg.length()), pkg);
-			lr++;
+			win.add(lr++, COL_DATA + MAX_PKG_LEN + 1 + (MAX_PKG_LEN - pkg.length()), pkg);
 		}
 	}
 
@@ -499,18 +502,20 @@ void drawTopWindow(BorderedWindow &win, const Datasheet &ds, const DatabaseTotal
 	win.paint();
 }
 
-void loopPinsetEditing(Window &win, Window &hot, Window &config, ui::PinSetView &vw) {
+void loopPinsetEditing(Window &win, Window &hot, BorderedWindow &config, ui::PinSetView &vw) {
 	// initially render configsets to screen
+	int cRow = 0, csIdx = 0;
 	for ( const ui::Configset &cs : vw.csets ) {
-		// todo: move this logic somewhere less annoying?
-		// int defaultSetHeight = cs.toModels().size()   /* one line per model */
-		// 		     + cs.toPkgs().size() / 2 /* packages are max 5 wide, 2 pkgs/line */
-		// 		     + cs.toPkgs().size() % 2 /* when odd, 1 extra pkg, 1 extra line */
-		// 		     + 2 /* headers */ + 2 /* borders */;
-
-		// ui::Window der = config.deriveWindow(defaultSetHeight, config.maxCols() - 2, 1, 1);
-		ui::drawSetConfigWindow(config, cs);
+		if ( cRow > 0 ) { // row == 0 for default set
+			// mvwhline(config, row, 0, ACS_HLINE, config.maxCols());
+			config.print(cRow++, 1, "Config #%d (F%d)", csIdx, csIdx + 4); // F5, F6, F7
+		}
+		ui::drawSetConfigWindow(config, cRow, cs);
+		mvwhline(config, cRow, 0, ACS_HLINE, config.maxCols());
+		csIdx++;
 	}
+	config.print(cRow + 1, 1, "Press F%d to add", csIdx + 4);
+	config.paint();
 
 	int tempChar = 0;
 	int ncset = 0;
@@ -544,10 +549,12 @@ void loopPinsetEditing(Window &win, Window &hot, Window &config, ui::PinSetView 
 			case KEY_F(6):
 			case KEY_F(7):
 				// if ( tempChar - KEY_F(5) >= ncset ) { // do not allow creating a set that already exists
-				if ( tempChar - KEY_F(5) < vw.csets.size() ) {
-					// vw.csets.push_back(ui::filterForConfigset(vw.csets[0] /* default set */));
-					int idx = tempChar - KEY_F(5);
-					ui::drawSetConfigWindow(config, vw.csets[idx]);
+				if ( tempChar - KEY_F(5) >= vw.csets.size() - 1 ) {
+					vw.csets.push_back(ui::filterForConfigset(vw.csets[0] /* default set */));
+					// int idx = tempChar - KEY_F(5);
+					ui::drawSetConfigWindow(config, cRow, *vw.csets.rbegin());
+					mvwhline(config, cRow, 0, ACS_HLINE, config.maxCols());
+					config.paint();
 				} else {
 					// activate set? modify set?
 				}
