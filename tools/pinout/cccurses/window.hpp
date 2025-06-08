@@ -28,8 +28,10 @@ class Window {
 	Window(const Window &other) : ptr(other.ptr) { }
 
 	// shouldn't really be here, it only exists for wrapping stdscr
+	// also constructor to accomodate derived & subwindows, same signature for all Window classes
 	Window(WINDOW *win) : ptr(win) { }
 
+  public:
 	~Window() {
 		erase();
 		if ( ptr != nullptr ) {
@@ -37,6 +39,7 @@ class Window {
 		}
 	}
 
+  public:
 	void add(const char character) {
 		int rc = waddch(ptr, character);
 		assert(OK == rc);
@@ -129,11 +132,12 @@ class Window {
 		assert(OK == rc);
 	}
 
-	Window deriveWindow(unsigned int height, unsigned int width, unsigned int line, unsigned int col) {
+	template<class W>
+	W deriveWindow(unsigned int height, unsigned int width, unsigned int line, unsigned int col) {
 		WINDOW *der = derwin(ptr, height, width, line, col);
-		// assert(der == nullptr);
+		assert(der != nullptr);
 		keypad(der, true); // TODO? part of form? or not?
-		return Window(der);
+		return W{der};
 	}
 
 	void erase() {
@@ -232,6 +236,15 @@ class BorderedWindow : public Window {
 		title = o.title;
 	}
 
+  private:
+	// constructor to accomodate derived & subwindows, same signature for all Window classes
+	BorderedWindow(WINDOW *sub) : Window(sub), outer(sub) {
+		ptr = derwin(sub, Window::maxRows() - 2, Window::maxCols() - 2, 1, 1);
+		assert(nullptr != ptr);
+		keypad(ptr, true);
+	}
+
+  public:
 	~BorderedWindow() {
 		erase();
 		if ( outer != nullptr ) {
@@ -239,6 +252,7 @@ class BorderedWindow : public Window {
 		}
 	}
 
+  public:
 	void erase() {
 		touchwin(outer);
 		Window::erase();
@@ -271,6 +285,7 @@ class BorderedWindow : public Window {
 	WINDOW *outer;
 	string title;
 	// border chars?
+	friend class Window;
 };
 
 } // namespace cccurses
