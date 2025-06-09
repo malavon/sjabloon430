@@ -65,9 +65,22 @@ class Configset {
 		return odbls.empty();
 	}
 
+	int pinsetIdFor(const Package &pkg) const {
+		return pinsetIds.find(pkg) == pinsetIds.end() ? 0 : pinsetIds.at(pkg);
+	}
+
+	void pinsetIdFor(const Package &pkg, int id) {
+		assert(pinsetIds.find(pkg) == pinsetIds.end() || pinsetIds[pkg] == id);
+		if ( id != 0 ) {
+			pinsetIds[pkg] = id;
+		}
+	}
+
   private:
 	vector<db::Orderable> odbls;
-	vector<db::Pinset> pinsets;
+	// configset requires pinset ids to ensure correct re-creation of all database objects
+	// cache pinset ids for each configset, no matter what orderables are linked and should be linked
+	unordered_map<Package, int> pinsetIds;
 };
 
 struct PinView {
@@ -92,6 +105,13 @@ struct PinView {
 	const unordered_map<int, string> &operator[](int idx) const {
 		return cviews.at(idx).signals;
 	}
+	int countSignals() const {
+		int c = 0;
+		for ( const ConfigView &cf : cviews ) {
+			c += cf.signals.size();
+		}
+		return c;
+	}
 	bool hasPins() const {
 		for ( const std::pair<Package, Pin> &pr : pins ) {
 			if ( !pr.second.empty() ) {
@@ -101,7 +121,7 @@ struct PinView {
 		return false;
 	}
 	bool hasPinsAndSignals() const {
-		return hasPins() && !cviews[0].signals.empty();
+		return hasPins() && countSignals() > 0;
 	}
 };
 
@@ -113,6 +133,21 @@ struct PinSetView {
 	// each item on the screen
 	vector<PinView> pinViews;
 	vector<Configset> csets;
+	void addIfNotEmpty(Configset &cs) {
+		if ( !cs.empty() ) {
+			csets.push_back(cs);
+			for ( PinView &pv : pinViews ) {
+				pv.cviews.push_back(PinView::ConfigView());
+			}
+		}
+	}
+	PinView createNewPinView() {
+		PinView pv;
+		for ( const Configset &cs : csets ) {
+			pv.cviews.push_back(PinView::ConfigView());
+		}
+		return pv;
+	}
 	/*
 	 * index of pin that is edited
 	 * if higher than pins.size(), add at end
