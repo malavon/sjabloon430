@@ -370,7 +370,7 @@ int linkOrderableToItsPinset(sqlite3 *db, const Orderable &odbl) {
 }
 
 int saveOrUpdatePinset(sqlite3 *db, Pinset &ps) { // assumes signal sets are all in DB!
-	static const char *INSERT = "INSERT INTO pinset (pins) VALUES (?)";
+	static const char *INSERT = "INSERT INTO pinset (parent_id, pins) VALUES (?, ?)";
 	static const char *UPDATE = "UPDATE pinset SET pins = ? WHERE id = ?";
 	static const char *UNLINK = "DELETE FROM pinset_signalset WHERE pinset_id = ?";
 	static const char *DOLINK = "INSERT INTO pinset_signalset (pinset_id, signalset_id, pin_bga_row, pin_number) "
@@ -387,7 +387,13 @@ int saveOrUpdatePinset(sqlite3 *db, Pinset &ps) { // assumes signal sets are all
 	// totalpins should already be set, this is NOT calculated in this function
 	if ( ps.id == 0 ) {
 		sqlite3_reset(insStmt);
-		rc = sqlite3_bind_int(insStmt, 1, ps.pins);
+		if ( ps.parentId == 0 ) {
+			rc = sqlite3_bind_null(insStmt, 1);
+		} else {
+			rc = sqlite3_bind_int(insStmt, 1, ps.parentId);
+		}
+		assert(SQLITE_OK == rc);
+		rc = sqlite3_bind_int(insStmt, 2, ps.pins);
 		assert(SQLITE_OK == rc);
 		rc = sqlite3_step(insStmt);
 		assert(SQLITE_DONE == rc);
