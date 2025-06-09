@@ -15,7 +15,7 @@ namespace dbf = sjabloon430::tools::db;
 using sjabloon430::tools::Package;
 using sjabloon430::tools::Pin;
 
-void convertDbToView(const vector<db::Signalset> &signalsets, vector<db::Orderable> &orderables, ui::PinSetView &vw);
+void convertDbToView(const vector<db::Signalset> &, vector<db::Orderable> &, ui::PinSetView &);
 void convertAndSaveViewToDb(sqlite3 *db, ui::PinSetView &);
 
 static const int WIDEST_MODEL_LENGTH = strlen("MSP430F6459-HIREL"); /* hardcoded longest model */
@@ -132,41 +132,42 @@ int main() {
 	return EXIT_SUCCESS;
 }
 
-void convertDbToView(const vector<db::Signalset> &signalsets, vector<db::Orderable> &orderables, ui::PinSetView &vw) {
+void convertDbToView(const vector<db::Signalset> &ssv, vector<db::Orderable> &odv, ui::PinSetView &vw) {
 	// logic: * all pinsets without parents are part of the default config set
 	//	  * all pinsets that have default pinsets as parent, are the second config set
 	//	  * all pinsets that have second ... etc
 	set<int> pids = {0};
 	while ( !pids.empty() ) {
-		set<int> next;
-		ui::Configset curr;
-		for ( db::Orderable &o : orderables ) {
+		set<int> nextPids;
+		ui::Configset cs;
+
+		for ( db::Orderable &o : odv ) {
+			// also catches non-existent pinsets!
 			if ( pids.find(o.pinset.parentId) != pids.end() ) {
-				next.insert(o.pinset.id);
-				curr.add(o);
+				if ( o.pinset.id != 0 ) {
+					// id can be 0 WHEN orderable has NO pinset linked yet; 0 signifies NULL
+					nextPids.insert(o.pinset.id);
+				}
+				cs.add(o);
+				cs.pinsetIdFor(o.pkg, o.pinset.id);
 			}
 		}
 		// if this assert hits, there are 2 configsets with the same parent ... which is not supported
 		// either the user has made a big error, or there are datasheets in which this is really, really
 		// required (in which case my message to the reader is: sorry ... <hihi>)
-		assert(next.size() <= vw.pkgs.size());
-		if ( !next.empty() ) {
-			vw.csets.push_back(curr);
-		}
-		pids = next;
+		assert(nextPids.size() <= vw.pkgs.size());
+		vw.addIfNotEmpty(cs);
+
+		pids = nextPids;
 	}
 
 	// create view objects in advance to reduce complexity in conversion code below
 	int maxDsIdx = -1; // -1, not 0; otherwise no signalsets result in 1 PinView!!!
-	for ( const db::Signalset &ss : signalsets ) {
+	for ( const db::Signalset &ss : ssv ) {
 		maxDsIdx = max(maxDsIdx, ss.datasheetIdx);
 	}
 	for ( int i = 0; i <= maxDsIdx; i++ ) {
-		ui::PinView pv;
-		for ( int c = vw.csets.size(); c > 0; c-- ) {
-			pv.cviews.push_back(ui::PinView::ConfigView());
-		}
-		vw.pinViews.push_back(pv);
+		vw.pinViews.push_back(vw.createNewPinView());
 	}
 
 	int csetIdx = 0;
@@ -189,14 +190,20 @@ void convertDbToView(const vector<db::Signalset> &signalsets, vector<db::Orderab
 	}
 
 	// ... and then "fix" the default set to use all Orderables
-	vw.csets[0] = ui::Configset(orderables); // breaks conversion, nothing broken when removed???
+	vw.csets[0].orderables() = odv;
 }
 
+/* Essentially this function recreates all database objects and links from view objects.
+ * It doesn't try to merge anything, but rather sets ids and re-creates what should be in the database.
+ * Doing this is the best option since view changes are the purview of the ui and (logic) changes there
+ * shouldn't result in modifications to this function.
+ */
 void convertAndSaveViewToDb(sqlite3 *db, ui::PinSetView &vw) {
 	vector<db::Signalset> signalsets, parents; // kept locally only?
 	// save signalsets one config set at a time; parenting then by index
+	// unordered_map<string, db::Orderable> odbls; // id->object
 	int ssIdx = 0, cIdx = 0;
-	for ( vector<ui::Configset>::iterator csetIt = vw.csets.begin(); csetIt < vw.csets.end(); csetIt++, cIdx++ ) {
+	for ( ui::Configset &cs : vw.csets ) {
 		ssIdx = 0;
 		for ( const ui::PinView &pv : vw.pinViews ) {
 			ui::PinView::ConfigView cv = pv.cviews[cIdx];
@@ -221,10 +228,16 @@ void convertAndSaveViewToDb(sqlite3 *db, ui::PinSetView &vw) {
 			ssIdx++;
 		}
 
-		// reset pinset total counts, needs to be recalculated after edit
-		// note that pinsets are supposed to all have a valid id already in this function
-		for ( db::Orderable &o : (*csetIt).orderables() ) {
-			o.pinset.pins = 0;
+		// recreate all pinsets from view objects
+		for ( db::Orderable &o : cs.orderables() ) {
+			o.pinset.pins = 0;		     // will be calculated
+			o.pinset.id = cs.pinsetIdFor(o.pkg); // can be zero if new
+			if ( cIdx > 0 ) {
+				o.pinset.parentId = vw.csets[cIdx - 1].pinsetIdFor(o.pkg);
+			}
+
+			db::saveOrUpdatePinset(db, o.pinset); // pinset is saved to ensure id is valid
+			cs.pinsetIdFor(o.pkg, o.pinset.id);   // and then id is updated in view
 		}
 
 		ssIdx = 0;
@@ -236,7 +249,7 @@ void convertAndSaveViewToDb(sqlite3 *db, ui::PinSetView &vw) {
 				ss = parents[ssIdx];
 			}
 			for ( const pair<Package, Pin> &pr : pv.pins ) {
-				for ( db::Orderable &o : (*csetIt).orderables() ) {
+				for ( db::Orderable &o : cs.orderables() ) {
 					if ( o.pkg == pr.first && !pr.second.empty() ) {
 						o.pinset.signalsets[pr.second] = ss;
 						o.pinset.pins++;
@@ -246,11 +259,17 @@ void convertAndSaveViewToDb(sqlite3 *db, ui::PinSetView &vw) {
 			ssIdx++;
 		}
 
-		for ( db::Orderable &o : (*csetIt).orderables() ) {
-			db::saveOrUpdatePinset(db, o.pinset);
+		// since each set is superset of the next and subset of the previous, orderables & pinsets will be
+		// updated and linked first in default set, then maybe again in next set and maybe again later
+		// it's not perfect, but it is required to save orderables/pinsets that are ONLY part of the current set
+		// so that the database ids are valid for parenting later!
+		for ( db::Orderable &o : cs.orderables() ) {
+			db::saveOrUpdatePinset(db, o.pinset); // pinset is saved AGAIN for pin count
 			db::linkOrderableToItsPinset(db, o);
 		}
+
 		parents = signalsets;
 		signalsets.clear();
+		cIdx++;
 	}
 }
