@@ -419,33 +419,47 @@ void drawPinSetEditingWindow(Window &win, PinSetView &vw) {
 	}
 }
 
-void drawSetConfigWindow(BorderedWindow &win, int &lr, const Configset &cset) {
+void drawSetConfigWindow(BorderedWindow &win, const vector<Configset> &cfs) {
 	const int MAX_PKG_LEN = 6;
 	const int COL_HDR = 1;
 	const int COL_DATA = 2;
 
-	// TODO: calculate something?
-	int requiredRows = cset.toModels().size()   /* one line per model */
-			 + cset.toPkgs().size() / 2 /* packages are max 5 wide, 2 pkgs/line */
-			 + cset.toPkgs().size() % 2 /* when odd, 1 extra pkg, 1 extra line */
-			 + 2 /* headers */ + 2 /* borders */;
+	// TODO: will continue writing even if no room ... and fail
+	// best solution?
 
-	win.add(lr++, COL_HDR, "Models:");
-	for ( const string &model : cset.toModels() ) {
-		win.add(lr++, COL_DATA, model);
-	}
-
-	vector<Package> pkgs = cset.toPkgs();
-	win.add(lr++, COL_HDR, "Packages:");
-	for ( int i = 0; i < pkgs.size(); i++ ) {
-		const string pkg = pkgs[i].drawing + to_string(pkgs[i].pins);
-		if ( i % 2 == 0 ) {
-			win.add(lr, COL_DATA, pkg);
-		} else {
-			win.add(lr++, COL_DATA + MAX_PKG_LEN + 1 + (MAX_PKG_LEN - pkg.length()), pkg);
+	win.clear();
+	int lr = 0, csIdx = 0;
+	for ( const Configset &cs : cfs ) {
+		// TODO: calculate something?
+		// int requiredRows = cs.toModels().size()	  /* one line per model */
+		// 		 + cs.toPkgs().size() / 2 /* packages are max 5 wide, 2 pkgs/line */
+		// 		 + cs.toPkgs().size() % 2 /* when odd, 1 extra pkg, 1 extra line */
+		// 		 + 2 /* headers */ + 2 /* borders */;
+		if ( lr > 0 ) {							  // row == 0 for default set
+			win.print(lr++, 1, "Config #%d (F%d)", csIdx, csIdx + 4); // F5, F6, F7
 		}
-	}
 
+		win.add(lr++, COL_HDR, "Models:");
+		for ( const string &model : cs.toModels() ) {
+			win.add(lr++, COL_DATA, model);
+		}
+
+		vector<Package> pkgs = cs.toPkgs();
+		win.add(lr++, COL_HDR, "Packages:");
+		for ( int i = 0; i < pkgs.size(); i++ ) {
+			const string pkg = pkgs[i].drawing + to_string(pkgs[i].pins);
+			if ( i % 2 == 0 ) {
+				win.add(lr, COL_DATA, pkg);
+			} else {
+				win.add(lr++, COL_DATA + MAX_PKG_LEN + 1 + (MAX_PKG_LEN - pkg.length()), pkg);
+			}
+		}
+		mvwhline(win, lr, 0, ACS_HLINE, win.maxCols());
+		csIdx++;
+	}
+	if ( csIdx <= 3 ) { // hard-coded, but max 3 configured sets (aside from default)
+		win.print(++lr, 1, "Press F%d to add", csIdx + 4);
+	}
 	win.paint();
 }
 
@@ -504,21 +518,9 @@ void drawTopWindow(BorderedWindow &win, const Datasheet &ds, const DatabaseTotal
 
 void loopPinsetEditing(Window &win, Window &hot, BorderedWindow &config, ui::PinSetView &vw) {
 	// initially render configsets to screen
-	int cRow = 0, csIdx = 0;
-	for ( const ui::Configset &cs : vw.csets ) {
-		if ( cRow > 0 ) { // row == 0 for default set
-			// mvwhline(config, row, 0, ACS_HLINE, config.maxCols());
-			config.print(cRow++, 1, "Config #%d (F%d)", csIdx, csIdx + 4); // F5, F6, F7
-		}
-		ui::drawSetConfigWindow(config, cRow, cs);
-		mvwhline(config, cRow, 0, ACS_HLINE, config.maxCols());
-		csIdx++;
-	}
-	config.print(cRow + 1, 1, "Press F%d to add", csIdx + 4);
-	config.paint();
+	drawSetConfigWindow(config, vw.csets);
 
 	int tempChar = 0;
-	int ncset = 0;
 	do {
 		switch ( tempChar ) {
 			case KEY_UP:
@@ -548,15 +550,24 @@ void loopPinsetEditing(Window &win, Window &hot, BorderedWindow &config, ui::Pin
 			case KEY_F(5):
 			case KEY_F(6):
 			case KEY_F(7):
-				// if ( tempChar - KEY_F(5) >= ncset ) { // do not allow creating a set that already exists
-				if ( tempChar - KEY_F(5) >= vw.csets.size() - 1 ) {
-					vw.csets.push_back(ui::filterForConfigset(vw.csets[0] /* default set */));
-					// int idx = tempChar - KEY_F(5);
-					ui::drawSetConfigWindow(config, cRow, *vw.csets.rbegin());
-					mvwhline(config, cRow, 0, ACS_HLINE, config.maxCols());
-					config.paint();
-				} else {
-					// activate set? modify set?
+				if ( tempChar - KEY_F(5) >= vw.csets.size() - 1 ) { // create new set
+					Configset cs = ui::filterForConfigset(vw.csets[vw.csets.size() - 1] /* PREVIOUS set */);
+					if ( !cs.empty() ) {
+						vw.csets.push_back(cs);
+						// TODO: should add view objects on each and every PinView???
+						ui::drawSetConfigWindow(config, vw.csets);
+					}
+				} else if ( tempChar - KEY_F(5) < vw.csets.size() ) {
+					int idx = tempChar - KEY_F(5) + 1;
+					// TODO: all models/pkgs will be selected again, nicer if previous set is displayed
+					// but still showing ALL possible options
+					Configset cs = ui::filterForConfigset(vw.csets[idx - 1] /* PREVIOUS set */);
+					if ( cs.empty() ) { // clearing a set is hidden delete function :p
+						vw.csets.erase(vw.csets.begin() + idx);
+					} else {
+						vw.csets[idx] = cs;
+					}
+					ui::drawSetConfigWindow(config, vw.csets);
 				}
 				break;
 
