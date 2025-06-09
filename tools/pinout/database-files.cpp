@@ -268,11 +268,18 @@ void exportOrderablePinsetsFor(sqlite3 *db, const string &datasheetId, const str
 void exportPinsetsFor(sqlite3 *db, const string &datasheetId, const string filename, ExportConfig expConf) {
 	static const char *QUERY = "SELECT ps.* "
 				   "FROM pinset ps "
-				   "WHERE id IN ( "
-				   "	SELECT pinset_id "
+				   "WHERE ps.id IN ("
+				   "	SELECT DISTINCT pinset_id "
 				   "	FROM orderable o "
 				   "	INNER JOIN device d ON d.model = o.device_id "
-				   "	WHERE datasheet_id = ?) "
+				   "	WHERE datasheet_id = ? "
+				   "UNION "
+				   // TODO
+				   "	SELECT DISTINCT ifnull(parent_id, id) "
+				   "	FROM pinset ps "
+				   "	INNER JOIN orderable o ON ps.id = o.pinset_id "
+				   "	INNER JOIN device d ON d.model = o.device_id "
+				   "	WHERE datasheet_id = ? )"
 				   "ORDER BY id ASC";
 	static sqlite3_stmt *stmt;
 	if ( stmt == nullptr ) {
@@ -281,6 +288,7 @@ void exportPinsetsFor(sqlite3 *db, const string &datasheetId, const string filen
 
 	sqlite3_reset(stmt);
 	sqlite3_bind_text(stmt, 1, datasheetId.c_str(), -1, SQLITE_STATIC);
+	sqlite3_bind_text(stmt, 2, datasheetId.c_str(), -1, SQLITE_STATIC);
 	expConf.colWidths = {MAX_WIDTH_PINSET, MAX_WIDTH_PINSET, MAX_WIDTH_PIN};
 	exportFromPrepStmt(stmt, filename, expConf);
 }
@@ -291,10 +299,17 @@ void exportPinsetSignalsetsFor(sqlite3 *db, const string &datasheetId, const str
 				   "INNER JOIN pinset ps ON ps.id = psss.pinset_id "
 				   "INNER JOIN signalset ss on psss.signalset_id = ss.id " // for correct ordering
 				   "WHERE ps.id IN ("
-				   "	SELECT pinset_id "
+				   "	SELECT DISTINCT pinset_id "
 				   "	FROM orderable o "
 				   "	INNER JOIN device d ON d.model = o.device_id "
-				   "	WHERE datasheet_id = ?) "
+				   "	WHERE datasheet_id = ? "
+				   "UNION "
+				   // TODO
+				   "	SELECT DISTINCT ifnull(parent_id, id) "
+				   "	FROM pinset ps "
+				   "	INNER JOIN orderable o ON ps.id = o.pinset_id "
+				   "	INNER JOIN device d ON d.model = o.device_id "
+				   "	WHERE datasheet_id = ? )"
 				   "ORDER BY datasheet_idx ASC, pinset_id ASC, pin_bga_row ASC, pin_number ASC";
 	static sqlite3_stmt *stmt;
 	if ( stmt == nullptr ) {
@@ -303,6 +318,7 @@ void exportPinsetSignalsetsFor(sqlite3 *db, const string &datasheetId, const str
 
 	sqlite3_reset(stmt);
 	sqlite3_bind_text(stmt, 1, datasheetId.c_str(), -1, SQLITE_STATIC);
+	sqlite3_bind_text(stmt, 2, datasheetId.c_str(), -1, SQLITE_STATIC);
 	expConf.colWidths = {MAX_WIDTH_PINSET, MAX_WIDTH_SIGNALSET, MAX_WIDTH_NULL, MAX_WIDTH_PIN};
 	exportFromPrepStmt(stmt, filename, expConf);
 }
@@ -313,11 +329,17 @@ void exportSignalsetsFor(sqlite3 *db, const string &datasheetId, const string fi
 				   "INNER JOIN pinset_signalset psss ON psss.signalset_id = ss.id "
 				   "INNER JOIN pinset ps ON ps.id = psss.pinset_id "
 				   "WHERE ps.id IN ("
-				   "	SELECT pinset_id "
+				   "	SELECT DISTINCT pinset_id "
 				   "	FROM orderable o "
 				   "	INNER JOIN device d ON d.model = o.device_id "
 				   "	WHERE datasheet_id = ? "
-				   "	GROUP BY pinset_id) "
+				   "UNION "
+				   // TODO
+				   "	SELECT DISTINCT ifnull(parent_id, id) "
+				   "	FROM pinset ps "
+				   "	INNER JOIN orderable o ON ps.id = o.pinset_id "
+				   "	INNER JOIN device d ON d.model = o.device_id "
+				   "	WHERE datasheet_id = ? )"
 				   "GROUP BY ss.id "
 				   "ORDER BY datasheet_idx ASC"; // no other columns needed, only 1 datasheet
 	static sqlite3_stmt *stmt;
