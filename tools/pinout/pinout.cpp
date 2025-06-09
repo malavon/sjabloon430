@@ -15,9 +15,8 @@ namespace dbf = sjabloon430::tools::db;
 using sjabloon430::tools::Package;
 using sjabloon430::tools::Pin;
 
-void addPinsetsToOrderables(sqlite3 *, vector<db::Orderable> &);
 void convertDbToView(const vector<db::Signalset> &signalsets, vector<db::Orderable> &orderables, ui::PinSetView &vw);
-void convertAndSaveViewToDb(sqlite3 *db, ui::PinSetView &, vector<db::Orderable> &);
+void convertAndSaveViewToDb(sqlite3 *db, ui::PinSetView &);
 
 static const int WIDEST_MODEL_LENGTH = strlen("MSP430F6459-HIREL"); /* hardcoded longest model */
 static const int WIN_TOP_HEIGHT = 6;
@@ -84,7 +83,6 @@ int main() {
 		vector<db::Pinset> pinsets = db::findPinsetsByDatasheet(db, selectedId, signalsets);
 		// orderables are used to create config sets (the thing at the right :p) -> but not yet implemented
 		vector<db::Orderable> ordbls = db::findOrderablesByDatasheet(db, selectedId, pinsets);
-		addPinsetsToOrderables(db, ordbls);
 
 		ui::reorderPackages(pkgs);
 		ui::PinSetView vw{pkgs};
@@ -96,7 +94,7 @@ int main() {
 		db::saveSignals(db, vw.signalDescs);
 		dbf::exportSignals(db);
 
-		convertAndSaveViewToDb(db, vw, ordbls);
+		convertAndSaveViewToDb(db, vw);
 
 		dbf::exportDataForDatasheet(db, selectedId);
 		// it would make sense that these are removed and all dev's and odbls are in files per datasheet ...
@@ -132,36 +130,6 @@ int main() {
 	endCurses();
 
 	return EXIT_SUCCESS;
-}
-
-void addPinsetsToOrderables(sqlite3 *db, vector<db::Orderable> &odbls) {
-	// config sets are not yet implemented, but right now it seems logical to me that they would be
-	// a list of orderables
-	// calling this function once for each config set with a different list of odbls may be correct
-	unordered_map<Package, int> pkgToIdx; // will make copies, not references
-	vector<db::Pinset> pinsets;	      // handy to get references from
-
-	// first iterate all and list pinsets in case a few orderables have pinsets and a few don't
-	// don't rely on ordering and make sure to not create a new pinset when it's already in the db
-	for ( db::Orderable &o : odbls ) {
-		if ( o.pinset.id != 0 && pkgToIdx.find(o.pkg) == pkgToIdx.end() ) {
-			pkgToIdx[o.pkg] = pinsets.size();
-			pinsets.push_back(o.pinset);
-		}
-	}
-
-	// only then link the other (may be new) orderables, if need be create a new pinset
-	for ( db::Orderable &o : odbls ) {
-		if ( o.pinset.id == 0 ) {
-			if ( pkgToIdx.find(o.pkg) == pkgToIdx.end() ) {
-				db::saveOrUpdatePinset(db, o.pinset);
-				pkgToIdx[o.pkg] = pinsets.size();
-				pinsets.push_back(o.pinset);
-			} else {
-				o.pinset = pinsets[pkgToIdx[o.pkg]];
-			}
-		}
-	}
 }
 
 void convertDbToView(const vector<db::Signalset> &signalsets, vector<db::Orderable> &orderables, ui::PinSetView &vw) {
@@ -224,7 +192,7 @@ void convertDbToView(const vector<db::Signalset> &signalsets, vector<db::Orderab
 	vw.csets[0] = ui::Configset(orderables); // breaks conversion, nothing broken when removed???
 }
 
-void convertAndSaveViewToDb(sqlite3 *db, ui::PinSetView &vw, vector<db::Orderable> & /*odbls*/) {
+void convertAndSaveViewToDb(sqlite3 *db, ui::PinSetView &vw) {
 	vector<db::Signalset> signalsets, parents; // kept locally only?
 	// save signalsets one config set at a time; parenting then by index
 	int ssIdx = 0, cIdx = 0;

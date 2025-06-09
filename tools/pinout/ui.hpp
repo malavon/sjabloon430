@@ -46,8 +46,13 @@ class Configset {
 		odbls.push_back(o);
 	}
 
+	bool empty() const {
+		return odbls.empty();
+	}
+
   private:
 	vector<db::Orderable> odbls;
+	vector<db::Pinset> pinsets;
 };
 
 struct PinView {
@@ -112,7 +117,7 @@ void editPinSet(Window &, int &row, const vector<string> &pkgs, unordered_map<st
 
 // Window drawing functions
 void drawPinSetEditingWindow(Window &win, PinSetView &pinView);
-void drawSetConfigWindow(BorderedWindow &, int &row, const Configset &);
+void drawSetConfigWindow(BorderedWindow &, const vector<Configset> &cfs);
 void drawTopWindow(BorderedWindow &, const db::Datasheet &, const db::DatabaseTotals &ttl, const db::DatabaseTotals &sprtd);
 Configset filterForConfigset(const Configset &cset);
 void loopPinsetEditing(Window &pinset, Window &hotkeys, BorderedWindow &config, ui::PinSetView &);
