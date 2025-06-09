@@ -360,17 +360,17 @@ void drawPinSetEditingWindow(Window &win, PinSetView &vw) {
 
 		if ( idx == vw.selIdx ) {
 			selectionReached = true;
-			scrollToAccomodate(win, pv[0].size() + 1 /* header */ + 1 /* horiz. ruler */, row);
+			scrollToAccomodate(win, pv.countSignals() + 1 /* header */ + 1 /* horiz. ruler */, row);
 			win.enableAttributes(WA_BOLD);
 			drawPinSetHeader(win, row++, vw.pkgs);
-			for ( int i = 0; i < pv[0].size(); i++ ) {
+			for ( int i = 0; i < pv.countSignals(); i++ ) {
 				win.add(row + i, 1, ">");
 			}
 			drawPinSet(win, row, vw.pkgs, vw.signalDescs, pv);
 			mvwhline(win, row++, 1, 0, min(win.maxCols() - 2, 79)); // capped at 80, esthaetics
 			win.disableAttributes(WA_BOLD);
 		} else if ( !selectionReached ) { // selection not yet reached, keep drawing & scrolling if need be
-			int scrolled = scrollToAccomodate(win, pv[0].size() + 1 /* header */ + 1 /* horiz. ruler */, row);
+			int scrolled = scrollToAccomodate(win, pv.countSignals() + 1 /* header */ + 1 /* horiz. ruler */, row);
 			drawPinSet(win, row, vw.pkgs, vw.signalDescs, pv);
 			mvwhline(win, row++, 1, 0, min(win.maxCols() - 2, 79)); // capped at 80, esthaetics
 			roomToDisplayMore = (scrolled == 0);
@@ -388,10 +388,7 @@ void drawPinSetEditingWindow(Window &win, PinSetView &vw) {
 
 	// at last option editing means inserting a new one
 	if ( vw.editIdx == vw.pinViews.size() ) {
-		PinView pv;
-		for ( const Configset &cs : vw.csets ) {
-			pv.cviews.push_back(PinView::ConfigView());
-		}
+		PinView pv = vw.createNewPinView();
 		scrollToAccomodate(win, MAX_SIGNALS + 1 /* header */, row);
 		drawPinSetHeader(win, row++, vw.pkgs);
 		editPinSet(win, row, vw.pkgs, vw.signalDescs, pv);
@@ -552,7 +549,7 @@ void loopPinsetEditing(Window &win, Window &hot, BorderedWindow &config, ui::Pin
 				if ( tempChar - KEY_F(5) >= vw.csets.size() - 1 ) { // create new set
 					Configset cs = ui::filterForConfigset(vw.csets[vw.csets.size() - 1] /* PREVIOUS set */);
 					if ( !cs.empty() ) {
-						vw.csets.push_back(cs);
+						vw.addIfNotEmpty(cs);
 						// TODO: should add view objects on each and every PinView???
 						ui::drawSetConfigWindow(config, vw.csets);
 					}

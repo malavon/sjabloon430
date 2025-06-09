@@ -2,9 +2,11 @@
 
 #include <cassert>
 #include <iostream>
-#include <set>
+#include <unordered_set>
 
 namespace sjabloon430 { namespace tools { namespace pinout { namespace db {
+
+using std::unordered_set;
 
 sqlite3 *createDatabase() {
 	sqlite3 *db;
@@ -210,29 +212,25 @@ vector<Package> findPackagesByDatasheet(sqlite3 *db, const string datasheetId) {
 vector<Pinset> findPinsetsByDatasheet(sqlite3 *db, const string &datasheetId, const vector<Signalset> &sgnsets) {
 	static const char *QUERY = "SELECT id, parent_id, pins, pss.signalset_id, pss.pin_bga_row, pss.pin_number "
 				   "FROM pinset p "
-				   "INNER JOIN pinset_signalset pss ON (p.id=pss.pinset_id) "
-				   // todo: inner join on 2 columns works; is this standard SQL?
-				   // also: actually wrong? parent pinset has (a few) different signalsets which
-				   // are children themselves
-				   // "INNER JOIN pinset_signalset pss ON (p.id=pss.pinset_id OR p.parent_id=pss.pinset_id) "
+				   "INNER JOIN pinset_signalset pss ON (p.id = pss.pinset_id) "
 				   "WHERE p.id IN ("
-				   "	SELECT distinct o.pinset_id "
+				   "	SELECT DISTINCT o.pinset_id "
 				   "	FROM orderable o "
 				   "	INNER JOIN device d ON o.device_id = d.model "
-				   "	WHERE d.datasheet_id = ? "
-				   "	order by o.pinset_id ASC )"
-				   "ORDER BY p.id ASC";
+				   "	WHERE d.datasheet_id = ? )"
+				   "ORDER BY ifnull(p.parent_id, p.id) ASC"; // ordering groups children/parent
 
 	static sqlite3_stmt *stmt;
 	if ( stmt == nullptr ) { // assume both are null
 		prepare(db, &stmt, QUERY);
 	}
 
-	unordered_map<int, int> id2ssIdx; // id->vector index!
+	unordered_map<int, int> ssId2Idx; // id->vector index!
 	int vtIdx = 0;
 	for ( const Signalset &ss : sgnsets ) {
-		id2ssIdx[ss.id] = vtIdx++;
+		ssId2Idx[ss.id] = vtIdx++;
 	}
+	unordered_set<int> psIds = {0}; // only used for asserting database consistency (or query issues)
 
 	sqlite3_reset(stmt);
 	int rc = sqlite3_bind_text(stmt, 1, datasheetId.c_str(), -1, SQLITE_STATIC);
@@ -244,7 +242,9 @@ vector<Pinset> findPinsetsByDatasheet(sqlite3 *db, const string &datasheetId, co
 		Pinset p;
 		p.id = sqlite3_column_int(stmt, 0);
 		p.parentId = sqlite3_column_int(stmt, 1);
-		p.pins = sqlite3_column_int(stmt, 2); // will be updated by application, not verified/calculated here
+		p.pins = sqlite3_column_int(stmt, 2);
+		psIds.insert(p.id);
+		assert(psIds.find(p.parentId) != psIds.end());
 		while ( sqlite3_column_int(stmt, 0) == p.id ) {
 			int sgnStId = sqlite3_column_int(stmt, 3);
 
@@ -253,7 +253,9 @@ vector<Pinset> findPinsetsByDatasheet(sqlite3 *db, const string &datasheetId, co
 			key.bgaRow = bgaRow == nullptr ? "" : string(reinterpret_cast<const char *>(bgaRow));
 			key.number = sqlite3_column_int(stmt, 5);
 
-			p.signalsets[key] = sgnsets[id2ssIdx[sgnStId]];
+			// signalset id can be 0 after changes BECAUSE of left outer join
+			assert(ssId2Idx.find(sgnStId) != ssId2Idx.end()); // DB inconsistency
+			p.signalsets[key] = sgnsets[ssId2Idx[sgnStId]];
 			rc = sqlite3_step(stmt);
 		}
 		ps.push_back(p);
@@ -263,14 +265,14 @@ vector<Pinset> findPinsetsByDatasheet(sqlite3 *db, const string &datasheetId, co
 }
 
 vector<Signalset> findSignalsetsByDatasheet(sqlite3 *db, const string datasheetId) {
-	// this function assumes index is continuous from 0 to n
-
 	static const char *SSET_QUERY = "SELECT DISTINCT datasheet_idx, ss.id signalset_id, ss.parent_id "
 					"FROM signalset ss "
 					"INNER JOIN pinset_signalset psss ON ss.id = psss.signalset_id "
-					"INNER JOIN orderable o ON o.pinset_id = psss.pinset_id "
-					"INNER JOIN device d ON o.device_id = d.model "
-					"WHERE d.datasheet_id = ? "
+					"WHERE psss.pinset_id IN ( "
+					"	SELECT pinset_id "
+					"	FROM orderable o "
+					"	INNER JOIN device d ON o.device_id = d.model "
+					"	WHERE d.datasheet_id = ? )"
 					"ORDER BY datasheet_idx ASC, ss.parent_id ASC, ss.id ASC";
 
 	static const char *SGNS_QUERY = "SELECT idx, signal_id "
