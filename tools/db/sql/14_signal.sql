@@ -18,8 +18,9 @@ ALTER TABLE feature ADD signal_group TEXT REFERENCES signalgroup (name) ON DELET
 
 -- Table: signal
 CREATE TABLE IF NOT EXISTS signal (
-    id          TEXT PRIMARY KEY ON CONFLICT ROLLBACK
-                     NOT NULL,
+    id          TEXT PRIMARY KEY ON CONFLICT ROLLBACK,
+    alias_for   TEXT REFERENCES signal (id) ON DELETE CASCADE
+                                            ON UPDATE CASCADE,
     desc        TEXT NOT NULL,
     signalgroup TEXT REFERENCES signalgroup (name) 
 )
