@@ -45,7 +45,7 @@ int main() {
 		Window pins(LINES - 6, COLS - WIN_CONFIGSET_WIDTH, 6, 0);
 		pins.optionScrollable(Toggle::ON);
 		BorderedWindow configs(LINES, WIN_CONFIGSET_WIDTH, 0, COLS - WIN_CONFIGSET_WIDTH);
-		configs.setTitle("Config: default");
+		configs.setTitle("Configsets");
 
 		Window &statusWin = pins;
 		statusWin.add(0, 0, "Imported SQLite DB from files:\n");
