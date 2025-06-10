@@ -421,34 +421,70 @@ void drawSetConfigWindow(BorderedWindow &win, const vector<Configset> &cfs) {
 	const int COL_HDR = 1;
 	const int COL_DATA = 2;
 
-	// TODO: will continue writing even if no room ... and fail
-	// best solution?
+	// first calculate if there is enough room to display everything
+	int reqRows = 0, reqAllMdl = 0, reqAllPkg = 0, reqDefault = 0, reqOther = 0;
+	for ( const Configset &cs : cfs ) {
+		int reqMdl = cs.toModels().size() /* one line per model */ + 1 /* header */;
+		int reqPkg = cs.toPkgs().size() / 2 /* packages are max 5 wide, 2 pkgs/line */
+			   + cs.toPkgs().size() % 2 /* when odd, 1 extra pkg, 1 extra line */
+			   + 1 /* header */;
+		if ( reqDefault == 0 ) { // first set, default set
+			reqDefault = reqMdl + reqPkg + 1 /* horizontal ruler */;
+		} else {
+			reqOther += reqMdl + reqPkg + 1 /* horizontal ruler */;
+		}
+		reqAllMdl += reqMdl;
+		reqAllPkg += reqPkg;
+	}
+	reqRows = reqDefault + reqOther;
+
+	// idea is to not display default set if no room, not display packages if no room
+	// TODO: packages can be removed if same for all sets only
+	bool canDisplayAll = reqRows <= win.maxRows();
+	bool canDisplayAllIfNoHeaders = !canDisplayAll && reqRows - cfs.size() * 2 <= win.maxRows();
+	bool canDisplayDefIfNoPkgs = reqRows - reqAllPkg <= win.maxRows();
+	bool canDisplayAllButDef = reqOther <= win.maxRows();
+	bool displayDef = canDisplayAll || canDisplayAllIfNoHeaders || canDisplayDefIfNoPkgs;
+	bool displayPkg = canDisplayAll || canDisplayAllIfNoHeaders || (!canDisplayDefIfNoPkgs && canDisplayAllButDef);
+	bool displayMdl = reqAllMdl <= win.maxRows();
+	bool displayHdr = !canDisplayAllIfNoHeaders;
 
 	win.clear();
 	int lr = 0, csIdx = 0;
 	for ( const Configset &cs : cfs ) {
-		// TODO: calculate something?
-		// int requiredRows = cs.toModels().size()	  /* one line per model */
-		// 		 + cs.toPkgs().size() / 2 /* packages are max 5 wide, 2 pkgs/line */
-		// 		 + cs.toPkgs().size() % 2 /* when odd, 1 extra pkg, 1 extra line */
-		// 		 + 2 /* headers */ + 2 /* borders */;
-		if ( lr > 0 ) {							  // row == 0 for default set
+		if ( csIdx == 0 && !displayDef ) { // do not display default if no room
+			csIdx++;
+			continue;
+		}
+
+		mvwhline(win, lr, 0, ACS_HLINE, win.maxCols());
+		if ( csIdx == 0 ) {
+			win.add(lr++, 1, "Config default");
+		} else {
 			win.print(lr++, 1, "Config #%d (F%d)", csIdx, csIdx + 4); // F5, F6, F7
 		}
 
-		win.add(lr++, COL_HDR, "Models:");
-		for ( const string &model : cs.toModels() ) {
-			win.add(lr++, COL_DATA, model);
+		if ( displayMdl ) {
+			if ( displayHdr ) {
+				win.add(lr++, COL_HDR, "Models:");
+			}
+			for ( const string &model : cs.toModels() ) {
+				win.add(lr++, COL_DATA, model);
+			}
 		}
 
-		vector<Package> pkgs = cs.toPkgs();
-		win.add(lr++, COL_HDR, "Packages:");
-		for ( int i = 0; i < pkgs.size(); i++ ) {
-			const string pkg = pkgs[i].drawing + to_string(pkgs[i].pins);
-			if ( i % 2 == 0 ) {
-				win.add(lr, COL_DATA, pkg);
-			} else {
-				win.add(lr++, COL_DATA + MAX_PKG_LEN + 1 + (MAX_PKG_LEN - pkg.length()), pkg);
+		if ( displayPkg ) {
+			if ( displayHdr ) {
+				win.add(lr++, COL_HDR, "Packages:");
+			}
+			vector<Package> pkgs = cs.toPkgs();
+			for ( int i = 0; i < pkgs.size(); i++ ) {
+				const string pkg = pkgs[i].drawing + to_string(pkgs[i].pins);
+				if ( i % 2 == 0 ) {
+					win.add(lr, COL_DATA, pkg);
+				} else {
+					win.add(lr++, COL_DATA + MAX_PKG_LEN + 1 + (MAX_PKG_LEN - pkg.length()), pkg);
+				}
 			}
 		}
 		mvwhline(win, lr, 0, ACS_HLINE, win.maxCols());
