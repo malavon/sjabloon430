@@ -617,7 +617,8 @@ void loopPinsetEditing(Window &win, Window &hot, BorderedWindow &config, ui::Pin
 					if ( cs.empty() ) { // clearing a set is hidden delete function :p
 						vw.csets.erase(vw.csets.begin() + idx);
 					} else {
-						vw.csets[idx] = cs;
+						// a bit of a hack to ensure other variables remain the same
+						vw.csets[idx].orderables() = cs.orderables();
 					}
 					ui::drawSetConfigWindow(config, vw.csets);
 				}
@@ -714,7 +715,7 @@ Configset filterForConfigset(const Configset &cset) {
 			fltrd.push_back(o);
 		}
 	}
-	return Configset(fltrd);
+	return Configset(cset, fltrd);
 }
 
 // reordering packages, given vector is reordered
