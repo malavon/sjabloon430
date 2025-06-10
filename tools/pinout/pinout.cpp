@@ -219,10 +219,10 @@ void convertAndSaveViewToDb(sqlite3 *db, ui::PinSetView &vw) {
 				ss.parentId = pt.id;
 				// only save signalset if it's different from its parent
 				// based on id, if zero this also works (parent is already saved, thus has a valid id)
-				if ( pt.id != ss.id && !ss.signals.empty() ) { // signals can contain all empty strings ...
+				if ( pt.id != ss.id && !ss.signals.empty() ) {
 					db::saveOrUpdateSignalset(db, ss);
 				} else {
-					ss = pt;
+					// ss = pt;
 				}
 			}
 			signalsets.push_back(ss); // always added to list for linking, even if same as parent
@@ -236,6 +236,7 @@ void convertAndSaveViewToDb(sqlite3 *db, ui::PinSetView &vw) {
 			if ( cIdx > 0 ) {
 				o.pinset.parentId = vw.csets[cIdx - 1].pinsetIdFor(o.pkg);
 			}
+			o.pinset.signalsets.clear(); // clear all in case of changes
 
 			db::saveOrUpdatePinset(db, o.pinset); // pinset is saved to ensure id is valid
 			cs.pinsetIdFor(o.pkg, o.pinset.id);   // and then id is updated in view
@@ -246,14 +247,19 @@ void convertAndSaveViewToDb(sqlite3 *db, ui::PinSetView &vw) {
 			// using fact that PinView is present even if no pins present and
 			// for every config set the same amount of signalsets exist in-memory
 			db::Signalset &ss = signalsets[ssIdx];
-			if ( ss.signals.empty() && !parents.empty() ) {
-				ss = parents[ssIdx];
-			}
-			for ( const pair<Package, Pin> &pr : pv.pins ) {
-				for ( db::Orderable &o : cs.orderables() ) {
-					if ( o.pkg == pr.first && !pr.second.empty() ) {
-						o.pinset.signalsets[pr.second] = ss;
-						o.pinset.pins++;
+			// if ( ss.signals.empty() && !parents.empty() ) {
+			// 	ss = parents[ssIdx];
+			// }
+			// no signals,TODO
+			if ( ss.signals.empty() ) {
+				//
+			} else {
+				for ( const pair<Package, Pin> &pr : pv.pins ) {
+					for ( db::Orderable &o : cs.orderables() ) {
+						if ( o.pkg == pr.first && !pr.second.empty() ) {
+							o.pinset.signalsets[pr.second] = ss;
+							o.pinset.pins++;
+						}
 					}
 				}
 			}
