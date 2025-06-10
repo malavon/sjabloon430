@@ -30,8 +30,9 @@ static const char *DESCRIPTION_HDR("DESCRIPTION");
 class Configset {
   public:
 	Configset() { }
-
 	Configset(const vector<db::Orderable> &vod) : odbls(vod) { }
+	// looks like an odd copy constructor, let's call it a base-it-on constructor: copy everything except given
+	Configset(const Configset &cs, const vector<db::Orderable> &vod) : odbls(vod), pinsetIds(cs.pinsetIds) { }
 
 	const vector<string> toModels() const {
 		std::set<string> models;
