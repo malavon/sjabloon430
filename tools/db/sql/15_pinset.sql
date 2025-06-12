@@ -39,3 +39,29 @@ CREATE TABLE IF NOT EXISTS pinset_signalset (
 WITHOUT ROWID,
 STRICT;
 
+-- View: pinset_id_view
+CREATE VIEW IF NOT EXISTS pinset_id_view AS
+    SELECT DISTINCT datasheet_id, o.pinset_id id
+    FROM orderable o
+         INNER JOIN device d ON d.model = o.device_id
+    UNION
+    SELECT DISTINCT datasheet_id, par1.id AS id
+    FROM pinset ps
+         INNER JOIN pinset par1 ON ps.parent_id = par1.id
+         INNER JOIN orderable o ON ps.id = o.pinset_id
+         INNER JOIN device d ON d.model = o.device_id
+    UNION
+    SELECT DISTINCT datasheet_id, par2.id AS id
+    FROM pinset ps
+         INNER JOIN pinset par1 ON ps.parent_id = par1.id
+         INNER JOIN pinset par2 ON par1.parent_id = par2.id
+         INNER JOIN orderable o ON ps.id = o.pinset_id
+         INNER JOIN device d ON d.model = o.device_id
+    UNION
+    SELECT DISTINCT datasheet_id, par2.parent_id AS id
+    FROM pinset ps
+         INNER JOIN pinset par1 ON ps.parent_id = par1.id
+         INNER JOIN pinset par2 ON par1.parent_id = par2.id
+         INNER JOIN orderable o ON ps.id = o.pinset_id
+         INNER JOIN device d ON d.model = o.device_id
+    ORDER BY datasheet_id, id ASC;
