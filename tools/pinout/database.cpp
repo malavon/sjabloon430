@@ -13,6 +13,9 @@ sqlite3 *createDatabase() {
 	if ( rc != 0 ) {
 		sqlite3_close(db);
 		db = nullptr;
+	} else {
+		// this is apparently required for sqlite3 to behave like an actual database ...
+		sqlite3_exec(db, "PRAGMA foreign_keys = ON", nullptr, nullptr, nullptr);
 	}
 	return db;
 }
