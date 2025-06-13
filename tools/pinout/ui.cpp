@@ -486,12 +486,13 @@ void drawSetConfigWindow(BorderedWindow &win, const vector<Configset> &cfs) {
 					win.add(lr++, COL_DATA + MAX_PKG_LEN + 1 + (MAX_PKG_LEN - pkg.length()), pkg);
 				}
 			}
+			lr += pkgs.size() % 2; // correctly advance row if ended on an odd number
 		}
 		mvwhline(win, lr, 0, ACS_HLINE, win.maxCols());
 		csIdx++;
 	}
 	if ( csIdx <= 3 ) { // hard-coded, but max 3 configured sets (aside from default)
-		win.print(++lr, 1, "Press F%d to add", csIdx + 4);
+		win.print(lr++, 1, "Press F%d to add", csIdx + 4);
 	}
 	win.paint();
 }
@@ -584,23 +585,24 @@ void loopPinsetEditing(Window &win, Window &hot, BorderedWindow &config, ui::Pin
 			case KEY_F(6):
 			case KEY_F(7):
 				if ( tempChar - KEY_F(5) >= vw.csets.size() - 1 ) { // create new set
-					Configset cs = ui::filterForConfigset(vw.csets[vw.csets.size() - 1] /* PREVIOUS set */);
+					/* DEFAULT set, allowing non-linear parenting - user has to ensure everything is valid! */
+					Configset cs = ui::filterForConfigset(vw.csets[0]);
 					if ( !cs.empty() ) {
-						vw.addIfNotEmpty(cs);
-						// TODO: should add view objects on each and every PinView???
+						vw.add(cs);
 						ui::drawSetConfigWindow(config, vw.csets);
 					}
 				} else if ( tempChar - KEY_F(5) < vw.csets.size() ) {
 					int idx = tempChar - KEY_F(5) + 1;
 					// TODO: all models/pkgs will be selected again, nicer if previous set is displayed
 					// but still showing ALL possible options
-					Configset cs = ui::filterForConfigset(vw.csets[idx - 1] /* PREVIOUS set */);
+					Configset cs = ui::filterForConfigset(vw.csets[0]);
+
 					if ( cs.empty() ) { // clearing a set is hidden delete function :p
 						vw.csets.erase(vw.csets.begin() + idx);
 					} else {
-						// a bit of a hack to ensure other variables remain the same
-						vw.csets[idx].orderables() = cs.orderables();
+						vw.csets[idx] = cs;
 					}
+
 					ui::drawSetConfigWindow(config, vw.csets);
 				}
 				break;
