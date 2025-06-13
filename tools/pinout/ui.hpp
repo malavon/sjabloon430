@@ -60,10 +60,34 @@ class Configset {
 
 	void add(db::Orderable &o) {
 		odbls.push_back(o);
+		pinsetIdFor(o.pkg, o.pinset.id);
+	}
+
+	bool contains(const db::Orderable &o) const {
+		for ( const db::Orderable &op : odbls ) {
+			if ( op == o ) {
+				return true;
+			}
+		}
+		return false;
 	}
 
 	const bool empty() const {
 		return odbls.empty();
+	}
+
+	void update(db::Orderable &o) {
+		if ( o.pinset.id == 0 ) {
+			o.pinset.id = pinsetIdFor(o.pkg);
+		} else {
+			pinsetIdFor(o.pkg, o.pinset.id);
+		}
+		for ( auto it = odbls.begin(); it != odbls.end(); it++ ) {
+			if ( o.name == (*it).name ) {
+				odbls.insert(it, o);
+				return;
+			}
+		}
 	}
 
 	int pinsetIdFor(const Package &pkg) const {
@@ -134,12 +158,10 @@ struct PinSetView {
 	// each item on the screen
 	vector<PinView> pinViews;
 	vector<Configset> csets;
-	void addIfNotEmpty(Configset &cs) {
-		if ( !cs.empty() ) {
-			csets.push_back(cs);
-			for ( PinView &pv : pinViews ) {
-				pv.cviews.push_back(PinView::ConfigView());
-			}
+	void add(Configset &cs) {
+		csets.push_back(cs);
+		for ( PinView &pv : pinViews ) {
+			pv.cviews.push_back(PinView::ConfigView());
 		}
 	}
 	PinView createNewPinView() {
