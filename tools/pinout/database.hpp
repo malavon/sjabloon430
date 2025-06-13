@@ -98,6 +98,9 @@ struct Orderable {
 	string model;
 	Package pkg;
 	Pinset pinset; // reference to correct object, if pinset.id != 0
+	bool operator==(const Orderable &o) const {
+		return name == o.name;
+	}
 };
 
 struct Signalset {
