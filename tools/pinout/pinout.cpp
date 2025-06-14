@@ -230,16 +230,11 @@ void convertDbToView(const vector<db::Signalset> &ssv, vector<db::Pinset> &psv, 
 			ui::PinView &pv = vw.pinViews[ss.datasheetIdx];
 			pv.cviews[csetIdx].signalsetId = ss.id;
 			pv.cviews[csetIdx].signals = ss.signals;
-		}
-	}
-
-	for ( const ui::Configset &cs : vw.csets ) {
-		for ( const db::Orderable &o : cs.orderablesView() ) {
-			for ( const pair<Pin, db::Signalset> &pr : o.pinset.signalsets ) {
-				Pin p = pr.first;
-				db::Signalset ss = pr.second;
-				ui::PinView &pv = vw.pinViews[ss.datasheetIdx];
-				pv.pins[o.pkg] = p;
+			for ( const db::Orderable &o : odv ) {
+				if ( o.pinset.id == ps.id || o.pinset.parentId == ps.id ) {
+					pv.pins[o.pkg] = p;
+					break;
+				}
 			}
 		}
 	}
@@ -251,7 +246,9 @@ void convertDbToView(const vector<db::Signalset> &ssv, vector<db::Pinset> &psv, 
  * shouldn't result in modifications to this function.
  */
 void convertAndSaveViewToDb(sqlite3 *db, ui::PinSetView &vw) {
-	vector<db::Signalset> signalsets, parents; // kept locally only?
+	vector<db::Signalset> signalsets, parents;
+	unordered_map<int, db::Pinset> pinsets;	    // key->object, no parents required to keep?
+	unordered_map<string, int> odblPinsetLinks; // key->pinset id for linking!
 	// save signalsets one config set at a time; parenting then by index
 	// unordered_map<string, db::Orderable> odbls; // id->object
 	int ssIdx = 0, csetIdx = 0;
@@ -263,43 +260,54 @@ void convertAndSaveViewToDb(sqlite3 *db, ui::PinSetView &vw) {
 			ss.id = cv.signalsetId;
 			ss.datasheetIdx = ssIdx;
 			ss.signals = cv.signals;
-			if ( parents.empty() ) {
-				db::saveOrUpdateSignalset(db, ss);
-			} else {
+			if ( !parents.empty() ) {
 				db::Signalset &pt = parents[ssIdx];
-				ss.parentId = pt.id;
+				// reference parent's parent (furthest we can go) if parent is empty!
+				ss.parentId = pt.signals.empty() ? pt.parentId : pt.id;
 				// only save signalset if it's different from its parent
 				// based on id, if zero this also works (parent is already saved, thus has a valid id)
-				if ( pt.id != ss.id && !ss.signals.empty() ) {
-					db::saveOrUpdateSignalset(db, ss);
+				if ( !ss.signals.empty() ) {
+					// db::saveOrUpdateSignalset(db, ss);
 				} else {
+					// to ensure that deeper parents do not use this set as parent!
+					// BUT ... this will link to this signalset now while it shouldn't???
 					// ss = pt;
 				}
+			}
+			if ( ss.id != 0 || !ss.signals.empty() ) { // if it originally came from the DB or is not empty: save!
+				db::saveOrUpdateSignalset(db, ss);
 			}
 			signalsets.push_back(ss); // always added to list for linking, even if same as parent
 			ssIdx++;
 		}
 
-		// recreate all pinsets from view objects
+		// recreate ALL (incl. parent) pinsets from scratch, in case parents have changed! (i.e. configset changes)
 		for ( db::Orderable &o : cs.orderables() ) {
-			o.pinset.pins = 0;		     // will be calculated
-			o.pinset.id = cs.pinsetIdFor(o.pkg); // can be zero if new
-			o.pinset.signalsets.clear();	     // clear all in case of changes
-			if ( csetIdx > 0 ) {
-				// with non-linear parents cannot assume previous set is parent!
-				// search for first that contains the same orderable, will eventually end up in default
-				bool foundParentConfig = false;
-				for ( int pntIdx = csetIdx - 1; !foundParentConfig && pntIdx >= 0; pntIdx-- ) {
-					if ( vw.csets[pntIdx].contains(o) ) {
-						o.pinset.parentId = vw.csets[pntIdx].pinsetIdFor(o.pkg);
-						foundParentConfig = true;
-						break;
+			// also catches null(0)-id!
+			int id = cs.pinsetIdFor(o.pkg);
+			if ( pinsets.find(id) == pinsets.end() ) {
+				db::Pinset ps;
+				ps.id = id;
+
+				if ( csetIdx > 0 ) {
+					// with non-linear parents cannot assume previous set is parent!
+					// search for first that contains the same orderable, will eventually end up in default
+					bool foundParentConfig = false;
+					for ( int pntIdx = csetIdx - 1; !foundParentConfig && pntIdx >= 0; pntIdx-- ) {
+						if ( vw.csets[pntIdx].contains(o) ) {
+							ps.parentId = vw.csets[pntIdx].pinsetIdFor(o.pkg);
+							assert(pinsets.find(ps.parentId) != pinsets.end());
+							foundParentConfig = true;
+							break;
+						}
 					}
 				}
-			}
 
-			db::saveOrUpdatePinset(db, o.pinset); // pinset is saved to ensure id is valid
-			cs.pinsetIdFor(o.pkg, o.pinset.id);   // and then id is updated in view
+				db::saveOrUpdatePinset(db, ps); // pinset is saved to ensure id is valid
+				pinsets[ps.id] = ps;
+				cs.pinsetIdFor(o.pkg, ps.id);
+				odblPinsetLinks[o.name] = cs.pinsetIdFor(o.pkg);
+			}
 		}
 
 		ssIdx = 0;
@@ -307,36 +315,35 @@ void convertAndSaveViewToDb(sqlite3 *db, ui::PinSetView &vw) {
 			// using fact that PinView is present even if no pins present and
 			// for every config set the same amount of signalsets exist in-memory
 			db::Signalset &ss = signalsets[ssIdx];
-			// if ( ss.signals.empty() && !parents.empty() ) {
-			// 	ss = parents[ssIdx];
-			// }
-			// no signals,TODO
-			if ( ss.signals.empty() ) {
-				//
-			} else {
+			if ( !ss.signals.empty() ) {
 				for ( const pair<Package, Pin> &pr : pv.pins ) {
-					for ( db::Orderable &o : cs.orderables() ) {
-						if ( o.pkg == pr.first && !pr.second.empty() ) {
-							o.pinset.signalsets[pr.second] = ss;
-							o.pinset.pins++;
-						}
+					int psId = cs.pinsetIdFor(pr.first);
+					assert(pinsets.find(psId) != pinsets.end());
+					db::Pinset &ps = pinsets[psId];
+					if ( !pr.second.empty() ) {
+						ps.signalsets[pr.second] = ss;
+						ps.pins++;
 					}
+					pinsets[psId] = ps; // TODO: REQUIRED???
 				}
 			}
 			ssIdx++;
 		}
 
-		// since each set is superset of the next and subset of the previous, orderables & pinsets will be
-		// updated and linked first in default set, then maybe again in next set and maybe again later
-		// it's not perfect, but it is required to save orderables/pinsets that are ONLY part of the current set
-		// so that the database ids are valid for parenting later!
-		for ( db::Orderable &o : cs.orderables() ) {
-			db::saveOrUpdatePinset(db, o.pinset); // pinset is saved AGAIN for pin count
-			db::linkOrderableToItsPinset(db, o);
-		}
-
 		parents = signalsets;
 		signalsets.clear();
 		csetIdx++;
+	}
+
+	// these are saved only here to prevent an insert in each configset
+	for ( const pair<int, db::Pinset> &pr : pinsets ) {
+		db::Pinset ps = pr.second;
+		db::saveOrUpdatePinset(db, ps);
+	}
+
+	for ( const pair<string, int> &pr : odblPinsetLinks ) {
+		db::Orderable tmp = {pr.first};
+		tmp.pinset.id = pr.second;
+		db::linkOrderableToItsPinset(db, tmp);
 	}
 }
