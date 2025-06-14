@@ -115,6 +115,11 @@ struct PinView {
 	const unordered_map<unsigned int, string> &operator[](unsigned int idx) const {
 		return cviews.at(idx).signals;
 	}
+	void clearSignals() {
+		for ( ConfigView &cf : cviews ) {
+			cf.signals.clear();
+		}
+	}
 	int countSignals() const {
 		int c = 0;
 		for ( const ConfigView &cf : cviews ) {

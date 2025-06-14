@@ -285,9 +285,7 @@ void formToSignalData(PinView &pv, unordered_map<string, string> &signals, const
 		}
 	}
 
-	for ( PinView::ConfigView &cv : pv.cviews ) {
-		cv.signals.clear();
-	}
+	pv.clearSignals();
 	size_t cfIdx = 0, cfCharIdx = 0, sgnIdx = 0;
 	for ( const pair<Field, Field> &sgnAndDesc : pev.getFieldVector() ) {
 		string sgn = sgnAndDesc.first.buffer<string>();
