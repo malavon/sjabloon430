@@ -217,7 +217,7 @@ vector<Pinset> findPinsetsByDatasheet(sqlite3 *db, const string &datasheetId, co
 				   "	SELECT id "
 				   "	FROM pinset_id_view "
 				   "	WHERE datasheet_id = ? )"
-				   "ORDER BY ifnull(p.parent_id, p.id) ASC"; // ordering groups children/parent
+				   "ORDER BY p.id ASC";
 
 	static sqlite3_stmt *stmt;
 	if ( stmt == nullptr ) { // assume both are null
