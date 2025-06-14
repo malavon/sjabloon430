@@ -133,59 +133,81 @@ int main() {
 	return EXIT_SUCCESS;
 }
 
-void convertDbToView(const vector<db::Signalset> &ssv, vector<db::Pinset> &psv, vector<db::Orderable> &odv,
-		     ui::PinSetView &vw) {
-	// logic: * all pinsets without parents are part of the default config set
-	//	  * all pinsets that have default pinsets as parent, are the second config set
-	//	  * all pinsets that have second ... etc
-	set<int> pids = {0}, nextPids;
-	while ( !pids.empty() ) {
-		nextPids.clear();
-		ui::Configset cs;
-
-		for ( db::Orderable &o : odv ) {
-			// also catches non-existent pinsets!
-			if ( pids.find(o.pinset.parentId) != pids.end() ) {
-				nextPids.insert(o.pinset.id);
-				cs.add(o);
-
-				// and now a massive edge case ... see SLAS272
-				// case: non-linear hierarchy (2 children to default set)
-				// AND what is fixed here: orderables to one of these children do not have an equivalent in default set
-				// simply put but hard to read: force parent sets to link to pinsets of child sets' parent pinset
-
-				int pIdx = vw.csets.size() - 1;
-				for ( vector<ui::Configset>::reverse_iterator pnt = vw.csets.rbegin(); pnt != vw.csets.rend();
-				      pnt++, pIdx-- ) {
-					for ( const db::Orderable &po : (*pnt).orderablesView() ) {
-						if ( o == po ) {
-							for ( const db::Pinset &ps : psv ) {
-								if ( o.pinset.id == ps.id && ps.parentId != 0 ) {
-									(*pnt).pinsetIdFor(o.pkg, ps.parentId);
-									break;
-								}
-							}
-							break;
-						}
-					}
+// Starting from pinsets is not possible BUT not every pinset is linked through orderable (i.e. parent pinsets).
+// On top this also improves support for save-and-pick-up-later editing.
+// logic: * all pinsets without parents are part of the default config set
+//	  * all pinsets that have default pinsets as parent, are the second config set
+//	  * all pinsets that have second ... etc
+// Note: - pinsets are (required to be) ordered by id & parent id, so parents always come before their children!
+//	 - every pinset already has a valid DB id since the data is supposed to be coming straight from DB!
+void pinsetsToViewConfigsets(const vector<db::Pinset> &psv, ui::PinSetView &vw, unordered_map<int, int> &id2cs,
+			     set<int> pids = {0}) {
+	int lastPnt = 0;
+	if ( !pids.empty() ) {
+		set<int> nextPids;
+		for ( const db::Pinset &ps : psv ) {
+			if ( pids.find(ps.parentId) != pids.end() ) {
+				// parents should be incrementing WITHIN the same set, start a new set when this isn't true
+				if ( lastPnt != 0 && ps.parentId <= lastPnt ) {
+					pinsetsToViewConfigsets(psv, vw, id2cs, nextPids);
+					nextPids.clear();
+					ui::Configset cs;
+					vw.add(cs);
 				}
+
+				nextPids.insert(ps.id);
+				id2cs[ps.id] = vw.csets.size();
+				lastPnt = ps.parentId;
 			}
 		}
-
-		// if this assert hits, there are 2 configsets with the same parent ... which is not supported
-		// either the user has made a big error, or there are datasheets in which this is really, really
-		// required (in which case my message to the reader is: sorry ... <hihi>)
+		// if this assert hits, there are 2 configsets with the same parent ... which indicates DB inconsistency
 		assert(nextPids.size() <= vw.pkgs.size());
-		// if ( !cs.empty() || vw.csets.size() == 0 ) {
-		vw.add(cs); // add even if empty, DB should be correct and can be parent for next iteration!
-		// }
+		if ( !nextPids.empty() ) { // only add if some pinsets where processed
+			ui::Configset cs;
+			vw.add(cs);
 
-		// forcibly remove parent ids to ensure there are no loops (on consecutive levels)
-		// id can be 0 WHEN orderable has NO pinset linked yet; 0 signifies NULL -> WILL create a loop
-		for ( int pid : pids ) {
-			nextPids.erase(pid);
+			// forcibly remove parent ids to ensure there are no loops (on consecutive levels)
+			// id can be 0 WHEN orderable has NO pinset linked yet; 0 signifies NULL -> WILL create a loop
+			for ( int pid : pids ) {
+				nextPids.erase(pid);
+			}
+			pinsetsToViewConfigsets(psv, vw, id2cs, nextPids);
 		}
-		pids = nextPids;
+	}
+}
+
+/* REQUIRES:
+ * - pinsets sorted by pinset id ascending
+ * - orderables sorted by PINSET ID ascending!
+ */
+void convertDbToView(const vector<db::Signalset> &ssv, vector<db::Pinset> &psv, vector<db::Orderable> &odv,
+		     ui::PinSetView &vw) {
+	// quick return in case there are no pinsets, thus no pinsets/signalsets etc: add default configset
+	if ( psv.size() == 0 ) {
+		vw.csets.push_back(ui::Configset(odv));
+		return;
+	}
+
+	unordered_map<int, int> psId2Cset;
+	pinsetsToViewConfigsets(psv, vw, psId2Cset);
+	// ... and then "fix" the default set to use all Orderables, none may have been linked to default set
+	vw.csets[0].orderables() = odv;
+
+	int csetIdx = 0, prntId = 0;
+	for ( db::Orderable &o : odv ) {
+		// check if orderable has a pinset assigned; it may not when it's a new orderable for this datasheet AFTER assigning signals
+		if ( o.pinset.id != 0 ) {
+			assert(psId2Cset.find(o.pinset.id) != psId2Cset.end());
+			csetIdx = psId2Cset[o.pinset.id];
+			vw.csets[csetIdx].add(o);
+
+			prntId = o.pinset.parentId;
+			// this should actually be a while-loop, parent of parent etc until default set; unless it can only happen for default
+			if ( prntId != 0 ) {
+				csetIdx = psId2Cset[o.pinset.parentId];
+				vw.csets[csetIdx].pinsetIdFor(o.pkg, o.pinset.parentId);
+			}
+		}
 	}
 
 	// create view objects in advance to reduce complexity in conversion code below
@@ -197,43 +219,30 @@ void convertDbToView(const vector<db::Signalset> &ssv, vector<db::Pinset> &psv, 
 		vw.pinViews.push_back(vw.createNewPinView());
 	}
 
-	int csetIdx = 0, pntIdx = 0;
-	for ( const ui::Configset &cs : vw.csets ) {
-		// non-linear hierarchy may require this: find this configsets' parent set if any
-		// only compare a single orderable with a pinset, double parenting is NOT SUPPORTED
-		bool foundParentConfig = false;
-		for ( pntIdx = csetIdx - 1; !foundParentConfig && pntIdx > 0; pntIdx-- ) {
-			for ( const db::Orderable &o : vw.csets[pntIdx].orderablesView() ) {
-				if ( o.pinset.id != 0 && vw.csets[pntIdx].contains(o) ) {
-					foundParentConfig = true;
-					break;
-				}
-			}
-		}
+	// TODO: is this correct? first looping pinsets, then orderables since they're needed for pins
+	for ( const db::Pinset &ps : psv ) {
+		csetIdx = psId2Cset[ps.id];
 
+		for ( const pair<Pin, db::Signalset> &pr : ps.signalsets ) {
+			Pin p = pr.first;
+			db::Signalset ss = pr.second;
+
+			ui::PinView &pv = vw.pinViews[ss.datasheetIdx];
+			pv.cviews[csetIdx].signalsetId = ss.id;
+			pv.cviews[csetIdx].signals = ss.signals;
+		}
+	}
+
+	for ( const ui::Configset &cs : vw.csets ) {
 		for ( const db::Orderable &o : cs.orderablesView() ) {
 			for ( const pair<Pin, db::Signalset> &pr : o.pinset.signalsets ) {
 				Pin p = pr.first;
 				db::Signalset ss = pr.second;
-
 				ui::PinView &pv = vw.pinViews[ss.datasheetIdx];
-				// only set signals if id not same as parent (OK because it's coming straight from DB)
-				if ( csetIdx == 0 || (pntIdx >= 0 && ss.id != pv.cviews[pntIdx].signalsetId) ) {
-					pv.cviews[csetIdx].signalsetId = ss.id;
-					pv.cviews[csetIdx].signals = ss.signals;
-				}
-				// it is possible that the parent configset is not linked to orderables directly, but is parent only
-				if ( pntIdx != 0 ) {
-					// vw.csets[pntIdx].
-					//
-				}
 				pv.pins[o.pkg] = p;
 			}
 		}
-		csetIdx++;
 	}
-	// ... and then "fix" the default set to use all Orderables
-	vw.csets[0].orderables() = odv;
 }
 
 /* Essentially this function recreates all database objects and links from view objects.
