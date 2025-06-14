@@ -571,7 +571,7 @@ void loopPinsetEditing(Window &win, Window &hot, BorderedWindow &config, ui::Pin
 			case KEY_IC /* insert */:
 				// insert and edit; will be removed by ui code if no signals are inserted!
 				if ( vw.selIdx < vw.pinViews.size() ) {
-					vw.pinViews.insert(vw.pinViews.begin() + vw.selIdx, PinView());
+					vw.pinViews.insert(vw.pinViews.begin() + vw.selIdx, vw.createNewPinView());
 					vw.editIdx = vw.selIdx;
 				}
 				break;
