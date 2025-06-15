@@ -231,7 +231,6 @@ void convertAndSaveViewToDb(sqlite3 *db, ui::PinSetView &vw) {
 	unordered_map<int, db::Pinset> pinsets;	    // key->object, no parents required to keep?
 	unordered_map<string, int> odblPinsetLinks; // key->pinset id for linking!
 	// save signalsets one config set at a time; parenting then by index
-	// unordered_map<string, db::Orderable> odbls; // id->object
 	int ssIdx = 0, csetIdx = 0;
 	for ( ui::Configset &cs : vw.csets ) {
 		ssIdx = 0;
@@ -245,15 +244,6 @@ void convertAndSaveViewToDb(sqlite3 *db, ui::PinSetView &vw) {
 				db::Signalset &pt = parents[ssIdx];
 				// reference parent's parent (furthest we can go) if parent is empty!
 				ss.parentId = pt.signals.empty() ? pt.parentId : pt.id;
-				// only save signalset if it's different from its parent
-				// based on id, if zero this also works (parent is already saved, thus has a valid id)
-				if ( !ss.signals.empty() ) {
-					// db::saveOrUpdateSignalset(db, ss);
-				} else {
-					// to ensure that deeper parents do not use this set as parent!
-					// BUT ... this will link to this signalset now while it shouldn't???
-					// ss = pt;
-				}
 			}
 			if ( ss.id != 0 || !ss.signals.empty() ) { // if it originally came from the DB or is not empty: save!
 				db::saveOrUpdateSignalset(db, ss);
