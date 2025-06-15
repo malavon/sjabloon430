@@ -88,7 +88,7 @@ class Configset {
 		}
 		for ( auto it = odbls.begin(); it != odbls.end(); it++ ) {
 			if ( o.name == (*it).name ) {
-				odbls.insert(it, o);
+				*it = o;
 				return;
 			}
 		}
