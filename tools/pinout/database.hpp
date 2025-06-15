@@ -123,7 +123,6 @@ DatabaseTotals countTotals(sqlite3 *db);
 DatabaseTotals countSupported(sqlite3 *db);
 
 Datasheet findDatasheet(sqlite3 *db, const string id);
-vector<string> findModelsByDatasheet(sqlite3 *db, const string datasheetId);
 vector<Orderable> findOrderablesByDatasheet(sqlite3 *db, const string datasheetId, const vector<Pinset> &);
 vector<Package> findPackagesByDatasheet(sqlite3 *db, const string datasheetId);
 vector<Pinset> findPinsetsByDatasheet(sqlite3 *db, const string &datasheetId, const vector<Signalset> &);
