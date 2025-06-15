@@ -177,11 +177,10 @@ void pinsetsToViewConfigsets(const vector<db::Pinset> &psv, ui::PinSetView &vw, 
 
 /* REQUIRES:
  * - pinsets sorted by pinset id ascending
- * - orderables sorted by PINSET ID ascending!
  */
 void convertDbToView(const vector<db::Signalset> &ssv, vector<db::Pinset> &psv, vector<db::Orderable> &odv,
 		     ui::PinSetView &vw) {
-	// quick return in case there are no pinsets, thus no pinsets/signalsets etc: add default configset
+	// quick return in case there are no pinsets, it's the same result but much less work
 	if ( psv.size() == 0 ) {
 		vw.csets.push_back(ui::Configset(odv));
 		return;
@@ -189,25 +188,32 @@ void convertDbToView(const vector<db::Signalset> &ssv, vector<db::Pinset> &psv, 
 
 	unordered_map<int, int> psId2Cset;
 	pinsetsToViewConfigsets(psv, vw, psId2Cset);
-	// ... and then "fix" the default set to use all Orderables, none may have been linked to default set
-	vw.csets[0].orderables() = odv;
+
+	unordered_map<int, db::Pinset> id2Ps;
+	for ( const db::Pinset &ps : psv ) {
+		id2Ps[ps.id] = ps;
+	}
 
 	int csetIdx = 0, prntId = 0;
 	for ( db::Orderable &o : odv ) {
 		// check if orderable has a pinset assigned; it may not when it's a new orderable for this datasheet AFTER assigning signals
-		if ( o.pinset.id != 0 ) {
+		if ( o.pinset.id == 0 ) {
+			vw.csets[0].add(o);
+		} else {
 			assert(psId2Cset.find(o.pinset.id) != psId2Cset.end());
 			csetIdx = psId2Cset[o.pinset.id];
 			vw.csets[csetIdx].add(o);
 
 			prntId = o.pinset.parentId;
-			// this should actually be a while-loop, parent of parent etc until default set; unless it can only happen for default
-			if ( prntId != 0 ) {
-				csetIdx = psId2Cset[o.pinset.parentId];
-				vw.csets[csetIdx].pinsetIdFor(o.pkg, o.pinset.parentId);
+			// keep adding to parent sets until no more parent; required for always-correct parent reconstruction
+			while ( prntId != 0 ) {
+				csetIdx = psId2Cset[prntId];
+				vw.csets[csetIdx].add(o, prntId);
+				prntId = id2Ps[prntId].parentId;
 			}
 		}
 	}
+	assert(vw.csets[0].orderablesView().size() == odv.size()); // DB inconsistency;
 
 	// create view objects in advance to reduce complexity in conversion code below
 	int maxDsIdx = -1; // -1, not 0; otherwise no signalsets result in 1 PinView!!!
@@ -281,7 +287,7 @@ void convertAndSaveViewToDb(sqlite3 *db, ui::PinSetView &vw) {
 		}
 
 		// recreate ALL (incl. parent) pinsets from scratch, in case parents have changed! (i.e. configset changes)
-		for ( db::Orderable &o : cs.orderables() ) {
+		for ( db::Orderable o : cs.orderablesView() ) {
 			// also catches null(0)-id!
 			int id = cs.pinsetIdFor(o.pkg);
 			if ( pinsets.find(id) == pinsets.end() ) {
@@ -304,7 +310,8 @@ void convertAndSaveViewToDb(sqlite3 *db, ui::PinSetView &vw) {
 
 				db::saveOrUpdatePinset(db, ps); // pinset is saved to ensure id is valid
 				pinsets[ps.id] = ps;
-				cs.pinsetIdFor(o.pkg, ps.id);
+				o.pinset = ps;
+				cs.update(o);
 				odblPinsetLinks[o.name] = cs.pinsetIdFor(o.pkg);
 			}
 		}
