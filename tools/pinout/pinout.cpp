@@ -71,10 +71,6 @@ int main() {
 
 		ui::drawTopWindow(top, selectedDS, totals, supported);
 
-		vector<string> models = db::findModelsByDatasheet(db, selectedId);
-		// models are used for (default) set
-		// TODO: other sets have to be retrieved from pinset & calculated
-
 		vector<Package> pkgs = db::findPackagesByDatasheet(db, selectedDS.id);
 		// packages are also used for sets
 
