@@ -59,8 +59,12 @@ class Configset {
 	}
 
 	void add(db::Orderable &o) {
+		add(o, o.pinset.id);
+	}
+
+	void add(db::Orderable &o, int pinsetId) {
 		odbls.push_back(o);
-		pinsetIdFor(o.pkg, o.pinset.id);
+		pinsetIdFor(o.pkg, pinsetId);
 	}
 
 	bool contains(const db::Orderable &o) const {
@@ -94,9 +98,10 @@ class Configset {
 		return pinsetIds.find(pkg) == pinsetIds.end() ? 0 : pinsetIds.at(pkg);
 	}
 
+  private:
 	void pinsetIdFor(const Package &pkg, int id) {
-		assert(pinsetIds.find(pkg) == pinsetIds.end() || pinsetIds[pkg] == id);
 		if ( id != 0 ) {
+			assert(pinsetIds.find(pkg) == pinsetIds.end() || pinsetIds[pkg] == id);
 			pinsetIds[pkg] = id;
 		}
 	}
