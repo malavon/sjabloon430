@@ -148,10 +148,10 @@ void pinsetsToViewConfigsets(const vector<db::Pinset> &psv, ui::PinSetView &vw, 
 			if ( pids.find(ps.parentId) != pids.end() ) {
 				// parents should be incrementing WITHIN the same set, start a new set when this isn't true
 				if ( lastPnt != 0 && ps.parentId <= lastPnt ) {
-					pinsetsToViewConfigsets(psv, vw, id2cs, nextPids);
-					nextPids.clear();
 					ui::Configset cs;
 					vw.add(cs);
+					pinsetsToViewConfigsets(psv, vw, id2cs, nextPids);
+					nextPids.clear();
 				}
 
 				nextPids.insert(ps.id);
