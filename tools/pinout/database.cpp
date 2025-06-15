@@ -210,7 +210,7 @@ vector<Package> findPackagesByDatasheet(sqlite3 *db, const string datasheetId) {
 
 // fills pinset using data already in database, but Signalsets already in memory
 vector<Pinset> findPinsetsByDatasheet(sqlite3 *db, const string &datasheetId, const vector<Signalset> &sgnsets) {
-	static const char *QUERY = "SELECT id, parent_id, pins, pss.signalset_id, pss.pin_bga_row, pss.pin_number "
+	static const char *QUERY = "SELECT id, parent_id, pss.signalset_id, pss.pin_bga_row, pss.pin_number "
 				   "FROM pinset p "
 				   "LEFT OUTER JOIN pinset_signalset pss ON (p.id = pss.pinset_id) "
 				   "WHERE p.id IN ("
@@ -241,16 +241,15 @@ vector<Pinset> findPinsetsByDatasheet(sqlite3 *db, const string &datasheetId, co
 		Pinset p;
 		p.id = sqlite3_column_int(stmt, 0);
 		p.parentId = sqlite3_column_int(stmt, 1);
-		p.pins = sqlite3_column_int(stmt, 2);
 		assert(psIds.find(p.parentId) != psIds.end());
 		psIds.insert(p.id);
 		while ( sqlite3_column_int(stmt, 0) == p.id ) {
-			int sgnStId = sqlite3_column_int(stmt, 3);
+			int sgnStId = sqlite3_column_int(stmt, 2);
 
-			const unsigned char *bgaRow = sqlite3_column_text(stmt, 4);
+			const unsigned char *bgaRow = sqlite3_column_text(stmt, 3);
 			Pin key;
 			key.bgaRow = bgaRow == nullptr ? "" : string(reinterpret_cast<const char *>(bgaRow));
-			key.number = sqlite3_column_int(stmt, 5);
+			key.number = sqlite3_column_int(stmt, 4);
 
 			// signalset id can be 0 after changes BECAUSE of left outer join
 			if ( sgnStId != 0 ) {
@@ -373,15 +372,13 @@ int linkOrderableToItsPinset(sqlite3 *db, const Orderable &odbl) {
 }
 
 int saveOrUpdatePinset(sqlite3 *db, Pinset &ps) { // assumes signal sets are all in DB!
-	static const char *INSERT = "INSERT INTO pinset (parent_id, pins) VALUES (?, ?)";
-	static const char *UPDATE = "UPDATE pinset SET pins = ? WHERE id = ?";
+	static const char *INSERT = "INSERT INTO pinset (parent_id) VALUES (?)";
 	static const char *UNLINK = "DELETE FROM pinset_signalset WHERE pinset_id = ?";
 	static const char *DOLINK = "INSERT INTO pinset_signalset (pinset_id, signalset_id, pin_bga_row, pin_number) "
 				    "VALUES (:psetId, :ssetId, :bgaRow, :pinNumber)";
-	static sqlite3_stmt *insStmt, *updStmt, *ulkStmt, *lnkStmt;
+	static sqlite3_stmt *insStmt, *ulkStmt, *lnkStmt;
 	if ( insStmt == nullptr ) { // assume both are null
 		prepare(db, &insStmt, INSERT);
-		prepare(db, &updStmt, UPDATE);
 		prepare(db, &ulkStmt, UNLINK);
 		prepare(db, &lnkStmt, DOLINK);
 	}
@@ -396,22 +393,11 @@ int saveOrUpdatePinset(sqlite3 *db, Pinset &ps) { // assumes signal sets are all
 			rc = sqlite3_bind_int(insStmt, 1, ps.parentId);
 		}
 		assert(SQLITE_OK == rc);
-		rc = sqlite3_bind_int(insStmt, 2, ps.pins);
-		assert(SQLITE_OK == rc);
 		rc = sqlite3_step(insStmt);
 		assert(SQLITE_DONE == rc);
 		ps.id = sqlite3_last_insert_rowid(db);
 		alteredRows++;
-	} else { // if already in database, remove signalsets, update totalPins count
-		sqlite3_reset(updStmt);
-		rc = sqlite3_bind_int(updStmt, 1, ps.pins);
-		assert(SQLITE_OK == rc);
-		rc = sqlite3_bind_int(updStmt, 2, ps.id);
-		assert(SQLITE_OK == rc);
-		rc = sqlite3_step(updStmt);
-		assert(SQLITE_DONE == rc);
-		alteredRows++;
-
+	} else { // if already in database, remove signalsets
 		sqlite3_reset(ulkStmt);
 		rc = sqlite3_bind_int(ulkStmt, 1, ps.id);
 		assert(SQLITE_OK == rc);

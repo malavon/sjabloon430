@@ -329,7 +329,6 @@ void convertAndSaveViewToDb(sqlite3 *db, ui::PinSetView &vw) {
 					db::Pinset &ps = pinsets[psId];
 					if ( !pr.second.empty() ) {
 						ps.signalsets[pr.second] = ss;
-						ps.pins++;
 					}
 					pinsets[psId] = ps; // TODO: REQUIRED???
 				}
