@@ -213,7 +213,7 @@ void convertDbToView(const vector<db::Signalset> &ssv, vector<db::Pinset> &psv, 
 			}
 		}
 	}
-	assert(vw.csets[0].orderablesView().size() == odv.size()); // DB inconsistency;
+	assert(vw.csets[0].orderablesView().size() == odv.size()); // DB consistency
 
 	// create view objects in advance to reduce complexity in conversion code below
 	int maxDsIdx = -1; // -1, not 0; otherwise no signalsets result in 1 PinView!!!
@@ -238,7 +238,6 @@ void convertDbToView(const vector<db::Signalset> &ssv, vector<db::Pinset> &psv, 
 			for ( const db::Orderable &o : odv ) {
 				if ( o.pinset.id == ps.id || o.pinset.parentId == ps.id ) {
 					pv.pins[o.pkg] = p;
-					break;
 				}
 			}
 		}
@@ -287,12 +286,12 @@ void convertAndSaveViewToDb(sqlite3 *db, ui::PinSetView &vw) {
 		}
 
 		// recreate ALL (incl. parent) pinsets from scratch, in case parents have changed! (i.e. configset changes)
-		for ( db::Orderable o : cs.orderablesView() ) {
+		for ( db::Orderable &o : cs.orderables() ) {
+			o.pinset.id = cs.pinsetIdFor(o.pkg);
 			// also catches null(0)-id!
-			int id = cs.pinsetIdFor(o.pkg);
-			if ( pinsets.find(id) == pinsets.end() ) {
+			if ( pinsets.find(o.pinset.id) == pinsets.end() ) {
 				db::Pinset ps;
-				ps.id = id;
+				ps.id = o.pinset.id;
 
 				if ( csetIdx > 0 ) {
 					// with non-linear parents cannot assume previous set is parent!
@@ -311,9 +310,9 @@ void convertAndSaveViewToDb(sqlite3 *db, ui::PinSetView &vw) {
 				db::saveOrUpdatePinset(db, ps); // pinset is saved to ensure id is valid
 				pinsets[ps.id] = ps;
 				o.pinset = ps;
-				cs.update(o);
-				odblPinsetLinks[o.name] = cs.pinsetIdFor(o.pkg);
+				cs.update(o); // also sets pinsetIdFor!
 			}
+			odblPinsetLinks[o.name] = o.pinset.id;
 		}
 
 		ssIdx = 0;
@@ -324,7 +323,8 @@ void convertAndSaveViewToDb(sqlite3 *db, ui::PinSetView &vw) {
 			if ( !ss.signals.empty() ) {
 				for ( const pair<Package, Pin> &pr : pv.pins ) {
 					int psId = cs.pinsetIdFor(pr.first);
-					assert(pinsets.find(psId) != pinsets.end());
+					// can be 0 when _this_ configset has less packages than view (i.e. other configsets)
+					assert(psId == 0 || pinsets.find(psId) != pinsets.end());
 					db::Pinset &ps = pinsets[psId];
 					if ( !pr.second.empty() ) {
 						ps.signalsets[pr.second] = ss;
