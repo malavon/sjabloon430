@@ -19,6 +19,9 @@ using namespace std::filesystem;
 namespace sjabloon430 { namespace tools { namespace db {
 // constants for formatting of column widths
 int MAX_WIDTH_NULL = 4;
+int MAX_WIDTH_SIGNAL = 11 + 2;
+int MAX_WIDTH_SIGNALSET = 5; //id=1-99999
+int MAX_WIDTH_SIGNALGROUP = 9 + 2;
 
 // privately used functions forward declarations
 
@@ -202,20 +205,23 @@ void exportFromPrepStmt(sqlite3_stmt *stmt, const string fileName, const ExportC
 }
 
 void exportSignals(sqlite3 *db) {
-	static const char *GROUPS = "SELECT * "
-				    "FROM signalgroup "
-				    "ORDER BY name";
-	static const char *SIGNALS = "SELECT signalgroup, id, desc "
-				     "FROM signal "
-				     "ORDER BY signalgroup ASC, id ASC";
+	static const char *SGROUPS = "SELECT sg.* "
+				     "FROM signalgroup sg "
+				     "ORDER BY name";
+	static const char *SIGNALS = "SELECT signalgroup, id, alias_for, desc "
+				     "FROM signal s "
+				     "ORDER BY signalgroup ASC, ifnull(alias_for, id) ASC, alias_for ASC";
 	static sqlite3_stmt *grpStmt, *sgnStmt;
 	if ( sgnStmt == nullptr ) {
-		prepare(db, &grpStmt, GROUPS);
+		prepare(db, &grpStmt, SGROUPS);
 		prepare(db, &sgnStmt, SIGNALS);
 	}
 
-	exportFromPrepStmt(grpStmt, "24_signal.sql", ExportConfig{.appendFile = false, .tx = ExportConfig::Tx::BEGIN});
-	exportFromPrepStmt(sgnStmt, "24_signal.sql", ExportConfig{.appendFile = true, .tx = ExportConfig::Tx::COMMIT});
+	vector<int> cw = {MAX_WIDTH_SIGNALGROUP, MAX_WIDTH_SIGNAL, MAX_WIDTH_SIGNAL};
+
+	exportFromPrepStmt(grpStmt, "24_signal.sql", ExportConfig{.tx = ExportConfig::Tx::BEGIN});
+	exportFromPrepStmt(sgnStmt, "24_signal.sql",
+			   ExportConfig{.appendFile = true, .tx = ExportConfig::Tx::COMMIT, .colWidths = cw});
 }
 
 // maybe this should be a function shared with other programs
