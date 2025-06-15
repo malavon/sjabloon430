@@ -97,25 +97,6 @@ int main() {
 		dbf::exportDevicesWithoutPinout(db);
 		dbf::exportOrderablesWithoutPinout(db);
 
-		// TODO: input up/down & other hotkeys, basically the bulk of the application?
-		// or should this be in the main application?
-		// much more logical I think, since DB access is required for saving
-
-		// TODO: save new signals; allow changes to descs? maybe, maybe not? better manually?
-
-		// next step would be: get pinset, render to screen
-		// BUT: there are no pinsets in DB yet, so first thing is to add creation/editing code
-		/* MVP sequence:
-		 * 1. get packages & pins for datasheet, get models (models from vector? more difficult)
-		 * 1a. user orders packages according to datasheet
-		 * 2. print header (assume all packages are added in one go, type 1 datasheets)
-		 * 3. add form for pins under each package + 1 signal, on signal field 1 tab:
-		 * 3a. lookup signal (none in DB yet), show description
-		 * 3b. if description empty: add REQUIRED field // TODO: form extension? unpost/post? tab focuses
-		 * 3c. tab: create new signal field
-		 * 3d. tab: if next signal field filled, go to 3b, otherwise 4
-		 * 4. add new pin, go to 3 (or 2? maybe every X pins?)
-		 */
 		/* MVP+1:
 		 * uppercase input only?
 		 * V1.0
