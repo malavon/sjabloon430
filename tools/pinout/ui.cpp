@@ -476,9 +476,9 @@ void drawSetConfigWindow(BorderedWindow &win, const vector<Configset> &cfs) {
 
 		mvwhline(win, lr, 0, ACS_HLINE, win.maxCols());
 		if ( csIdx == 0 ) {
-			win.add(lr++, 1, "Config default");
+			win.print(lr++, 1, ":Default (%d):", cs.orderablesView().size()); // F5, F6, F7
 		} else {
-			win.print(lr++, 1, "Config #%d (F%d)", csIdx, csIdx + 4); // F5, F6, F7
+			win.print(lr++, 1, ":Config F%d (%d):", csIdx + 4, cs.orderablesView().size()); // F5, F6, F7
 		}
 
 		if ( displayMdl ) {
