@@ -122,26 +122,6 @@ Datasheet findDatasheet(sqlite3 *db, const string id) {
 	return ds;
 }
 
-vector<string> findModelsByDatasheet(sqlite3 *db, const string datasheetId) {
-	static const char *QUERY = "SELECT model FROM device "
-				   "WHERE datasheet_id = ? "
-				   "ORDER BY model ASC";
-
-	static sqlite3_stmt *stmt;
-	if ( stmt == nullptr ) {
-		prepare(db, &stmt, QUERY);
-	}
-
-	sqlite3_reset(stmt);
-	sqlite3_bind_text(stmt, 1, datasheetId.c_str(), -1, SQLITE_STATIC);
-
-	vector<string> result;
-	while ( sqlite3_step(stmt) == SQLITE_ROW ) {
-		result.push_back(string(reinterpret_cast<const char *>(sqlite3_column_text(stmt, 0))));
-	}
-	return result;
-}
-
 vector<Orderable> findOrderablesByDatasheet(sqlite3 *db, const string datasheetId, const vector<Pinset> &pinsets) {
 	static const char *QUERY = "SELECT name, device_id, drawing, pins, pinset_id "
 				   "FROM orderable o "
