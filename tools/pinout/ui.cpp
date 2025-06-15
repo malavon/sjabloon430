@@ -584,7 +584,7 @@ void loopPinsetEditing(Window &win, Window &hot, BorderedWindow &config, ui::Pin
 			case KEY_F(7):
 				if ( tempChar - KEY_F(5) >= vw.csets.size() - 1 ) { // create new set
 					/* DEFAULT set, allowing non-linear parenting - user has to ensure everything is valid! */
-					Configset cs = ui::filterForConfigset(Configset(vw.csets[0]));
+					Configset cs = ui::filterForConfigset(Configset(vw.csets[0].orderablesView()));
 					if ( !cs.empty() ) {
 						vw.add(cs);
 						ui::drawSetConfigWindow(config, vw.csets);
