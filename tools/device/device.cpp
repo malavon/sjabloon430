@@ -36,6 +36,10 @@ void printUsage() {
 	     << "e.g.\tMSP430FR2533IRHBT\tslas942\tACTIVE\tVQFN\tRHB\t32\tLevel-2-260C-1_YEAR\n";
 }
 
+template<class T>
+T nextTSV(const string &line, int &tab1, int &tab2);
+
+void insertOrUpdateDatasheets(sqlite3 *db, ifstream &datasheets);
 void insertOrUpdateFamilies(sqlite3 *db, ifstream &families, ifstream &links);
 void insertOrUpdatePackages(sqlite3 *db, ifstream &packages);
 
@@ -96,15 +100,11 @@ int main(int argc, char **argv) // opties voor elke .txt file? misschien niet sl
 		}
 	});
 
-	// read msp430-family.txt for devices (export van TI website! niet modificeren)
-	// read packages.txt (extracted frod:m datasheets)
-	// extend packages.txt? niet ieder DS heeft devices in header; meeste wel
-	//  - mogelijk: proberen, indien 1 optie: OK, anders vragen?
-	//  - of beter?: lijst van links, die resolutie zou 99% ok moeten zijn op dit moment
-	//      - wiel niet opnieuw uitvinden, maar geen manuele verificatie op deze manier?
-	// MAAR: zitten toch nog altijd met de matching van mcu & package
-	// EN: niet elke match is op naam te doen!
-	// OPLOSSING: derde txt file aangemaakt met device & datasheet
+	if ( datasheets.is_open() ) {
+		insertOrUpdateDatasheets(sqlite, datasheets);
+	} else {
+		cout << "No datasheets read " << endl;
+	}
 	if ( families.is_open() && links.is_open() ) {
 		insertOrUpdateFamilies(sqlite, families, links);
 	} else {
@@ -123,7 +123,7 @@ int main(int argc, char **argv) // opties voor elke .txt file? misschien niet sl
 
 namespace sjabloon430 { namespace tools { namespace device {
 
-string nextTSV(string &line, int &tab1, int &tab2) {
+string nextTSV(const string &line, int &tab1, int &tab2) {
 	int temp = tab1;
 	tab2 = line.find('\t', tab1);
 	tab1 = tab2 + 1;
@@ -132,6 +132,12 @@ string nextTSV(string &line, int &tab1, int &tab2) {
 	} else { // last column, no more tabs afterwards, tab2 == -1
 		return line.substr(temp, line.length());
 	}
+}
+
+template<>
+int nextTSV<int>(const string &line, int &tab1, int &tab2) {
+	string token = nextTSV(line, tab1, tab2);
+	return stoi(token);
 }
 
 void addNextString(string &query, const string value) {
@@ -203,6 +209,25 @@ void addGroupFeatures(sqlite3 *db, vector<string> &features, const string &part,
 		addNextString(insert, "AUTOMATIC_RESOLUTION");
 		insert[insert.length() - 1] = ')';
 		features.push_back(insert);
+	}
+}
+
+void insertOrUpdateDatasheets(sqlite3 *db, ifstream &datasheets) {
+	string line;
+	int tab1, tab2;
+	while ( getline(datasheets, line) ) {
+		tab1 = 0;
+		// expected <datasheet>\t<rev>\issuedtmonth\tissuedyear\trevmonth\trevyear; all FILLED!
+		// e.g. SLAS942	E	11	2015	12	2019
+		db::Datasheet ds;
+		ds.id = nextTSV(line, tab1, tab2);
+		ds.rev = nextTSV(line, tab1, tab2);
+		ds.issued.month = nextTSV<int>(line, tab1, tab2);
+		ds.issued.year = nextTSV<int>(line, tab1, tab2);
+		ds.revised.month = nextTSV<int>(line, tab1, tab2);
+		ds.revised.year = nextTSV<int>(line, tab1, tab2);
+
+		db::saveOrUpdate(db, ds);
 	}
 }
 
