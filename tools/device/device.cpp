@@ -49,7 +49,7 @@ using namespace sjabloon430::tools::device;
 int main(int argc, char **argv) // opties voor elke .txt file? misschien niet slecht?
 {
 	ifstream datasheets, families, links, packages;
-	const char *database = nullptr;
+	// const char *database = nullptr;
 
 	int opt;
 	while ( (opt = getopt(argc, argv, "d:f:l:p:h")) != -1 ) {
@@ -73,14 +73,14 @@ int main(int argc, char **argv) // opties voor elke .txt file? misschien niet sl
 		}
 	}
 	if ( argc > optind ) {
-		database = argv[optind];
+		// database = argv[optind];
 	} else {
 		printUsage();
 		return EX_USAGE;
 	}
 
-	sqlite3 *db = db::createDatabase();
-	if ( db == nullptr ) {
+	sqlite3 *sqlite = db::createDatabase();
+	if ( sqlite == nullptr ) {
 		exit(-1);
 	}
 
@@ -96,18 +96,18 @@ int main(int argc, char **argv) // opties voor elke .txt file? misschien niet sl
 	// EN: niet elke match is op naam te doen!
 	// OPLOSSING: derde txt file aangemaakt met device & datasheet
 	if ( families.is_open() && links.is_open() ) {
-		insertOrUpdateFamilies(db, families, links);
+		insertOrUpdateFamilies(sqlite, families, links);
 	} else {
 		cout << "No families & links read " << endl;
 	}
 
 	if ( packages.is_open() ) {
-		insertOrUpdatePackages(db, packages);
+		insertOrUpdatePackages(sqlite, packages);
 	} else {
 		cout << "No packages read" << endl;
 	}
 
-	sqlite3_close(db);
+	sqlite3_close(sqlite);
 	return 0;
 }
 
