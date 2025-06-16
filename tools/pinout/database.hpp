@@ -136,6 +136,8 @@ int saveOrUpdateSignalset(sqlite3 *db, Signalset &sets); // assumes signals are 
 int saveOrUpdatePinset(sqlite3 *db, Pinset &ps);	 // assumes signalsets are all in DB!
 int saveSignals(sqlite3 *db, unordered_map<string, string> signals);
 
-}}}} // namespace sjabloon430::tools::pinout::db
+/* Beautification ... */
+int removeGapsInSignalsetIds(sqlite3 *db);
 
+}}}} // namespace sjabloon430::tools::pinout::db
 #endif // SJABLOON430_TOOLS_PINOUT_DATABASE_HPP

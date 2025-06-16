@@ -522,4 +522,39 @@ int saveSignals(sqlite3 *db, unordered_map<string, string> signals) {
 	return insertedRows;
 }
 
+/* Beautification ... */
+
+int removeGapsInSignalsetIds(sqlite3 *db) {
+	static const char *FINDIDS = "SELECT ss1.id, ss2.id "
+				     "FROM signalset ss1 "
+				     "LEFT OUTER JOIN signalset ss2 ON (ss1.id = ss2.id + 1) "
+				     "WHERE ss1.id <> 1 "
+				     "AND (ss2.id IS NULL OR ss1.id IS NULL)";
+	static const char *CLEANUP = "UPDATE signalset "
+				     "SET id = id - 1 "
+				     "WHERE id >= ?";
+	static sqlite3_stmt *qryStmt, *clnStmt;
+	if ( qryStmt == nullptr ) {
+		prepare(db, &qryStmt, FINDIDS);
+		prepare(db, &clnStmt, CLEANUP);
+	}
+
+	// note that changes to other datasheet ids do not matter unless also exported!
+	// TODO: if the application can ever open multiple datasheets in a session, this will become a problem!
+	int alteredRows = 0, id, rc;
+	sqlite3_reset(qryStmt);
+	while ( sqlite3_step(qryStmt) == SQLITE_ROW ) {
+		sqlite3_reset(clnStmt);
+		id = (sqlite3_column_int(qryStmt, 0));
+		sqlite3_reset(qryStmt); // IMPORTANT: RE-EXECUTE QUERY IN CASE OF GAPS BIGGER THAN 1
+		rc = sqlite3_bind_int(clnStmt, 1, id);
+		assert(SQLITE_OK == rc);
+		rc = sqlite3_step(clnStmt);
+		assert(SQLITE_DONE == rc);
+		alteredRows += sqlite3_changes(db);
+	}
+
+	return alteredRows;
+}
+
 }}}} // namespace sjabloon430::tools::pinout::db
