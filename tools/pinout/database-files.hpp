@@ -25,6 +25,7 @@ struct ExportConfig {
 // only publicly-accessible functions are declared here; privately used ones are in the .cpp file
 
 void exportDataForDatasheet(sqlite3 *db, const string &datasheetId);
+void exportDatasheets(sqlite3 *db);
 void exportDevicesWithoutPinout(sqlite3 *db);
 void exportOrderablesWithoutPinout(sqlite3 *db);
 void exportSignals(sqlite3 *db);

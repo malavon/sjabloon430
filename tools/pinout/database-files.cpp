@@ -369,6 +369,18 @@ void exportDataForDatasheet(sqlite3 *db, const string &datasheetId) {
 	exportOrderablePinsetsFor(db, datasheetId, file, ExportConfig{.appendFile = true, .tx = ExportConfig::Tx::COMMIT});
 }
 
+void exportDatasheets(sqlite3 *db) {
+	static const char *QUERY = "SELECT ds.* "
+				   "FROM datasheet ds "
+				   "ORDER BY id ASC";
+	static sqlite3_stmt *stmt;
+	if ( stmt == nullptr ) {
+		prepare(db, &stmt, QUERY);
+	}
+	sqlite3_reset(stmt);
+	exportFromPrepStmt(stmt, "20_datasheet.sql");
+}
+
 void exportDevicesWithoutPinout(sqlite3 *db) {
 	static const char *QUERY = "SELECT d.* "
 				   "FROM device d "
