@@ -102,6 +102,7 @@ int main(int argc, char **argv) // opties voor elke .txt file? misschien niet sl
 
 	if ( datasheets.is_open() ) {
 		insertOrUpdateDatasheets(sqlite, datasheets);
+		dbf::exportDatasheets(sqlite);
 	} else {
 		cout << "No datasheets read " << endl;
 	}
