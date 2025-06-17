@@ -59,6 +59,31 @@ vector<Datasheet> findAll<Datasheet>(sqlite3 *db) {
 	return result;
 }
 
+vector<string> findDeviceFeatureIds(sqlite3 *db, const string &group, const vector<string> &texts) {
+	static const char *QUERY = "SELECT id "
+				   "FROM feature "
+				   "WHERE family_group = ?"
+				   "  AND family_text = ?";
+
+	static sqlite3_stmt *stmt;
+	if ( stmt == nullptr ) { // assume both are null
+		prepare(db, &stmt, QUERY);
+	}
+
+	int rc[2];
+	vector<string> results;
+	for ( const string &text : texts ) {
+		sqlite3_reset(stmt);
+		rc[0] = sqlite3_bind_text(stmt, 1, group.c_str(), -1, SQLITE_STATIC);
+		rc[1] = sqlite3_bind_text(stmt, 2, text.c_str(), -1, SQLITE_STATIC);
+		assert(rc[0] == SQLITE_OK && rc[1] == SQLITE_OK);
+		if ( sqlite3_step(stmt) == SQLITE_ROW ) {
+			results.push_back(reinterpret_cast<const char *>(sqlite3_column_text(stmt, 0)));
+		}
+	}
+	return results;
+}
+
 // Data modifications
 
 int saveOrUpdate(sqlite3 *db, const Datasheet &ds) {
@@ -120,10 +145,16 @@ int saveOrUpdate(sqlite3 *db, const Device &dv) {
 				    "comp_count = ?, timer_count = ?, "
 				    "op_temp_min = ?, op_temp_max = ? "
 				    "WHERE model = ? ";
-	static sqlite3_stmt *insStmt, *updStmt;
+	static const char *UNLINK = "DELETE FROM device_feature "
+				    "WHERE device_id = ?";
+	static const char *FTLINK = "INSERT INTO device_feature (device_id, feature_id, param1, param2, param3, comment) "
+				    "VALUES (?, ?, ?, ?, ?, 'AUTOMATIC RESOLUTION')";
+	static sqlite3_stmt *insStmt, *updStmt, *ulkStmt, *lnkStmt;
 	if ( insStmt == nullptr ) { // assume both are null
 		prepare(db, &insStmt, INSERT);
 		prepare(db, &updStmt, UPDATE);
+		prepare(db, &ulkStmt, UNLINK);
+		prepare(db, &lnkStmt, FTLINK);
 	}
 
 	int alteredRows = 0, pm = 0;
@@ -175,6 +206,32 @@ int saveOrUpdate(sqlite3 *db, const Device &dv) {
 			alteredRows += sqlite3_changes(db);
 		}
 	}
+	// both for update & insert
+	sqlite3_reset(ulkStmt);
+	rc[0] = sqlite3_bind_text(ulkStmt, 1, dv.model.c_str(), -1, SQLITE_STATIC);
+	rc[1] = sqlite3_step(ulkStmt);
+	assert(SQLITE_OK == rc[0] && SQLITE_DONE == rc[1]);
+	alteredRows += sqlite3_changes(db);
+
+	for ( const Device::Feature &ft : dv.features ) {
+		pm = 0;
+		sqlite3_reset(lnkStmt);
+		sqlite3_clear_bindings(lnkStmt); // ensure params are cleaned, not re-set if empty/null!
+		rc[pm] = sqlite3_bind_text(lnkStmt, ++pm, dv.model.c_str(), -1, SQLITE_STATIC);
+		rc[pm] = sqlite3_bind_text(lnkStmt, ++pm, ft.id.c_str(), -1, SQLITE_STATIC);
+		for ( int i = 0; i < Device::Feature::NPARAMS; i++ ) {
+			if ( !ft.param[i].empty() ) {
+				rc[pm] = sqlite3_bind_text(lnkStmt, ++pm, ft.param[i].c_str(), -1, SQLITE_STATIC);
+			} else {
+				rc[pm] = sqlite3_bind_null(lnkStmt, ++pm);
+			}
+		}
+		std::for_each(rc.begin() + 1, rc.begin() + 1 + pm, [](int n) { assert(n == SQLITE_OK); });
+		rc[pm] = sqlite3_step(lnkStmt);
+		assert(SQLITE_DONE == rc[pm]);
+		alteredRows += sqlite3_changes(db);
+	}
+
 	return alteredRows;
 }
 }}}} // namespace sjabloon430::tools::device::db

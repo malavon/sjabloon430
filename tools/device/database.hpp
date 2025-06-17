@@ -25,11 +25,17 @@ struct Datasheet {
 };
 
 struct Device {
+	struct Feature {
+		static const int NPARAMS = 3;
+		string id;
+		string param[NPARAMS];
+	};
 	string datasheetId;
 	string model;
 	int maxFreq, storage, ram;
 	int ngpio, nuart, nusb, ni2c, nspi, ncomp, ntimer;
 	int opTempMin, opTempMax;
+	vector<Device::Feature> features;
 };
 
 /* SQLite 3 init */
@@ -41,6 +47,7 @@ vector<T> findAll(sqlite3 *db);
 
 template<>
 vector<Datasheet> findAll<Datasheet>(sqlite3 *db);
+vector<string> findDeviceFeatureIds(sqlite3 *, const string &group, const vector<string> &texts);
 
 /* Data modifications */
 int saveOrUpdate(sqlite3 *, const Datasheet &ds);

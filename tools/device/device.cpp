@@ -173,43 +173,29 @@ void addNextInteger(string &query, string value) {
 	query.push_back(',');
 }
 
-void addGroupFeatures(sqlite3 *db, vector<string> &features, const string &part, const string &text, const string &group,
-		      const string &param1 = "", const string &param2 = "", const string &param3 = "") {
-	if ( text.empty() || group.empty() ) {
-		return;
-	}
-	static const string INSERT_QUERY = "INSERT INTO device_feature (device_id,feature_id,param1,param2,param3,comment) "
-					   "VALUES ( ";
-
-	// comma-separated values ... select using IN-statement
-	string select = "SELECT id "
-			"FROM feature "
-			"WHERE family_group = '"
-		      + group + "' AND family_text IN (";
-	addStringsIn(select, text);
-	select += ");";
-
-	sqlite3_stmt *stmt;
-	if ( sqlite3_prepare_v2(db, select.c_str(), -1, &stmt, NULL) != SQLITE_OK ) {
-		cout << "SQLite3 error " << sqlite3_errmsg(db) << endl;
-		return;
+// text can be comma-separated text!
+void addGroupFeatures(sqlite3 *db, db::Device &dv, const string &text, const string &group, const string &p1 = "",
+		      const string &p2 = "", const string &p3 = "") {
+	if ( text.empty() ) {
+		return; // easy way out
 	}
 
-	while ( sqlite3_step(stmt) == SQLITE_ROW ) {
-		// BAD IDEA, but even in a C++ wrapper for SQLite this is done the same way
-		// this won't work for anything that isn't 8-byte characters (e.g. unicode)
-		// but it's fine for this use since *I* control the input anyway
-		string featureId(reinterpret_cast<const char *>(sqlite3_column_text(stmt, 0)));
+	static const char COMMA(',');
+	vector<string> tokens; // is there a C++ function to do this for me???
+	size_t end = text.find(COMMA), start = 0;
+	do {
+		tokens.push_back(end == string::npos ? text.substr(start) : text.substr(start, end - start));
+		start = end + 1;
+		end = text.find(start, COMMA);
+	} while ( start != string::npos + 1 );
 
-		string insert = INSERT_QUERY;
-		addNextString(insert, part);
-		addNextString(insert, featureId);
-		addNextString(insert, param1.empty() ? "NULL" : param1);
-		addNextString(insert, param2.empty() ? "NULL" : param2);
-		addNextString(insert, param3.empty() ? "NULL" : param3);
-		addNextString(insert, "AUTOMATIC_RESOLUTION");
-		insert[insert.length() - 1] = ')';
-		features.push_back(insert);
+	vector<string> fts = db::findDeviceFeatureIds(db, group, tokens);
+	for ( const string &id : fts ) {
+		if ( id.find("IGNORE_") == string::npos ) {
+			dv.features.push_back(db::Device::Feature{
+				id, {p1, p2, p3}
+				});
+		}
 	}
 }
 
@@ -246,12 +232,9 @@ void insertOrUpdateFamilies(sqlite3 *db, ifstream &families, ifstream &links) {
 
 	int tab1, tab2; // not unsigned, string::find() returns -1 :)
 	string value, adc;
-	// insert queries to be executed later because foreign key is not yet satisfied
-	vector<string> featureLinks;
 	// first line contains header, discard it
 	getline(families, line);
 	while ( getline(families, line) ) {
-		featureLinks.clear();
 		tab1 = 0;
 		db::Device dv;
 
@@ -269,7 +252,7 @@ void insertOrUpdateFamilies(sqlite3 *db, ifstream &families, ifstream &links) {
 		adc = nextTSV(line, tab1, tab2);
 		// Number of ADC channels (these are external channels only)
 		value = nextTSV(line, tab1, tab2);
-		addGroupFeatures(db, featureLinks, dv.model, adc, "ADC", value);
+		addGroupFeatures(db, dv, adc, "ADC", value);
 
 		dv.ngpio = nextTSV<int>(line, tab1, tab2);
 		dv.nuart = nextTSV<int>(line, tab1, tab2);
@@ -282,18 +265,17 @@ void insertOrUpdateFamilies(sqlite3 *db, ifstream &families, ifstream &links) {
 		// Bootloader (BSL)
 		// TODO: features
 		value = nextTSV(line, tab1, tab2);
-		addGroupFeatures(db, featureLinks, dv.model, value, "BSL");
+		addGroupFeatures(db, dv, value, "BSL");
 
 		// Special I/O
 		// TODO: features
 		value = nextTSV(line, tab1, tab2);
-		addGroupFeatures(db, featureLinks, dv.model, value, "Special I/O");
+		addGroupFeatures(db, dv, value, "Special I/O");
 
 		// Operating temperature range (°C)
 		// "(-)n(n) to mm(m)"
 		value = nextTSV(line, tab1, tab2);
 		tab2 = value.find(" to ");
-
 		dv.opTempMin = stoi(value.substr(0, tab2));
 		dv.opTempMax = stoi(value.substr(tab2 + 4, value.length() - tab2 - 4));
 
@@ -311,18 +293,9 @@ void insertOrUpdateFamilies(sqlite3 *db, ifstream &families, ifstream &links) {
 
 		// Features
 		value = nextTSV(line, tab1, tab2);
-		addGroupFeatures(db, featureLinks, dv.model, value, "Features");
+		addGroupFeatures(db, dv, value, "Features");
 
 		db::saveOrUpdate(db, dv);
-
-		for ( string &q : featureLinks ) {
-			if ( sqlite3_exec(db, q.c_str(), NULL, NULL, NULL) != SQLITE_OK ) {
-				cout << " FAILED ";
-			} else {
-				cout << "SUCCESS ";
-			}
-			cout << q << endl;
-		}
 	}
 }
 
