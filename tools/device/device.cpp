@@ -5,6 +5,7 @@
 #include <iostream>
 #include <unordered_map>
 
+#include "database-files.hpp"
 #include "database.hpp"
 
 using namespace std;
@@ -12,7 +13,7 @@ using namespace std;
 namespace sjabloon430 { namespace tools { namespace device {
 
 void printUsage() {
-	cout << "Usage: devices [-h] "
+	cout << "Usage: devices [-hv] "
 	     << "[-d <datasheets-file>] "
 	     << "[-f <families-file>] "
 	     << "[-l <links-file>] "
@@ -44,15 +45,16 @@ const string INSERT_DEVICE = "INSERT INTO device (datasheet_id,model,freq_max,st
 
 }}}
 
+namespace dbf = sjabloon430::tools::db;
 using namespace sjabloon430::tools::device;
 
 int main(int argc, char **argv) // opties voor elke .txt file? misschien niet slecht?
 {
 	ifstream datasheets, families, links, packages;
-	// const char *database = nullptr;
+	bool verbose = false;
 
 	int opt;
-	while ( (opt = getopt(argc, argv, "d:f:l:p:h")) != -1 ) {
+	while ( (opt = getopt(argc, argv, "d:f:l:p:hv")) != -1 ) {
 		switch ( opt ) {
 			case 'd':
 				datasheets.open(optarg);
@@ -66,15 +68,16 @@ int main(int argc, char **argv) // opties voor elke .txt file? misschien niet sl
 			case 'p':
 				packages.open(optarg);
 				break;
+			case 'v':
+				verbose = true;
+				break;
 			case 'h':
 			default:
 				printUsage();
 				return EX_USAGE;
 		}
 	}
-	if ( argc > optind ) {
-		// database = argv[optind];
-	} else {
+	if ( argc < optind ) {
 		printUsage();
 		return EX_USAGE;
 	}
@@ -84,10 +87,19 @@ int main(int argc, char **argv) // opties voor elke .txt file? misschien niet sl
 		exit(-1);
 	}
 
-	// datasheets have been imported manually already
+	dbf::importDatabase(sqlite, [&](const string &filename, const int lineNr, const char *error) {
+		if ( error != nullptr ) {
+			std::cerr << "Error: could not import SQL from " << filename << " (line " << lineNr << ") with error "
+				  << error << std::endl;
+			statusWin.print("\n  \"%s\" ERR (line %d): %s", filename.c_str(), lineNr, error);
+
+		} else if ( verbose ) {
+			std::cout << filename << '\t';
+		}
+	});
 
 	// read msp430-family.txt for devices (export van TI website! niet modificeren)
-	// read packages.txt (extracted from datasheets)
+	// read packages.txt (extracted frod:m datasheets)
 	// extend packages.txt? niet ieder DS heeft devices in header; meeste wel
 	//  - mogelijk: proberen, indien 1 optie: OK, anders vragen?
 	//  - of beter?: lijst van links, die resolutie zou 99% ok moeten zijn op dit moment
@@ -359,7 +371,8 @@ string findBestDeviceMatch(sqlite3 *db, const string &orderable, const string &d
 void insertOrUpdatePackages(sqlite3 *db, ifstream &packages) {
 	static const string INSERT_PACKAGE = "INSERT INTO package (drawing,pins,type,comment) VALUES (";
 	static const string INSERT_ORDERABLE =
-	    "INSERT INTO orderable (name,device_id,drawing,pins,status,msl_level,op_temp_min,op_temp_max,comment) VALUES (";
+	    "INSERT INTO orderable "
+	    "(name,device_id,drawing,pins,status,msl_level,op_temp_min,op_temp_max,comment) VALUES (";
 
 	int tab1, tab2;
 	string line;
