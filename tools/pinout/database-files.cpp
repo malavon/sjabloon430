@@ -398,21 +398,6 @@ void exportDatasheets(sqlite3 *db) {
 	exportFromPrepStmt(stmt, "20_datasheet.sql");
 }
 
-void exportDevicesWithoutPinout(sqlite3 *db) {
-	static const char *QUERY = "SELECT d.* "
-				   "FROM device d "
-				   "INNER JOIN orderable o ON d.model = o.device_id "
-				   "WHERE o.pinset_id IS NULL "
-				   "GROUP BY d.model "
-				   "ORDER BY model ASC";
-	static sqlite3_stmt *stmt;
-	if ( stmt == nullptr ) {
-		prepare(db, &stmt, QUERY);
-	}
-	sqlite3_reset(stmt);
-	exportFromPrepStmt(stmt, "21_device.sql");
-}
-
 void exportPackages(sqlite3 *db) {
 	static const char *QUERY = "SELECT drawing, pins, type, comment "
 				   "FROM package "
@@ -424,20 +409,6 @@ void exportPackages(sqlite3 *db) {
 	sqlite3_reset(stmt);
 	vector<int> cw = {MAX_WIDTH_PKGDRW, MAX_WIDTH_PIN};
 	exportFromPrepStmt(stmt, "23_package.sql", ExportConfig{.colWidths = cw});
-}
-
-void exportOrderablesWithoutPinout(sqlite3 *db) {
-	static const char *QUERY = "SELECT o.* "
-				   "FROM orderable o "
-				   "INNER JOIN device d ON d.model = o.device_id "
-				   "WHERE pinset_id IS NULL "
-				   "ORDER BY name ASC, pinset_id ASC";
-	static sqlite3_stmt *stmt;
-	if ( stmt == nullptr ) {
-		prepare(db, &stmt, QUERY);
-	}
-	sqlite3_reset(stmt);
-	exportFromPrepStmt(stmt, "26_orderable.sql");
 }
 
 void exportSignals(sqlite3 *db) {

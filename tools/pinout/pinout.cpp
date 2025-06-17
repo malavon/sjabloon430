@@ -96,9 +96,6 @@ int main() {
 		db::removeGapsInSignalsetIds(db);
 
 		dbf::exportDataForDatasheet(db, selectedId);
-		// it would make sense that these are removed and all dev's and odbls are in files per datasheet ...
-		dbf::exportDevicesWithoutPinout(db);
-		dbf::exportOrderablesWithoutPinout(db);
 
 		/* MVP+1:
 		 * uppercase input only?
