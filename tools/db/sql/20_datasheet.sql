@@ -1,9 +1,10 @@
 --
--- File generated with SQLiteStudio.
+-- File generated with one of the sjabloon 430 database tools.
+-- Any alterations to this data will be kept by these tools, assuming the SQL is still valid.
+-- DO NOT REFORMAT THIS FILE AND CHECK IN ONLY AFTER RE-EXPORTING WITH A SJABLOON 430 TOOL.
 --
 -- Text encoding used: UTF-8
 --
-
 BEGIN TRANSACTION;
 
 INSERT INTO datasheet (id, revision, issue_month, issue_year, rev_month, rev_year, comment) VALUES ('SLAS241', 'I', 9, 1999, 12, 2008, 'MASS IMPORT FROM TSV');

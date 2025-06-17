@@ -7,6 +7,7 @@
 --
 BEGIN TRANSACTION;
 
+INSERT INTO device (model, datasheet_id, freq_max, storage_bytes, ram_bytes, gpio_count, uart_count, usb_count, i2c_count, spi_count, comp_count, timer_count, op_temp_min, op_temp_max, comment) VALUES ('MSP430G2113', 'SLAS735', 16, 1024, 256, 24, 1, 0, 1, 1, 8, 2, -40, 85, 'TI EXPORT');
 INSERT INTO device (model, datasheet_id, freq_max, storage_bytes, ram_bytes, gpio_count, uart_count, usb_count, i2c_count, spi_count, comp_count, timer_count, op_temp_min, op_temp_max, comment) VALUES ('MSP430G2153', 'SLAS735', 16, 1024, 256, 24, 1, 0, 1, 1, 8, 2, -40, 85, 'TI EXPORT');
 INSERT INTO device (model, datasheet_id, freq_max, storage_bytes, ram_bytes, gpio_count, uart_count, usb_count, i2c_count, spi_count, comp_count, timer_count, op_temp_min, op_temp_max, comment) VALUES ('MSP430G2213', 'SLAS735', 16, 2048, 256, 24, 1, 0, 1, 1, 8, 2, -40, 85, 'TI EXPORT');
 INSERT INTO device (model, datasheet_id, freq_max, storage_bytes, ram_bytes, gpio_count, uart_count, usb_count, i2c_count, spi_count, comp_count, timer_count, op_temp_min, op_temp_max, comment) VALUES ('MSP430G2253', 'SLAS735', 16, 2048, 256, 24, 1, 0, 1, 1, 8, 2, -40, 85, 'TI EXPORT');
@@ -17,6 +18,28 @@ INSERT INTO device (model, datasheet_id, freq_max, storage_bytes, ram_bytes, gpi
 INSERT INTO device (model, datasheet_id, freq_max, storage_bytes, ram_bytes, gpio_count, uart_count, usb_count, i2c_count, spi_count, comp_count, timer_count, op_temp_min, op_temp_max, comment) VALUES ('MSP430G2513', 'SLAS735', 16, 16384, 512, 24, 1, 0, 1, 1, 8, 2, -40, 85, 'TI EXPORT');
 INSERT INTO device (model, datasheet_id, freq_max, storage_bytes, ram_bytes, gpio_count, uart_count, usb_count, i2c_count, spi_count, comp_count, timer_count, op_temp_min, op_temp_max, comment) VALUES ('MSP430G2553', 'SLAS735', 16, 16384, 512, 24, 1, 0, 1, 2, 8, 2, -40, 85, 'TI EXPORT');
 
+INSERT INTO device_feature (device_id, feature_id, param1, param2, param3, comment) VALUES ('MSP430G2113', 'ADC_SLOPE', '0', NULL, NULL, 'AUTOMATIC RESOLUTION');
+INSERT INTO device_feature (device_id, feature_id, param1, param2, param3, comment) VALUES ('MSP430G2113', 'BSL_UART', NULL, NULL, NULL, 'AUTOMATIC RESOLUTION');
+INSERT INTO device_feature (device_id, feature_id, param1, param2, param3, comment) VALUES ('MSP430G2153', 'ADC_SAR10', '8', NULL, NULL, 'AUTOMATIC RESOLUTION');
+INSERT INTO device_feature (device_id, feature_id, param1, param2, param3, comment) VALUES ('MSP430G2153', 'BSL_UART', NULL, NULL, NULL, 'AUTOMATIC RESOLUTION');
+INSERT INTO device_feature (device_id, feature_id, param1, param2, param3, comment) VALUES ('MSP430G2213', 'ADC_SLOPE', '0', NULL, NULL, 'AUTOMATIC RESOLUTION');
+INSERT INTO device_feature (device_id, feature_id, param1, param2, param3, comment) VALUES ('MSP430G2213', 'BSL_UART', NULL, NULL, NULL, 'AUTOMATIC RESOLUTION');
+INSERT INTO device_feature (device_id, feature_id, param1, param2, param3, comment) VALUES ('MSP430G2253', 'ADC_SAR10', '8', NULL, NULL, 'AUTOMATIC RESOLUTION');
+INSERT INTO device_feature (device_id, feature_id, param1, param2, param3, comment) VALUES ('MSP430G2253', 'BSL_UART', NULL, NULL, NULL, 'AUTOMATIC RESOLUTION');
+INSERT INTO device_feature (device_id, feature_id, param1, param2, param3, comment) VALUES ('MSP430G2313', 'ADC_SLOPE', '0', NULL, NULL, 'AUTOMATIC RESOLUTION');
+INSERT INTO device_feature (device_id, feature_id, param1, param2, param3, comment) VALUES ('MSP430G2313', 'BSL_UART', NULL, NULL, NULL, 'AUTOMATIC RESOLUTION');
+INSERT INTO device_feature (device_id, feature_id, param1, param2, param3, comment) VALUES ('MSP430G2353', 'ADC_SAR10', '8', NULL, NULL, 'AUTOMATIC RESOLUTION');
+INSERT INTO device_feature (device_id, feature_id, param1, param2, param3, comment) VALUES ('MSP430G2353', 'BSL_UART', NULL, NULL, NULL, 'AUTOMATIC RESOLUTION');
+INSERT INTO device_feature (device_id, feature_id, param1, param2, param3, comment) VALUES ('MSP430G2413', 'ADC_SLOPE', '0', NULL, NULL, 'AUTOMATIC RESOLUTION');
+INSERT INTO device_feature (device_id, feature_id, param1, param2, param3, comment) VALUES ('MSP430G2413', 'BSL_UART', NULL, NULL, NULL, 'AUTOMATIC RESOLUTION');
+INSERT INTO device_feature (device_id, feature_id, param1, param2, param3, comment) VALUES ('MSP430G2453', 'ADC_SAR10', '8', NULL, NULL, 'AUTOMATIC RESOLUTION');
+INSERT INTO device_feature (device_id, feature_id, param1, param2, param3, comment) VALUES ('MSP430G2453', 'BSL_UART', NULL, NULL, NULL, 'AUTOMATIC RESOLUTION');
+INSERT INTO device_feature (device_id, feature_id, param1, param2, param3, comment) VALUES ('MSP430G2513', 'ADC_SAR10', '8', NULL, NULL, 'AUTOMATIC RESOLUTION');
+INSERT INTO device_feature (device_id, feature_id, param1, param2, param3, comment) VALUES ('MSP430G2513', 'BSL_UART', NULL, NULL, NULL, 'AUTOMATIC RESOLUTION');
+INSERT INTO device_feature (device_id, feature_id, param1, param2, param3, comment) VALUES ('MSP430G2553', 'ADC_SAR10', '8', NULL, NULL, 'AUTOMATIC RESOLUTION');
+INSERT INTO device_feature (device_id, feature_id, param1, param2, param3, comment) VALUES ('MSP430G2553', 'BSL_UART', NULL, NULL, NULL, 'AUTOMATIC RESOLUTION');
+
+INSERT INTO orderable (name, device_id, drawing, pins, status, msl_level, op_temp_min, op_temp_max, comment) VALUES ('MSP430G2113IN20'   , 'MSP430G2113', 'N'  ,  20, 'ACTIVE', 1, -40, 85, 'AUTOMATIC RESOLUTION');
 INSERT INTO orderable (name, device_id, drawing, pins, status, msl_level, op_temp_min, op_temp_max, comment) VALUES ('MSP430G2153IN20'   , 'MSP430G2153', 'N'  ,  20, 'ACTIVE', 1, -40, 85, 'AUTOMATIC RESOLUTION');
 INSERT INTO orderable (name, device_id, drawing, pins, status, msl_level, op_temp_min, op_temp_max, comment) VALUES ('MSP430G2153IPW20'  , 'MSP430G2153', 'PW' ,  20, 'ACTIVE', 1, -40, 85, 'AUTOMATIC RESOLUTION');
 INSERT INTO orderable (name, device_id, drawing, pins, status, msl_level, op_temp_min, op_temp_max, comment) VALUES ('MSP430G2153IPW20R' , 'MSP430G2153', 'PW' ,  20, 'ACTIVE', 1, -40, 85, 'AUTOMATIC RESOLUTION');
