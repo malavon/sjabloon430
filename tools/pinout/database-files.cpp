@@ -413,6 +413,19 @@ void exportDevicesWithoutPinout(sqlite3 *db) {
 	exportFromPrepStmt(stmt, "21_device.sql");
 }
 
+void exportPackages(sqlite3 *db) {
+	static const char *QUERY = "SELECT drawing, pins, type, comment "
+				   "FROM package "
+				   "ORDER BY drawing ASC, pins ASC";
+	static sqlite3_stmt *stmt;
+	if ( stmt == nullptr ) {
+		prepare(db, &stmt, QUERY);
+	}
+	sqlite3_reset(stmt);
+	vector<int> cw = {MAX_WIDTH_PKGDRW, MAX_WIDTH_PIN};
+	exportFromPrepStmt(stmt, "23_package.sql", ExportConfig{.colWidths = cw});
+}
+
 void exportOrderablesWithoutPinout(sqlite3 *db) {
 	static const char *QUERY = "SELECT o.* "
 				   "FROM orderable o "
