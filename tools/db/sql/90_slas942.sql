@@ -12,6 +12,27 @@ INSERT INTO device (model, datasheet_id, freq_max, storage_bytes, ram_bytes, gpi
 INSERT INTO device (model, datasheet_id, freq_max, storage_bytes, ram_bytes, gpio_count, uart_count, usb_count, i2c_count, spi_count, comp_count, timer_count, op_temp_min, op_temp_max, comment) VALUES ('MSP430FR2632', 'SLAS942', 16,  8192, 2048, 15, 2, 0, 1, 2, 0, 4, -40, 85, 'TI EXPORT');
 INSERT INTO device (model, datasheet_id, freq_max, storage_bytes, ram_bytes, gpio_count, uart_count, usb_count, i2c_count, spi_count, comp_count, timer_count, op_temp_min, op_temp_max, comment) VALUES ('MSP430FR2633', 'SLAS942', 16, 16384, 4096, 19, 2, 0, 1, 2, 0, 4, -40, 85, 'TI EXPORT');
 
+INSERT INTO device_feature (device_id, feature_id, param1, param2, param3, comment) VALUES ('MSP430FR2532', 'ADC_SAR10'   , '8' , NULL, NULL, 'AUTOMATIC RESOLUTION');
+INSERT INTO device_feature (device_id, feature_id, param1, param2, param3, comment) VALUES ('MSP430FR2532', 'BSL_I2C'     , NULL, NULL, NULL, 'AUTOMATIC RESOLUTION');
+INSERT INTO device_feature (device_id, feature_id, param1, param2, param3, comment) VALUES ('MSP430FR2532', 'BSL_UART'    , NULL, NULL, NULL, 'AUTOMATIC RESOLUTION');
+INSERT INTO device_feature (device_id, feature_id, param1, param2, param3, comment) VALUES ('MSP430FR2532', 'IO_CAPTIVATE', NULL, NULL, NULL, 'AUTOMATIC RESOLUTION');
+INSERT INTO device_feature (device_id, feature_id, param1, param2, param3, comment) VALUES ('MSP430FR2532', 'ADV_SENSE'   , NULL, NULL, NULL, 'AUTOMATIC RESOLUTION');
+INSERT INTO device_feature (device_id, feature_id, param1, param2, param3, comment) VALUES ('MSP430FR2533', 'ADC_SAR10'   , '8' , NULL, NULL, 'AUTOMATIC RESOLUTION');
+INSERT INTO device_feature (device_id, feature_id, param1, param2, param3, comment) VALUES ('MSP430FR2533', 'BSL_I2C'     , NULL, NULL, NULL, 'AUTOMATIC RESOLUTION');
+INSERT INTO device_feature (device_id, feature_id, param1, param2, param3, comment) VALUES ('MSP430FR2533', 'BSL_UART'    , NULL, NULL, NULL, 'AUTOMATIC RESOLUTION');
+INSERT INTO device_feature (device_id, feature_id, param1, param2, param3, comment) VALUES ('MSP430FR2533', 'IO_CAPTIVATE', NULL, NULL, NULL, 'AUTOMATIC RESOLUTION');
+INSERT INTO device_feature (device_id, feature_id, param1, param2, param3, comment) VALUES ('MSP430FR2533', 'ADV_SENSE'   , NULL, NULL, NULL, 'AUTOMATIC RESOLUTION');
+INSERT INTO device_feature (device_id, feature_id, param1, param2, param3, comment) VALUES ('MSP430FR2632', 'ADC_SAR10'   , '8' , NULL, NULL, 'AUTOMATIC RESOLUTION');
+INSERT INTO device_feature (device_id, feature_id, param1, param2, param3, comment) VALUES ('MSP430FR2632', 'BSL_I2C'     , NULL, NULL, NULL, 'AUTOMATIC RESOLUTION');
+INSERT INTO device_feature (device_id, feature_id, param1, param2, param3, comment) VALUES ('MSP430FR2632', 'BSL_UART'    , NULL, NULL, NULL, 'AUTOMATIC RESOLUTION');
+INSERT INTO device_feature (device_id, feature_id, param1, param2, param3, comment) VALUES ('MSP430FR2632', 'IO_CAPTIVATE', NULL, NULL, NULL, 'AUTOMATIC RESOLUTION');
+INSERT INTO device_feature (device_id, feature_id, param1, param2, param3, comment) VALUES ('MSP430FR2632', 'ADV_SENSE'   , NULL, NULL, NULL, 'AUTOMATIC RESOLUTION');
+INSERT INTO device_feature (device_id, feature_id, param1, param2, param3, comment) VALUES ('MSP430FR2633', 'ADC_SAR10'   , '8' , NULL, NULL, 'AUTOMATIC RESOLUTION');
+INSERT INTO device_feature (device_id, feature_id, param1, param2, param3, comment) VALUES ('MSP430FR2633', 'BSL_I2C'     , NULL, NULL, NULL, 'AUTOMATIC RESOLUTION');
+INSERT INTO device_feature (device_id, feature_id, param1, param2, param3, comment) VALUES ('MSP430FR2633', 'BSL_UART'    , NULL, NULL, NULL, 'AUTOMATIC RESOLUTION');
+INSERT INTO device_feature (device_id, feature_id, param1, param2, param3, comment) VALUES ('MSP430FR2633', 'IO_CAPTIVATE', NULL, NULL, NULL, 'AUTOMATIC RESOLUTION');
+INSERT INTO device_feature (device_id, feature_id, param1, param2, param3, comment) VALUES ('MSP430FR2633', 'ADV_SENSE'   , NULL, NULL, NULL, 'AUTOMATIC RESOLUTION');
+
 INSERT INTO orderable (name, device_id, drawing, pins, status, msl_level, op_temp_min, op_temp_max, comment) VALUES ('MSP430FR2532IRGER', 'MSP430FR2532', 'RGE', 24, 'ACTIVE', 1, -40, 85, 'AUTOMATIC RESOLUTION');
 INSERT INTO orderable (name, device_id, drawing, pins, status, msl_level, op_temp_min, op_temp_max, comment) VALUES ('MSP430FR2532IRGET', 'MSP430FR2532', 'RGE', 24, 'ACTIVE', 2, -40, 85, 'AUTOMATIC RESOLUTION');
 INSERT INTO orderable (name, device_id, drawing, pins, status, msl_level, op_temp_min, op_temp_max, comment) VALUES ('MSP430FR2533IDA'  , 'MSP430FR2533', 'DA' , 32, 'ACTIVE', 2, -40, 85, 'AUTOMATIC RESOLUTION');
