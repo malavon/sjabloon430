@@ -201,7 +201,7 @@ void editPinSet(Window &, int &row, const vector<string> &pkgs, unordered_map<st
 void drawPinSetEditingWindow(Window &win, PinSetView &pinView);
 void drawSetConfigWindow(BorderedWindow &, const vector<Configset> &cfs);
 void drawTopWindow(BorderedWindow &, const db::Datasheet &, const db::DatabaseTotals &ttl, const db::DatabaseTotals &sprtd);
-Configset filterForConfigset(const Configset &cset);
+Configset filterForConfigset(const vector<db::Orderable> &, const Configset &base = Configset{});
 void loopPinsetEditing(Window &pinset, Window &hotkeys, BorderedWindow &config, ui::PinSetView &);
 void reorderPackages(vector<Package> &pkgs); // given vector is reordered in-place
 string searchDatasheet(const unordered_map<string, string> &dsModels, const int widestModelLength);
