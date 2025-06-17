@@ -38,6 +38,26 @@ struct Device {
 	vector<Device::Feature> features;
 };
 
+struct Package {
+	string drawing;
+	int pins;
+	string type;
+	bool operator==(const Package &o) const {
+		return drawing == o.drawing && pins == o.pins && type == o.type;
+	}
+	bool operator<(const Package &o) const { // for addition to (ordered) std::set
+		return drawing < o.drawing || (pins < o.pins && drawing == o.drawing);
+	}
+};
+
+struct Orderable {
+	string name;
+	string model;
+	Package pkg;
+	string status;
+	int msl, opTempMin, opTempMax;
+};
+
 /* SQLite 3 init */
 sqlite3 *createDatabase();
 
@@ -52,6 +72,17 @@ vector<string> findDeviceFeatureIds(sqlite3 *, const string &group, const vector
 /* Data modifications */
 int saveOrUpdate(sqlite3 *, const Datasheet &ds);
 int saveOrUpdate(sqlite3 *, const Device &dv);
+int saveOrUpdate(sqlite3 *, const Orderable &);
+int saveOrUpdate(sqlite3 *, const Package &);
 
 }}}} // namespace sjabloon430::tools::device::db
+
+template<>
+struct std::hash<sjabloon430::tools::device::db::Package> {
+	std::size_t operator()(const sjabloon430::tools::device::db::Package &p) const noexcept {
+		std::size_t h1 = std::hash<std::string>{}(p.drawing);
+		std::size_t h2 = p.pins;
+		return h1 ^ (h2 << 1); // or use boost::hash_combine
+	}
+};
 #endif // SJABLOON430_TOOLS_DEVICE_DATABASE_HPP

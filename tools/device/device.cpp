@@ -4,6 +4,7 @@
 #include <fstream>
 #include <iostream>
 #include <unordered_map>
+#include <unordered_set>
 
 #include "database-files.hpp"
 #include "database.hpp"
@@ -41,7 +42,7 @@ T nextTSV(const string &line, int &tab1, int &tab2);
 
 void insertOrUpdateDatasheets(sqlite3 *db, ifstream &datasheets);
 void insertOrUpdateFamilies(sqlite3 *db, ifstream &families, ifstream &links);
-void insertOrUpdatePackages(sqlite3 *db, ifstream &packages);
+void insertOrUpdateOrderables(sqlite3 *db, ifstream &);
 
 }}}
 
@@ -50,11 +51,11 @@ using namespace sjabloon430::tools::device;
 
 int main(int argc, char **argv) // opties voor elke .txt file? misschien niet slecht?
 {
-	ifstream datasheets, families, links, packages;
+	ifstream datasheets, families, links, orderables;
 	bool verbose = false;
 
 	int opt;
-	while ( (opt = getopt(argc, argv, "d:f:l:p:hv")) != -1 ) {
+	while ( (opt = getopt(argc, argv, "d:f:l:o:hv")) != -1 ) {
 		switch ( opt ) {
 			case 'd':
 				datasheets.open(optarg);
@@ -65,8 +66,8 @@ int main(int argc, char **argv) // opties voor elke .txt file? misschien niet sl
 			case 'l':
 				links.open(optarg);
 				break;
-			case 'p':
-				packages.open(optarg);
+			case 'o':
+				orderables.open(optarg);
 				break;
 			case 'v':
 				verbose = true;
@@ -107,8 +108,8 @@ int main(int argc, char **argv) // opties voor elke .txt file? misschien niet sl
 		cout << "No families & links read " << endl;
 	}
 
-	if ( packages.is_open() ) {
-		insertOrUpdatePackages(sqlite, packages);
+	if ( orderables.is_open() ) {
+		insertOrUpdateOrderables(sqlite, orderables);
 	} else {
 		cout << "No packages read" << endl;
 	}
@@ -141,36 +142,6 @@ template<>
 int nextTSV<int>(const string &line, int &tab1, int &tab2) {
 	string token = nextTSV(line, tab1, tab2);
 	return token.empty() ? 0 : stoi(token);
-}
-
-void addNextString(string &query, const string value) {
-	query.push_back('\'');
-	query += value;
-	query.push_back('\'');
-	query.push_back(',');
-}
-
-// add multiple strings, all quoted and split on separator, hard-coded comma
-// TI export doesn't have following whitespace, but if it is, TODO: trim in this function
-void addStringsIn(string &query, string values) {
-	int sep = values.find(',');
-	// cout << sep << "NSERTING into " << values << endl;
-	while ( sep > 0 ) {
-		values.insert(sep + 1, "'");
-		values.insert(sep, "'");
-		sep = values.find(',', sep + 3);
-		// cout << sep << "NSERTING into " << values << endl;
-	}
-
-	query.push_back('\'');
-	query.append(values);
-	query.push_back('\'');
-}
-
-void addNextInteger(string &query, string value) {
-	// no quotes, numbers are simply inserted (even though they are floating-point)
-	query.append(value.empty() ? "0" : value);
-	query.push_back(',');
 }
 
 // text can be comma-separated text!
@@ -305,7 +276,7 @@ void insertOrUpdateFamilies(sqlite3 *db, ifstream &families, ifstream &links) {
 // if SQLite3 has a function I can use for this, I didn't find it
 // custom function would have worked too, but not necessary in this case
 string findBestDeviceMatch(sqlite3 *db, const string &orderable, const string &datasheet) {
-	string select = "SELECT id, model, ";
+	string select = "SELECT model, ";
 	// packages sometimes requires a few characters only to match, don't skimp
 	for ( int i = orderable.length(); i > 2; i-- ) {
 		const string substr = orderable.substr(0, i);
@@ -328,85 +299,54 @@ string findBestDeviceMatch(sqlite3 *db, const string &orderable, const string &d
 	return id;
 }
 
-void insertOrUpdatePackages(sqlite3 *db, ifstream &packages) {
-	static const string INSERT_PACKAGE = "INSERT INTO package (drawing,pins,type,comment) VALUES (";
-	static const string INSERT_ORDERABLE =
-	    "INSERT INTO orderable "
-	    "(name,device_id,drawing,pins,status,msl_level,op_temp_min,op_temp_max,comment) VALUES (";
-
+void insertOrUpdateOrderables(sqlite3 *db, ifstream &input) {
 	int tab1, tab2;
-	string line;
-	string orderable, deviceId, datasheet, status, type, drawing, pins, msl, temp, tempMin, tempMax;
-	// no, this isn't efficient, but it's fine for this program
-	string insPackage, insOrderable;
-	while ( getline(packages, line) ) {
+	string line, msl, temp;
+	unordered_set<db::Package> pkgs; // cache saved packages, no need to re-save if already in DB
+	while ( getline(input, line) ) {
 		tab1 = 0;
 
-		insPackage = INSERT_PACKAGE;
-		insOrderable = INSERT_ORDERABLE;
+		db::Orderable o;
 
 		// defer query building until later, modifications may occur
-		orderable = nextTSV(line, tab1, tab2);
-		datasheet = nextTSV(line, tab1, tab2);
+		o.name = nextTSV(line, tab1, tab2);
+		temp = nextTSV(line, tab1, tab2); // datasheet, used only to find best device match
+		o.model = findBestDeviceMatch(db, o.name, temp);
+		o.status = nextTSV(line, tab1, tab2);
+		o.pkg.type = nextTSV(line, tab1, tab2);
+		o.pkg.drawing = nextTSV(line, tab1, tab2);
+		o.pkg.pins = nextTSV<int>(line, tab1, tab2);
 
-		deviceId = findBestDeviceMatch(db, orderable, datasheet);
-		status = nextTSV(line, tab1, tab2);
-		type = nextTSV(line, tab1, tab2);
-		drawing = nextTSV(line, tab1, tab2);
-		pins = nextTSV(line, tab1, tab2);
 		msl = nextTSV(line, tab1, tab2);
 		temp = nextTSV(line, tab1, tab2);
 
 		// parse -40_to_85 (IF CORRECT)
 		int pos;
 		if ( (pos = temp.find('_')) > 0 ) {
-			tempMin = temp.substr(0, pos);
+			o.opTempMin = stoi(temp.substr(0, pos));
 			if ( (pos = temp.find('_', pos + 1)) > 0 ) {
-				tempMax = temp.substr(pos + 1, 3);
+				o.opTempMax = stoi(temp.substr(pos + 1, 3));
 			}
 		}
-		// transform MSL into simple integer level, default to 3
+
+		// transform MSL into simple integer level, default to 5
+		// Level-4-260C-72 HR
 		// Level-3-260C-168_HR
 		// Level-2-260C-1_YEAR
 		// Level-1-260C-UNLIM
 		if ( msl.length() > 7 ) {
 			msl = msl.at(6);
 		}
-		if ( msl != "3" && msl != "2" && msl != "1" ) {
-			msl = "3";
+		if ( msl[0] < '1' || msl[0] > '4' ) {
+			msl = "5";
 		}
+		o.msl = stoi(msl);
 
-		// package insert
-		addNextString(insPackage, drawing);
-		addNextInteger(insPackage, pins);
-		addNextString(insPackage, type);
-		// Comment
-		addNextString(insPackage, "AUTOMATIC INSERTION");
-		insPackage[insPackage.length() - 1] = ')';
-
-		if ( sqlite3_exec(db, insPackage.c_str(), NULL, NULL, NULL) == SQLITE_OK ) {
-			cout << "SUCCESS " << insPackage << endl;
-		} else {
-			cout << " FAILED " << insPackage << endl;
+		if ( pkgs.find(o.pkg) == pkgs.end() ) {
+			db::saveOrUpdate(db, o.pkg);
+			pkgs.insert(o.pkg);
 		}
-
-		// insert orderable, even if package has failed (might be duplicate)
-		addNextString(insOrderable, orderable);
-		addNextInteger(insOrderable, deviceId);
-		addNextString(insOrderable, drawing); // FK to package
-		addNextInteger(insOrderable, pins);   // FK to package
-		addNextString(insOrderable, status);
-		addNextInteger(insOrderable, msl);
-		addNextInteger(insOrderable, tempMin);
-		addNextInteger(insOrderable, tempMax);
-		addNextString(insOrderable, "AUTOMATIC RESOLUTION");
-		insOrderable[insOrderable.length() - 1] = ')';
-
-		if ( sqlite3_exec(db, insOrderable.c_str(), NULL, NULL, NULL) == SQLITE_OK ) {
-			cout << "SUCCESS " << insOrderable << endl;
-		} else {
-			cout << " FAILED " << insOrderable << endl;
-		}
+		db::saveOrUpdate(db, o);
 	}
 
 	// some manual corrections?

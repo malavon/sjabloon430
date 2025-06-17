@@ -234,4 +234,96 @@ int saveOrUpdate(sqlite3 *db, const Device &dv) {
 
 	return alteredRows;
 }
+
+// does NOT update device/model link - once inserted this should be done with the utmost care
+int saveOrUpdate(sqlite3 *db, const Orderable &odbl) {
+	static const char *INSERT = "INSERT INTO orderable "
+				    "(name, device_id, drawing, pins, status, msl_level, op_temp_min, op_temp_max, comment)"
+				    "VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'AUTOMATIC RESOLUTION');";
+	static const char *UPDATE = "UPDATE orderable SET "
+				    "drawing = ?, pins = ?, status = ?, msl_level = ?, op_temp_min = ?, op_temp_max = ? "
+				    "WHERE name = ?";
+	static sqlite3_stmt *insStmt, *updStmt;
+	if ( insStmt == nullptr ) { // assume both are null
+		prepare(db, &insStmt, INSERT);
+		prepare(db, &updStmt, UPDATE);
+	}
+
+	int alteredRows = 0, pm = 0;
+	std::array<int, 9> rc;
+
+	// make it simple: do an update first, if nothing updated, insert
+	sqlite3_reset(updStmt);
+	rc[pm] = sqlite3_bind_text(updStmt, ++pm, odbl.pkg.drawing.c_str(), -1, SQLITE_STATIC);
+	rc[pm] = sqlite3_bind_int(updStmt, ++pm, odbl.pkg.pins);
+	rc[pm] = sqlite3_bind_text(updStmt, ++pm, odbl.status.c_str(), -1, SQLITE_STATIC);
+	rc[pm] = sqlite3_bind_int(updStmt, ++pm, odbl.msl);
+	rc[pm] = sqlite3_bind_int(updStmt, ++pm, odbl.opTempMin);
+	rc[pm] = sqlite3_bind_int(updStmt, ++pm, odbl.opTempMax);
+	rc[pm] = sqlite3_bind_text(updStmt, ++pm, odbl.name.c_str(), -1, SQLITE_STATIC);
+	std::for_each(rc.begin() + 1, rc.begin() + 1 + pm, [](int n) { assert(n == SQLITE_OK); });
+	rc[pm] = sqlite3_step(updStmt);
+	assert(SQLITE_DONE == rc[pm]);
+	alteredRows += sqlite3_changes(db);
+
+	if ( alteredRows == 0 ) { // updated nothing, insert then
+		pm = 0;
+		sqlite3_reset(insStmt);
+		rc[pm] = sqlite3_bind_text(insStmt, ++pm, odbl.name.c_str(), -1, SQLITE_STATIC);
+		rc[pm] = sqlite3_bind_text(insStmt, ++pm, odbl.model.c_str(), -1, SQLITE_STATIC);
+		rc[pm] = sqlite3_bind_text(insStmt, ++pm, odbl.pkg.drawing.c_str(), -1, SQLITE_STATIC);
+		rc[pm] = sqlite3_bind_int(insStmt, ++pm, odbl.pkg.pins);
+		rc[pm] = sqlite3_bind_text(insStmt, ++pm, odbl.status.c_str(), -1, SQLITE_STATIC);
+		rc[pm] = sqlite3_bind_int(insStmt, ++pm, odbl.msl);
+		rc[pm] = sqlite3_bind_int(insStmt, ++pm, odbl.opTempMin);
+		rc[pm] = sqlite3_bind_int(insStmt, ++pm, odbl.opTempMax);
+		std::for_each(rc.begin() + 1, rc.begin() + 1 + pm, [](int n) { assert(n == SQLITE_OK); });
+		if ( SQLITE_DONE == sqlite3_step(insStmt) ) {
+			alteredRows += sqlite3_changes(db);
+		}
+	}
+	return alteredRows;
+
+	//
+	return 0;
+}
+
+// no real update, but checks for existence
+int saveOrUpdate(sqlite3 *db, const Package &pkg) {
+	static const char *EXISTS = "SELECT * "
+				    "FROM package "
+				    "WHERE drawing = ? "
+				    "AND pins = ?";
+	static const char *INSERT = "INSERT INTO package (drawing, pins, type, comment) "
+				    "VALUES (?, ?, ?, 'AUTOMATIC INSERTION')";
+	static sqlite3_stmt *extStmt, *insStmt;
+	if ( insStmt == nullptr ) { // assume both are null
+		prepare(db, &extStmt, EXISTS);
+		prepare(db, &insStmt, INSERT);
+	}
+
+	int pm = 0;
+	std::array<int, 4> rc;
+
+	// make it simple: do an update first, if nothing updated, insert
+	sqlite3_reset(extStmt);
+	rc[pm] = sqlite3_bind_text(extStmt, ++pm, pkg.drawing.c_str(), -1, SQLITE_STATIC);
+	rc[pm] = sqlite3_bind_int(extStmt, ++pm, pkg.pins);
+
+	std::for_each(rc.begin() + 1, rc.begin() + 1 + 2, [](int n) { assert(n == SQLITE_OK); });
+	rc[pm] = sqlite3_step(extStmt);
+	if ( rc[pm] != SQLITE_ROW ) { // exists, do nothing
+		pm = 0;
+		sqlite3_reset(insStmt);
+		rc[pm] = sqlite3_bind_text(insStmt, ++pm, pkg.drawing.c_str(), -1, SQLITE_STATIC);
+		rc[pm] = sqlite3_bind_int(insStmt, ++pm, pkg.pins);
+		rc[pm] = sqlite3_bind_text(insStmt, ++pm, pkg.type.c_str(), -1, SQLITE_STATIC);
+		std::for_each(rc.begin() + 1, rc.end(), [](int n) { assert(n == SQLITE_OK); });
+		if ( SQLITE_DONE == sqlite3_step(insStmt) ) {
+			return sqlite3_changes(db);
+		}
+	}
+	return 0;
+}
+
 }}}} // namespace sjabloon430::tools::device::db
