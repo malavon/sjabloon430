@@ -223,6 +223,22 @@ void exportDevicesFor(sqlite3 *db, const string &datasheetId, const string filen
 	exportFromPrepStmt(stmt, filename, expConf);
 }
 
+void exportDeviceFeaturesFor(sqlite3 *db, const string &datasheetId, const string filename, ExportConfig expConf) {
+	static const char *QUERY = "SELECT device_id, feature_id, param1, param2, param3, df.comment "
+				   "FROM device_feature df "
+				   "INNER JOIN device d ON df.device_id = d.model "
+				   "WHERE d.datasheet_id = ? "
+				   "ORDER BY df.device_id ASC";
+	static sqlite3_stmt *stmt;
+	if ( stmt == nullptr ) {
+		prepare(db, &stmt, QUERY);
+	}
+
+	sqlite3_reset(stmt);
+	sqlite3_bind_text(stmt, 1, datasheetId.c_str(), -1, SQLITE_STATIC);
+	exportFromPrepStmt(stmt, filename, expConf);
+}
+
 void exportOrderablesFor(sqlite3 *db, const string &datasheetId, const string filename, ExportConfig expConf) {
 	// cannot use select *, pinset_id is forced to NULL so it can be updated with an update statement AFTER
 	// pinset export!
@@ -361,6 +377,7 @@ void exportDataForDatasheet(sqlite3 *db, const string &datasheetId) {
 	}
 	const string file = "90_" + lower + ".sql";
 	exportDevicesFor(db, datasheetId, file, ExportConfig{.appendFile = false, .tx = ExportConfig::Tx::BEGIN});
+	exportDeviceFeaturesFor(db, datasheetId, file, ExportConfig{.appendFile = true, .tx = ExportConfig::Tx::NONE});
 	exportOrderablesFor(db, datasheetId, file, ExportConfig{.appendFile = true, .tx = ExportConfig::Tx::NONE});
 	exportPinsetsFor(db, datasheetId, file, ExportConfig{.appendFile = true, .tx = ExportConfig::Tx::NONE});
 	exportSignalsetsFor(db, datasheetId, file, ExportConfig{.appendFile = true, .tx = ExportConfig::Tx::NONE});
