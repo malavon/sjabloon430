@@ -68,6 +68,7 @@ vector<T> findAll(sqlite3 *db);
 template<>
 vector<Datasheet> findAll<Datasheet>(sqlite3 *db);
 vector<string> findDeviceFeatureIds(sqlite3 *, const string &group, const vector<string> &texts);
+string findDeviceMatchFor(sqlite3 *, const string &datasheetId, const string &orderable);
 
 /* Data modifications */
 int saveOrUpdate(sqlite3 *, const Datasheet &ds);

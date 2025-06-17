@@ -116,6 +116,7 @@ int main(int argc, char **argv) // opties voor elke .txt file? misschien niet sl
 
 	// do all exports each time, if something changed that wasn't expected to be changed the user should notice this
 	dbf::exportDatasheets(sqlite);
+	dbf::exportPackages(sqlite);
 	// getting all data instead of ids isn't necessary, but it doesn't hurt that much
 	for ( const db::Datasheet &ds : db::findAll<db::Datasheet>(sqlite) ) {
 		dbf::exportDataForDatasheet(sqlite, ds.id);
@@ -270,38 +271,9 @@ void insertOrUpdateFamilies(sqlite3 *db, ifstream &families, ifstream &links) {
 	}
 }
 
-// find devices for datasheet, match on models lexicologically
-// very naive way, matching with one letter less each time
-// use the best (top) match only
-// if SQLite3 has a function I can use for this, I didn't find it
-// custom function would have worked too, but not necessary in this case
-string findBestDeviceMatch(sqlite3 *db, const string &orderable, const string &datasheet) {
-	string select = "SELECT model, ";
-	// packages sometimes requires a few characters only to match, don't skimp
-	for ( int i = orderable.length(); i > 2; i-- ) {
-		const string substr = orderable.substr(0, i);
-		const string idx(to_string(i));
-		select += to_string(i) + " * instr ( model, '";
-		select += substr;
-		select += "' ) + ";
-	}
-
-	select += "0 as matching FROM device WHERE datasheet_id ='" + datasheet + "' order by matching desc limit 1;";
-	// cout << select << endl;
-	sqlite3_stmt *stmt;
-	if ( sqlite3_prepare_v2(db, select.c_str(), -1, &stmt, NULL) != SQLITE_OK || sqlite3_step(stmt) != SQLITE_ROW ) {
-		cout << "SQLite3 error in device match " << sqlite3_errmsg(db) << endl;
-		return "-1";
-	}
-
-	// TODO: match strength would be useful to add in comment?
-	string id(reinterpret_cast<const char *>(sqlite3_column_text(stmt, 0)));
-	return id;
-}
-
 void insertOrUpdateOrderables(sqlite3 *db, ifstream &input) {
 	int tab1, tab2;
-	string line, msl, temp;
+	string line, temp;
 	unordered_set<db::Package> pkgs; // cache saved packages, no need to re-save if already in DB
 	while ( getline(input, line) ) {
 		tab1 = 0;
@@ -311,14 +283,27 @@ void insertOrUpdateOrderables(sqlite3 *db, ifstream &input) {
 		// defer query building until later, modifications may occur
 		o.name = nextTSV(line, tab1, tab2);
 		temp = nextTSV(line, tab1, tab2); // datasheet, used only to find best device match
-		o.model = findBestDeviceMatch(db, o.name, temp);
+		o.model = db::findDeviceMatchFor(db, temp, o.name);
 		o.status = nextTSV(line, tab1, tab2);
 		o.pkg.type = nextTSV(line, tab1, tab2);
 		o.pkg.drawing = nextTSV(line, tab1, tab2);
 		o.pkg.pins = nextTSV<int>(line, tab1, tab2);
 
-		msl = nextTSV(line, tab1, tab2);
-		temp = nextTSV(line, tab1, tab2);
+		temp = nextTSV(line, tab1, tab2); // MSL
+
+		// transform MSL into simple integer level, default to 5
+		// Level-4-260C-72 HR
+		// Level-3-260C-168_HR
+		// Level-2-260C-1_YEAR
+		// Level-1-260C-UNLIM
+		if ( temp.length() > 7 ) {
+			temp = temp.at(6);
+			o.msl = temp[0] < '1' || temp[0] > '4' ? 5 : stoi(temp);
+			temp = nextTSV(line, tab1, tab2); // temperature
+		} else {
+			// MSL isn't MSL; do not get next token but reuse this one
+			o.msl = 5;
+		}
 
 		// parse -40_to_85 (IF CORRECT)
 		int pos;
@@ -328,19 +313,6 @@ void insertOrUpdateOrderables(sqlite3 *db, ifstream &input) {
 				o.opTempMax = stoi(temp.substr(pos + 1, 3));
 			}
 		}
-
-		// transform MSL into simple integer level, default to 5
-		// Level-4-260C-72 HR
-		// Level-3-260C-168_HR
-		// Level-2-260C-1_YEAR
-		// Level-1-260C-UNLIM
-		if ( msl.length() > 7 ) {
-			msl = msl.at(6);
-		}
-		if ( msl[0] < '1' || msl[0] > '4' ) {
-			msl = "5";
-		}
-		o.msl = stoi(msl);
 
 		if ( pkgs.find(o.pkg) == pkgs.end() ) {
 			db::saveOrUpdate(db, o.pkg);

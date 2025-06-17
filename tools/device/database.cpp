@@ -2,6 +2,7 @@
 
 #include <cassert>
 #include <iostream>
+#include <sstream>
 
 namespace sjabloon430 { namespace tools { namespace device { namespace db {
 
@@ -21,8 +22,8 @@ sqlite3 *createDatabase() {
 }
 
 // helper function to prepare a sqlite3 statement
-void prepare(sqlite3 *db, sqlite3_stmt **stmt, const char *QUERY) {
-	int rc = sqlite3_prepare_v2(db, QUERY, -1, stmt, nullptr);
+void prepare(sqlite3 *db, sqlite3_stmt **stmt, const char *query) {
+	int rc = sqlite3_prepare_v2(db, query, -1, stmt, nullptr);
 	if ( rc != SQLITE_OK ) {
 		std::cerr << "SQLite3 error " << sqlite3_errmsg(db) << std::endl;
 	}
@@ -82,6 +83,47 @@ vector<string> findDeviceFeatureIds(sqlite3 *db, const string &group, const vect
 		}
 	}
 	return results;
+}
+
+// find devices for datasheet, match on models lexicologically
+// very naive way, matching with one letter less each time
+// use the best (top) match only
+// if SQLite3 has a function I can use for this, I didn't find it
+// custom function would have worked too, but not necessary in this case
+string findDeviceMatchFor(sqlite3 *db, const string &datasheetId, const string &orderable) {
+	static const char *STARTER = "SELECT model, ";
+	static const char *MATCHER = "? * instr ( model, ? ) + ";
+	static const char *SELECTR = "0 AS matching "
+					 "FROM device "
+					 "WHERE datasheet_id = ? "
+					 "ORDER BY matching DESC LIMIT 1";
+	std::stringstream query;
+	query << STARTER;
+	// packages sometimes requires a few characters only to match, don't skimp
+	for ( int i = orderable.length(); i > 2; i-- ) {
+		query << MATCHER;
+	}
+	query << SELECTR;
+
+	int pm = 0;
+	std::vector<int> rc; // cannot pre-define, dynamically sized
+	rc.reserve(orderable.length() * 2 - 4);
+	sqlite3_stmt *stmt;
+	prepare(db, &stmt, query.str().c_str());
+
+	for ( int i = orderable.length(); i > 2; i-- ) {
+		rc.push_back(sqlite3_bind_int(stmt, ++pm, i));
+		rc.push_back(sqlite3_bind_text(stmt, ++pm, orderable.c_str(), i, SQLITE_STATIC));
+	}
+	rc.push_back(sqlite3_bind_text(stmt, ++pm, datasheetId.c_str(), -1, SQLITE_STATIC));
+	std::for_each(rc.begin(), rc.begin() + pm, [](int n) { assert(n == SQLITE_OK); });
+
+	string id = "NO_MATCH";
+	if ( sqlite3_step(stmt) == SQLITE_ROW ) {
+		id = reinterpret_cast<const char *>(sqlite3_column_text(stmt, 0));
+	}
+	sqlite3_finalize(stmt);
+	return id;
 }
 
 // Data modifications
