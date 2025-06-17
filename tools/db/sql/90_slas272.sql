@@ -431,5 +431,18 @@ UPDATE orderable SET pinset_id =   16 WHERE name = 'MSP430F1481IPM';
 UPDATE orderable SET pinset_id =   16 WHERE name = 'MSP430F1481IPMR';
 UPDATE orderable SET pinset_id =   16 WHERE name = 'MSP430F1491IPM';
 UPDATE orderable SET pinset_id =   16 WHERE name = 'MSP430F1491IPMR';
+UPDATE orderable SET pinset_id =   14 WHERE name = 'MSP430F133IRTDT';
+UPDATE orderable SET pinset_id =   14 WHERE name = 'MSP430F135IRTDR';
+UPDATE orderable SET pinset_id =   14 WHERE name = 'MSP430F135IRTDT';
+UPDATE orderable SET pinset_id =   15 WHERE name = 'MSP430F147IRTDR';
+UPDATE orderable SET pinset_id =   15 WHERE name = 'MSP430F147IRTDT';
+UPDATE orderable SET pinset_id =   15 WHERE name = 'MSP430F148IRTDR';
+UPDATE orderable SET pinset_id =   15 WHERE name = 'MSP430F148IRTDT';
+UPDATE orderable SET pinset_id =   15 WHERE name = 'MSP430F149IRTDR';
+UPDATE orderable SET pinset_id =   15 WHERE name = 'MSP430F149IRTDT';
+UPDATE orderable SET pinset_id =   16 WHERE name = 'MSP430F1471IRTDT';
+UPDATE orderable SET pinset_id =   16 WHERE name = 'MSP430F1481IRTDT';
+UPDATE orderable SET pinset_id =   16 WHERE name = 'MSP430F1491IRTDR';
+UPDATE orderable SET pinset_id =   16 WHERE name = 'MSP430F1491IRTDT';
 
 COMMIT TRANSACTION;
