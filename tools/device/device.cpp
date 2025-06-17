@@ -43,10 +43,6 @@ void insertOrUpdateDatasheets(sqlite3 *db, ifstream &datasheets);
 void insertOrUpdateFamilies(sqlite3 *db, ifstream &families, ifstream &links);
 void insertOrUpdatePackages(sqlite3 *db, ifstream &packages);
 
-const string INSERT_DEVICE = "INSERT INTO device (datasheet_id,model,freq_max,storage_bytes,"
-			     "ram_bytes,gpio_count,uart_count,usb_count,i2c_count,spi_count,"
-			     "comp_count,timer_count,op_temp_min,op_temp_max,comment) ";
-
 }}}
 
 namespace dbf = sjabloon430::tools::db;
@@ -81,7 +77,7 @@ int main(int argc, char **argv) // opties voor elke .txt file? misschien niet sl
 				return EX_USAGE;
 		}
 	}
-	if ( argc < optind ) {
+	if ( argc <= 1 || (argc == 2 && verbose) || argc < optind ) {
 		printUsage();
 		return EX_USAGE;
 	}
@@ -102,7 +98,6 @@ int main(int argc, char **argv) // opties voor elke .txt file? misschien niet sl
 
 	if ( datasheets.is_open() ) {
 		insertOrUpdateDatasheets(sqlite, datasheets);
-		dbf::exportDatasheets(sqlite);
 	} else {
 		cout << "No datasheets read " << endl;
 	}
@@ -116,6 +111,13 @@ int main(int argc, char **argv) // opties voor elke .txt file? misschien niet sl
 		insertOrUpdatePackages(sqlite, packages);
 	} else {
 		cout << "No packages read" << endl;
+	}
+
+	// do all exports each time, if something changed that wasn't expected to be changed the user should notice this
+	dbf::exportDatasheets(sqlite);
+	// getting all data instead of ids isn't necessary, but it doesn't hurt that much
+	for ( const db::Datasheet &ds : db::findAll<db::Datasheet>(sqlite) ) {
+		dbf::exportDataForDatasheet(sqlite, ds.id);
 	}
 
 	sqlite3_close(sqlite);
@@ -138,7 +140,7 @@ string nextTSV(const string &line, int &tab1, int &tab2) {
 template<>
 int nextTSV<int>(const string &line, int &tab1, int &tab2) {
 	string token = nextTSV(line, tab1, tab2);
-	return stoi(token);
+	return token.empty() ? 0 : stoi(token);
 }
 
 void addNextString(string &query, const string value) {
@@ -177,7 +179,7 @@ void addGroupFeatures(sqlite3 *db, vector<string> &features, const string &part,
 		return;
 	}
 	static const string INSERT_QUERY = "INSERT INTO device_feature (device_id,feature_id,param1,param2,param3,comment) "
-					   "VALUES ( (SELECT id FROM device WHERE model = ";
+					   "VALUES ( ";
 
 	// comma-separated values ... select using IN-statement
 	string select = "SELECT id "
@@ -201,8 +203,6 @@ void addGroupFeatures(sqlite3 *db, vector<string> &features, const string &part,
 
 		string insert = INSERT_QUERY;
 		addNextString(insert, part);
-		insert[insert.length() - 1] = ')'; // finish sub-query
-		insert += ',';			   // add comma afterwards
 		addNextString(insert, featureId);
 		addNextString(insert, param1.empty() ? "NULL" : param1);
 		addNextString(insert, param2.empty() ? "NULL" : param2);
@@ -232,101 +232,72 @@ void insertOrUpdateDatasheets(sqlite3 *db, ifstream &datasheets) {
 	}
 }
 
-// TODO: actually only inserts right now :)
 void insertOrUpdateFamilies(sqlite3 *db, ifstream &families, ifstream &links) {
 	string line;
-	// read links in map first
 
+	// read links in map first
 	unordered_map<string, string> datasheets;
 	while ( getline(links, line) ) {
 		// expected <device>\t<datasheet>
 		// e.g. MSP430FR2533	SLAS942
 		unsigned int tab = line.find('\t');
 		datasheets[line.substr(0, tab)] = line.substr(tab + 1);
-		// cout << "datasheet '" << line.substr(tab+1) << "' for device '" << line.substr(0, tab) << "'" << endl;
 	}
 
 	int tab1, tab2; // not unsigned, string::find() returns -1 :)
-	string value, part, adc;
+	string value, adc;
 	// insert queries to be executed later because foreign key is not yet satisfied
 	vector<string> featureLinks;
-	// no, this isn't efficient, but it's fine for this program
-	string query;
-	// first line contains header, but no datasheet will be found anyway
+	// first line contains header, discard it
+	getline(families, line);
 	while ( getline(families, line) ) {
 		featureLinks.clear();
 		tab1 = 0;
+		db::Device dv;
 
-		query = INSERT_DEVICE;
-		query.append(" VALUES ( ");
-
-		// Datasheet link & Part
-		part = nextTSV(line, tab1, tab2);
+		dv.model = nextTSV(line, tab1, tab2);
 		// TODO: if NULL, should fail? (database will error anyway)
-		addNextString(query, datasheets[part]);
-		addNextString(query, part);
+		dv.datasheetId = datasheets[dv.model];
 
-		// Frequency (MHz)
-		addNextInteger(query, nextTSV(line, tab1, tab2));
-		// value memory (kByte)
-		// TODO: replace 0.13 with 0.125 ...
-		value = nextTSV(line, tab1, tab2);
-		value += "*1024";
-		addNextInteger(query, value);
+		dv.maxFreq = nextTSV<int>(line, tab1, tab2);
+		dv.storage = 1024 * nextTSV<int>(line, tab1, tab2);
+
 		// RAM (kByte)
 		value = nextTSV(line, tab1, tab2);
-		if ( value == "0.13" ) {
-			addNextInteger(query, "0.125*1024");
-		} else {
-			value += "*1024";
-			addNextInteger(query, value);
-		}
+		dv.ram = (value == "0.13") ? 0.125 * 1024 : stod(value) * 1024;
 		// ADC type
 		adc = nextTSV(line, tab1, tab2);
 		// Number of ADC channels (these are external channels only)
 		value = nextTSV(line, tab1, tab2);
-		addGroupFeatures(db, featureLinks, part, adc, "ADC", value);
+		addGroupFeatures(db, featureLinks, dv.model, adc, "ADC", value);
 
-		// Number of GPIOs
-		addNextInteger(query, nextTSV(line, tab1, tab2));
-
-		// UART
-		addNextInteger(query, nextTSV(line, tab1, tab2));
-
-		// USB
-		value = nextTSV(line, tab1, tab2);
-		if ( value == "Yes" ) {
-			addNextInteger(query, "1");
-		} else {
-			addNextInteger(query, "0");
-		}
-
-		// Number of I2Cs
-		addNextInteger(query, nextTSV(line, tab1, tab2));
-		// SPI
-		addNextInteger(query, nextTSV(line, tab1, tab2));
-		// Number of comparator channels
-		addNextInteger(query, nextTSV(line, tab1, tab2));
-		// Timers - 16-bit
-		addNextInteger(query, nextTSV(line, tab1, tab2));
+		dv.ngpio = nextTSV<int>(line, tab1, tab2);
+		dv.nuart = nextTSV<int>(line, tab1, tab2);
+		dv.nusb = nextTSV(line, tab1, tab2) == "Yes" ? 1 : 0;
+		dv.ni2c = nextTSV<int>(line, tab1, tab2);
+		dv.nspi = nextTSV<int>(line, tab1, tab2);
+		dv.ncomp = nextTSV<int>(line, tab1, tab2);
+		dv.ntimer = nextTSV<int>(line, tab1, tab2);
 
 		// Bootloader (BSL)
 		// TODO: features
 		value = nextTSV(line, tab1, tab2);
-		addGroupFeatures(db, featureLinks, part, value, "BSL");
+		addGroupFeatures(db, featureLinks, dv.model, value, "BSL");
 
 		// Special I/O
 		// TODO: features
 		value = nextTSV(line, tab1, tab2);
-		addGroupFeatures(db, featureLinks, part, value, "Special I/O");
+		addGroupFeatures(db, featureLinks, dv.model, value, "Special I/O");
 
 		// Operating temperature range (°C)
 		// "(-)n(n) to mm(m)"
 		value = nextTSV(line, tab1, tab2);
 		tab2 = value.find(" to ");
-		addNextInteger(query, value.substr(0, tab2));
-		addNextInteger(query, value.substr(tab2 + 4, value.length() - tab2 - 4));
 
+		dv.opTempMin = stoi(value.substr(0, tab2));
+		dv.opTempMax = stoi(value.substr(tab2 + 4, value.length() - tab2 - 4));
+
+		// not saved (or not in device table)
 		// Price|Quantity (USD)
 		nextTSV(line, tab1, tab2);
 		// Package type
@@ -340,25 +311,17 @@ void insertOrUpdateFamilies(sqlite3 *db, ifstream &families, ifstream &links) {
 
 		// Features
 		value = nextTSV(line, tab1, tab2);
-		addGroupFeatures(db, featureLinks, part, value, "Features");
+		addGroupFeatures(db, featureLinks, dv.model, value, "Features");
 
-		// Comment
-		addNextString(query, "TI EXPORT");
-		query[query.length() - 1] = ')';
+		db::saveOrUpdate(db, dv);
 
-		// insert or update in device table
-		if ( sqlite3_exec(db, query.c_str(), NULL, NULL, NULL) == SQLITE_OK ) {
-			cout << "SUCCESS " << query << endl;
-			for ( string &q : featureLinks ) {
-				if ( sqlite3_exec(db, q.c_str(), NULL, NULL, NULL) != SQLITE_OK ) {
-					cout << " FAILED ";
-				} else {
-					cout << "SUCCESS ";
-				}
-				cout << q << endl;
+		for ( string &q : featureLinks ) {
+			if ( sqlite3_exec(db, q.c_str(), NULL, NULL, NULL) != SQLITE_OK ) {
+				cout << " FAILED ";
+			} else {
+				cout << "SUCCESS ";
 			}
-		} else {
-			cout << " FAILED " << query << endl;
+			cout << q << endl;
 		}
 	}
 }

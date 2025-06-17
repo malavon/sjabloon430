@@ -29,7 +29,35 @@ void prepare(sqlite3 *db, sqlite3_stmt **stmt, const char *QUERY) {
 	assert(rc == SQLITE_OK);
 }
 
-// QUERY functions
+/* Queries */
+
+template<>
+vector<Datasheet> findAll<Datasheet>(sqlite3 *db) {
+	static const char *QUERY = "SELECT id, revision, issue_month, issue_year, rev_month, rev_year "
+				   "FROM datasheet "
+				   "ORDER BY id ASC";
+
+	static sqlite3_stmt *stmt;
+	if ( stmt == nullptr ) { // assume both are null
+		prepare(db, &stmt, QUERY);
+	}
+
+	sqlite3_reset(stmt);
+	vector<Datasheet> result;
+	int i;
+	while ( sqlite3_step(stmt) == SQLITE_ROW ) {
+		Datasheet ds;
+		i = 0;
+		ds.id = reinterpret_cast<const char *>(sqlite3_column_text(stmt, i++));
+		ds.rev = reinterpret_cast<const char *>(sqlite3_column_text(stmt, i++));
+		ds.issued.month = sqlite3_column_int(stmt, i++);
+		ds.issued.year = sqlite3_column_int(stmt, i++);
+		ds.revised.month = sqlite3_column_int(stmt, i++);
+		ds.revised.year = sqlite3_column_int(stmt, i++);
+		result.push_back(ds);
+	}
+	return result;
+}
 
 // Data modifications
 
@@ -80,4 +108,73 @@ int saveOrUpdate(sqlite3 *db, const Datasheet &ds) {
 	return alteredRows;
 }
 
+int saveOrUpdate(sqlite3 *db, const Device &dv) {
+	static const char *INSERT = "INSERT INTO device (model, datasheet_id, freq_max, storage_bytes, ram_bytes, "
+				    "gpio_count, uart_count, usb_count, i2c_count, spi_count, comp_count, timer_count, "
+				    "op_temp_min, op_temp_max, comment) "
+				    "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'TI EXPORT')";
+	static const char *UPDATE = "UPDATE device "
+				    "SET datasheet_id = ?, "
+				    "freq_max = ?, storage_bytes = ?, ram_bytes = ?, "
+				    "gpio_count = ?, uart_count = ?, usb_count = ?, i2c_count = ?, spi_count = ?, "
+				    "comp_count = ?, timer_count = ?, "
+				    "op_temp_min = ?, op_temp_max = ? "
+				    "WHERE model = ? ";
+	static sqlite3_stmt *insStmt, *updStmt;
+	if ( insStmt == nullptr ) { // assume both are null
+		prepare(db, &insStmt, INSERT);
+		prepare(db, &updStmt, UPDATE);
+	}
+
+	int alteredRows = 0, pm = 0;
+	std::array<int, 15> rc;
+	// make it simple: do an update first, if nothing updated, insert
+
+	sqlite3_reset(updStmt);
+	rc[pm] = sqlite3_bind_text(updStmt, ++pm, dv.datasheetId.c_str(), -1, SQLITE_STATIC);
+	rc[pm] = sqlite3_bind_int(updStmt, ++pm, dv.maxFreq);
+	rc[pm] = sqlite3_bind_int(updStmt, ++pm, dv.storage);
+	rc[pm] = sqlite3_bind_int(updStmt, ++pm, dv.ram);
+
+	rc[pm] = sqlite3_bind_int(updStmt, ++pm, dv.ngpio);
+	rc[pm] = sqlite3_bind_int(updStmt, ++pm, dv.nuart);
+	rc[pm] = sqlite3_bind_int(updStmt, ++pm, dv.nusb);
+	rc[pm] = sqlite3_bind_int(updStmt, ++pm, dv.ni2c);
+	rc[pm] = sqlite3_bind_int(updStmt, ++pm, dv.nspi);
+	rc[pm] = sqlite3_bind_int(updStmt, ++pm, dv.ncomp);
+	rc[pm] = sqlite3_bind_int(updStmt, ++pm, dv.ntimer);
+
+	rc[pm] = sqlite3_bind_int(updStmt, ++pm, dv.opTempMin);
+	rc[pm] = sqlite3_bind_int(updStmt, ++pm, dv.opTempMax);
+
+	rc[pm] = sqlite3_bind_text(updStmt, ++pm, dv.model.c_str(), -1, SQLITE_STATIC);
+	std::for_each(rc.begin() + 1, rc.begin() + 1 + pm, [](int n) { assert(n == SQLITE_OK); });
+	rc[pm] = sqlite3_step(updStmt);
+	assert(SQLITE_DONE == rc[pm]);
+	alteredRows += sqlite3_changes(db);
+
+	if ( alteredRows == 0 ) { // updated nothing, insert then
+		pm = 0;
+		sqlite3_reset(insStmt);
+		rc[pm] = sqlite3_bind_text(insStmt, ++pm, dv.model.c_str(), -1, SQLITE_STATIC);
+		rc[pm] = sqlite3_bind_text(insStmt, ++pm, dv.datasheetId.c_str(), -1, SQLITE_STATIC);
+		rc[pm] = sqlite3_bind_int(insStmt, ++pm, dv.maxFreq);
+		rc[pm] = sqlite3_bind_int(insStmt, ++pm, dv.storage);
+		rc[pm] = sqlite3_bind_int(insStmt, ++pm, dv.ram);
+		rc[pm] = sqlite3_bind_int(insStmt, ++pm, dv.ngpio);
+		rc[pm] = sqlite3_bind_int(insStmt, ++pm, dv.nuart);
+		rc[pm] = sqlite3_bind_int(insStmt, ++pm, dv.nusb);
+		rc[pm] = sqlite3_bind_int(insStmt, ++pm, dv.ni2c);
+		rc[pm] = sqlite3_bind_int(insStmt, ++pm, dv.nspi);
+		rc[pm] = sqlite3_bind_int(insStmt, ++pm, dv.ncomp);
+		rc[pm] = sqlite3_bind_int(insStmt, ++pm, dv.ntimer);
+		rc[pm] = sqlite3_bind_int(insStmt, ++pm, dv.opTempMin);
+		rc[pm] = sqlite3_bind_int(insStmt, ++pm, dv.opTempMax);
+		std::for_each(rc.begin() + 1, rc.begin() + 1 + pm, [](int n) { assert(n == SQLITE_OK); });
+		if ( SQLITE_DONE == sqlite3_step(insStmt) ) {
+			alteredRows += sqlite3_changes(db);
+		}
+	}
+	return alteredRows;
+}
 }}}} // namespace sjabloon430::tools::device::db
