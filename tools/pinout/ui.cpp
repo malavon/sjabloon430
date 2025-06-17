@@ -583,16 +583,14 @@ void loopPinsetEditing(Window &win, Window &hot, BorderedWindow &config, ui::Pin
 			case KEY_F(7):
 				if ( tempChar - KEY_F(5) >= vw.csets.size() - 1 ) { // create new set
 					/* DEFAULT set, allowing non-linear parenting - user has to ensure everything is valid! */
-					Configset cs = ui::filterForConfigset(Configset(vw.csets[0].orderablesView()));
+					Configset cs = ui::filterForConfigset(vw.csets[0].orderablesView());
 					if ( !cs.empty() ) {
 						vw.add(cs);
 						ui::drawSetConfigWindow(config, vw.csets);
 					}
 				} else if ( tempChar - KEY_F(5) < vw.csets.size() ) {
 					int idx = tempChar - KEY_F(5) + 1;
-					// TODO: all models/pkgs will be selected again, nicer if previous set is displayed
-					// but still showing ALL possible options
-					Configset cs = ui::filterForConfigset(vw.csets[0]);
+					Configset cs = ui::filterForConfigset(vw.csets[0].orderablesView(), vw.csets[idx]);
 
 					if ( cs.empty() ) { // clearing a set is hidden delete function :p
 						vw.csets.erase(vw.csets.begin() + idx);
@@ -615,13 +613,14 @@ void loopPinsetEditing(Window &win, Window &hot, BorderedWindow &config, ui::Pin
 }
 
 // used to create config set, display packages & devices for the user to filter them
-Configset filterForConfigset(const Configset &cset) {
+Configset filterForConfigset(const vector<db::Orderable> &odv, const Configset &base) {
 	static const string TEXT = "Select devices OR packages to use for the set.";
 	static const string KEYS = "U/D Move TAB/STAB Models/Packages SPACE Select RETURN Confirm"; // marker for length
 	static const int TEXT_WIDTH = max(TEXT.length(), KEYS.length());
 
-	vector<Package> ps = cset.toPkgs();
-	vector<string> ms = cset.toModels();
+	Configset all(odv);
+	vector<Package> ps = all.toPkgs();
+	vector<string> ms = all.toModels();
 	int WIN_WIDTH = max(TEXT_WIDTH, max(HEADER_WIDTH_PKG + 1, 18)) + 2 /* Whitespace Left/right  */ + 2 /* border */;
 	int WIN_HEIGHT = std::max(ps.size(), ms.size()) + 3 /* text & empty line */ + 1 /* empty line */ + 2 /* border */;
 
@@ -635,22 +634,33 @@ Configset filterForConfigset(const Configset &cset) {
 	displayHotkey(center, "Confirm", "RETURN");
 	center.paint();
 
-	enum { MODELS = 0, PACKAGES = 1 };
+	enum { MDL = 0, PKG = 1 };
 	// using arrays for these greatly simplifies below code
 	// of course, using some sort of selection box would do this even more :)
 	unsigned int selIdx[2] = {0, 0},
 		     maxIdx[] = {static_cast<unsigned int>(ms.size() - 1), static_cast<unsigned int>(ps.size() - 1)};
-	int intIdx = MODELS; // working with index creates shortest code
+	int intIdx = MDL; // working with index creates shortest code
 	// selection masks; using entire int-space; 15 models is maximum in database though
+	// if base is empty, select all; if not, select none and update from base
 	// this is the clever bit ... right?
-	int bitMsks[] = {-1, -1};
+	int bitMsks[] = {base.empty() ? -1 : 0, base.empty() ? -1 : 0};
+	int mdlIdx, pkgIdx;
+	for ( const db::Orderable &o : base.orderablesView() ) {
+		mdlIdx = 0, pkgIdx = 0;
+		// there is no find/search with indices in C++? :'(
+		// can maybe solved with one of the newer std::* thingies
+		for ( vector<string>::const_iterator it = ms.begin(); it < ms.end() && *it != o.model; it++, mdlIdx++ ) { }
+		for ( vector<Package>::const_iterator it = ps.cbegin(); it < ps.end() && *it != o.pkg; it++, pkgIdx++ ) { }
+		bitMsks[MDL] |= 1 << mdlIdx;
+		bitMsks[PKG] |= 1 << pkgIdx;
+	}
 
 	int pressedKey = 0;
 	do {
 		switch ( pressedKey ) {
 			case 9 /* tab */:
 			case KEY_BTAB:
-				intIdx = intIdx == MODELS ? PACKAGES : MODELS;
+				intIdx = intIdx == MDL ? PKG : MDL;
 				break;
 			case KEY_UP:
 				selIdx[intIdx] = selIdx[intIdx] > 0 ? selIdx[intIdx] - 1 : maxIdx[intIdx];
@@ -667,12 +677,12 @@ Configset filterForConfigset(const Configset &cset) {
 		int colPkg = center.maxCols() - HEADER_WIDTH_PKG - 4 - 4;
 		int row = 3;
 		for ( int i = 0; i < ms.size(); i++ ) {
-			center.add(row + i, colMdl, bitMsks[0] & (1 << i) ? " [X] " : " [ ] ");
-			center.add(ms[i], i == selIdx[0] && intIdx == 0 ? A_STANDOUT : A_NORMAL);
+			center.add(row + i, colMdl, bitMsks[MDL] & (1 << i) ? " [X] " : " [ ] ");
+			center.add(ms[i], i == selIdx[MDL] && intIdx == MDL ? A_STANDOUT : A_NORMAL);
 		}
 		for ( int i = 0; i < ps.size(); i++ ) {
-			center.add(row + i, colPkg, ps[i], i == selIdx[1] && intIdx == 1 ? A_STANDOUT : A_NORMAL);
-			center.add(row + i, colPkg + HEADER_WIDTH_PKG, bitMsks[1] & (1 << i) ? "[X] " : "[ ] ");
+			center.add(row + i, colPkg, ps[i], i == selIdx[PKG] && intIdx == PKG ? A_STANDOUT : A_NORMAL);
+			center.add(row + i, colPkg + HEADER_WIDTH_PKG, bitMsks[PKG] & (1 << i) ? "[X] " : "[ ] ");
 		}
 
 		// naive way of moving cursor where it doesn't bother as much, should hide it somehow TODO
@@ -681,10 +691,8 @@ Configset filterForConfigset(const Configset &cset) {
 	} while ( (pressedKey = wgetch(center)) != KEY_ENTER && pressedKey != 10 );
 
 	vector<db::Orderable> fltrd;
-	for ( const db::Orderable &o : cset.orderablesView() ) {
-		int mdlIdx = 0, pkgIdx = 0;
-		// there is no find/search with indices in C++? :'(
-		// can maybe solved with one of the newer std::* thingies
+	for ( const db::Orderable &o : odv ) {
+		mdlIdx = 0, pkgIdx = 0;
 		for ( vector<string>::const_iterator it = ms.begin(); it < ms.end() && *it != o.model; it++, mdlIdx++ ) { }
 		for ( vector<Package>::const_iterator it = ps.cbegin(); it < ps.end() && *it != o.pkg; it++, pkgIdx++ ) { }
 
@@ -692,11 +700,11 @@ Configset filterForConfigset(const Configset &cset) {
 		assert(mdlIdx < ms.size());
 		assert(pkgIdx < ps.size());
 
-		if ( bitMsks[MODELS] & (1 << mdlIdx) && bitMsks[PACKAGES] & (1 << pkgIdx) ) {
+		if ( bitMsks[MDL] & (1 << mdlIdx) && bitMsks[PKG] & (1 << pkgIdx) ) {
 			fltrd.push_back(o);
 		}
 	}
-	return Configset(cset, fltrd);
+	return Configset(base, fltrd);
 }
 
 // reordering packages, given vector is reordered
