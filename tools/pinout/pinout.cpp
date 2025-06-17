@@ -48,18 +48,21 @@ int main() {
 		configs.setTitle("Configsets");
 
 		Window &statusWin = pins;
-		statusWin.add(0, 0, "Imported SQLite DB from files:\n");
+		statusWin.add(0, 0, "Importing SQLite DB:");
+		int files = 0, errors = 0;
 		dbf::importDatabase(db, [&](const string &filename, const char *error) {
-			statusWin.add("   \"");
-			statusWin.add(filename);
-			statusWin.add('"');
-
+			files++;
 			if ( error != nullptr ) {
-				statusWin.add(" ERR: ");
-				statusWin.add(error);
+				errors++;
+				if ( errors < statusWin.maxRows() - WIN_TOP_HEIGHT - 2 /**/ ) {
+					statusWin.print("\n  \"%s\" ERR: %s", filename.c_str(), error);
+				} else if ( errors < statusWin.maxRows() - WIN_TOP_HEIGHT - 1 ) {
+					statusWin.add("\n  ... more errors ...");
+				}
 			}
-			statusWin.add('\n'); // scrolls if too many lines for window without possibly erroring
 		});
+		statusWin.print("\n %d files imported ", files);
+		statusWin.print(errors == 0 ? "without errors\n" : "with %d errors\n", errors);
 		statusWin.paint();
 
 		// initial state: open search window
