@@ -51,8 +51,6 @@ struct ExportConfig {
 
 void exportDataForDatasheet(sqlite3 *db, const string &datasheetId);
 void exportDatasheets(sqlite3 *db);
-void exportDevicesWithoutPinout(sqlite3 *db);
-void exportOrderablesWithoutPinout(sqlite3 *db);
 void exportPackages(sqlite3 *db);
 void exportSignals(sqlite3 *db);
 void importDatabase(sqlite3 *db, std::function<void(const std::string &file, const char *error)> callback);
