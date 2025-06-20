@@ -264,7 +264,7 @@ void convertAndSaveViewToDb(sqlite3 *db, ui::PinSetView &vw) {
 			ssIdx++;
 		}
 
-		// recreate ALL (incl. parent) pinsets from scratch, in case parents have changed! (i.e. configset changes)
+		// recreate ALL pinsets from scratch to ensure valid ids, parents are assigned as well!
 		for ( db::Orderable &o : cs.orderables() ) {
 			o.pinset.id = cs.pinsetIdFor(o.pkg);
 			// also catches null(0)-id!
@@ -275,13 +275,11 @@ void convertAndSaveViewToDb(sqlite3 *db, ui::PinSetView &vw) {
 
 				if ( csetIdx > 0 ) {
 					// with non-linear parents cannot assume previous set is parent!
-					// search for first that contains the same orderable, will eventually end up in default
-					bool foundParentConfig = false;
-					for ( int pntIdx = csetIdx - 1; !foundParentConfig && pntIdx >= 0; pntIdx-- ) {
-						if ( vw.csets[pntIdx].contains(o) ) {
+					// search for first that contains ALL orderables, will eventually end up in default
+					for ( int pntIdx = csetIdx - 1; ps.parentId == 0 && pntIdx >= 0; pntIdx-- ) {
+						if ( vw.csets[pntIdx].contains(cs.orderables()) ) {
 							ps.parentId = vw.csets[pntIdx].pinsetIdFor(o.pkg);
 							assert(pinsets.find(ps.parentId) != pinsets.end());
-							foundParentConfig = true;
 							break;
 						}
 					}
@@ -304,23 +302,24 @@ void convertAndSaveViewToDb(sqlite3 *db, ui::PinSetView &vw) {
 				for ( const pair<Package, Pin> &pr : pv.pins ) {
 					int psId = cs.pinsetIdFor(pr.first);
 					// can be 0 when _this_ configset has less packages than view (i.e. other configsets)
-					assert(psId == 0 || pinsets.find(psId) != pinsets.end());
-					db::Pinset &ps = pinsets[psId];
-					if ( !pr.second.empty() ) {
-						ps.signalsets[pr.second] = ss;
+					if ( psId != 0 ) {
+						assert(pinsets.find(psId) != pinsets.end());
+						db::Pinset &ps = pinsets[psId];
+						if ( !pr.second.empty() ) {
+							ps.signalsets[pr.second] = ss;
+						}
 					}
-					pinsets[psId] = ps; // TODO: REQUIRED???
 				}
 			}
 			ssIdx++;
 		}
 
+		assert(pinsets.find(0) == pinsets.end()); // safety check; algorithm depends on this heavily!
 		parents = signalsets;
 		signalsets.clear();
 		csetIdx++;
 	}
 
-	// these are saved only here to prevent an insert in each configset
 	for ( const pair<int, db::Pinset> &pr : pinsets ) {
 		db::Pinset ps = pr.second;
 		db::saveOrUpdatePinset(db, ps);
