@@ -76,6 +76,14 @@ class Configset {
 		return false;
 	}
 
+	bool contains(const vector<db::Orderable> &vo) const {
+		bool hasAll = true;
+		for ( vector<db::Orderable>::const_iterator reqr = vo.cbegin(); hasAll && reqr != vo.end(); reqr++ ) {
+			hasAll = contains(*reqr);
+		}
+		return hasAll;
+	}
+
 	const bool empty() const {
 		return odbls.empty();
 	}
