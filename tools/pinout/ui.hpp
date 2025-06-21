@@ -12,11 +12,15 @@ namespace sjabloon430 { namespace tools { namespace pinout { namespace ui {
 
 using namespace cccurses;
 
+static const int MAX_CONFIGSETS = 3;
+static const char CHAR_CONFIGSET = '*';
+
 // 3 characters is enough for pin numbers, even BGA
 // using 4 is however logical, esthetic purposes 1 empty character always
 static const int FIELD_WIDTH_PIN = 4;
 // signal is max ... TODO=
-static const int FIELD_WIDTH_SIGNAL = 8 + 2 /* configset characters, max 2 */;
+static const int FIELD_WIDTH_SIGNAL = 8 + MAX_CONFIGSETS * sizeof(CHAR_CONFIGSET) / sizeof(typeof CHAR_CONFIGSET);
+
 static const int FIELD_WIDTH_DESC = 10;
 // packages (drawing + pins) are up to 6 wide, so always format them at 6
 static const int HEADER_WIDTH_PKG = 6;
