@@ -107,6 +107,10 @@ class Configset {
 };
 
 struct PinView {
+  private:
+	PinView() { } // only allow creation by 'friend' class
+
+  public:
 	// this struct was conceived to prevent using a db:: scoped object in the ui (like db::Signalset)
 	// and once parenting/configsets has been implemented it will be much more useful
 	// hindsight(c) powered by rebase (R)
@@ -151,23 +155,21 @@ struct PinView {
 	bool hasPinsAndSignals() const {
 		return hasPins() && countSignals() > 0;
 	}
+
+	friend class PinSetView;
 };
 
-struct PinSetView {
-	PinSetView(const vector<Package> p) : pkgs(p) { }
-	// fixed list of packages
-	const vector<Package> pkgs;
-	// map of all existing signals & descriptions, can be modified (well, extended at least)!
-	unordered_map<string, string> signalDescs;
-	// each item on the screen
-	vector<PinView> pinViews;
-	vector<Configset> csets;
+class PinSetView {
+  public:
+	PinSetView(const vector<Package> &p) : pkgs(p) { }
+
 	void add(Configset &cs) {
 		csets.push_back(cs);
 		for ( PinView &pv : pinViews ) {
 			pv.cviews.push_back(PinView::ConfigView());
 		}
 	}
+
 	PinView createNewPinView() {
 		PinView pv;
 		for ( size_t i = csets.size(); i > 0; i-- ) {
@@ -175,6 +177,65 @@ struct PinSetView {
 		}
 		return pv;
 	}
+
+	/* vector<PinView>-like operation */
+	vector<PinView>::iterator begin() {
+		return pinViews.begin();
+	}
+
+	vector<PinView>::const_iterator cbegin() {
+		return pinViews.cbegin();
+	}
+
+	vector<PinView>::const_iterator cend() {
+		return pinViews.cend();
+	}
+
+	vector<PinView>::iterator end() {
+		return pinViews.end();
+	}
+
+	PinView &emplace() {
+		PinView pv = createNewPinView();
+		pinViews.push_back(pv);
+		return pinViews.at(pinViews.size() - 1);
+	}
+
+	vector<PinView>::iterator erase(vector<PinView>::iterator it) {
+		return pinViews.erase(it);
+	}
+
+	vector<PinView>::iterator insert(vector<PinView>::const_iterator it, const PinView &pv) {
+		return pinViews.insert(it, pv);
+	}
+
+	void push_back(PinView &pv) {
+		pinViews.push_back(pv);
+	}
+
+	size_t size() {
+		return pinViews.size();
+	}
+
+	PinView &operator[](int idx) {
+		return pinViews.at(idx);
+	}
+	const PinView &operator[](int idx) const {
+		return pinViews.at(idx);
+	}
+
+  public:
+	// fixed list of packages
+	const vector<Package> pkgs;
+	// map of all existing signals & descriptions, can be modified (well, extended at least)!
+	unordered_map<string, string> signalDescs;
+	vector<Configset> csets;
+
+  private:
+	// each item on the screen
+	vector<PinView> pinViews;
+
+  public:
 	/*
 	 * index of pin that is edited
 	 * if higher than pins.size(), add at end
@@ -182,7 +243,7 @@ struct PinSetView {
 	 */
 	int editIdx = -1;
 	/* selection index, for browsing; 0-based */
-	unsigned int selIdx = 0;
+	size_t selIdx = 0;
 };
 
 // partial drawing functions
@@ -199,5 +260,6 @@ Configset filterForConfigset(const vector<db::Orderable> &, const Configset &bas
 void loopPinsetEditing(Window &pinset, Window &hotkeys, BorderedWindow &config, ui::PinSetView &);
 void reorderPackages(vector<Package> &pkgs); // given vector is reordered in-place
 string searchDatasheet(const unordered_map<string, string> &dsModels, const int modelFieldWidth);
+
 }}}} // namespace sjabloon430::tools::pinout::ui
 #endif // SJABLOON430_TOOLS_PINOUT_UI_HPP
