@@ -185,10 +185,19 @@ class PinSetView {
 
 	PinView createNewPinView() {
 		PinView pv;
-		for ( const Configset &ignored : csets ) {
+		for ( const Configset &cs : csets ) {
 			pv.cviews.push_back(PinView::ConfigView());
 		}
 		return pv;
+	}
+
+	void orderBy(const Package &pkg) {
+		assert(false);
+	}
+
+	void orderBy(int idx) {
+		assert(idx < pkgs.size());
+		orderByPkgIdx = idx;
 	}
 
 	/* vector<PinView>-like operation */
@@ -249,6 +258,7 @@ class PinSetView {
 	vector<PinView> pinViews;
 
   public:
+	int orderByPkgIdx = -1; // -1 = default ordering as created datasheet_idx; otherwise order by
 	/*
 	 * index of pin that is edited
 	 * if higher than pins.size(), add at end
