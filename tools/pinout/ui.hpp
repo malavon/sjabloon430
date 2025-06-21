@@ -178,6 +178,15 @@ class PinSetView {
 		return pv;
 	}
 
+	void orderBy(const Package & /*pkg*/) {
+		assert(false);
+	}
+
+	void orderBy(size_t idx) {
+		assert(idx < pkgs.size());
+		orderByPkgIdx = idx;
+	}
+
 	/* vector<PinView>-like operation */
 	vector<PinView>::iterator begin() {
 		return pinViews.begin();
@@ -236,6 +245,7 @@ class PinSetView {
 	vector<PinView> pinViews;
 
   public:
+	int orderByPkgIdx = -1; // -1 = default ordering as created datasheet_idx; otherwise order by
 	/*
 	 * index of pin that is edited
 	 * if higher than pins.size(), add at end
