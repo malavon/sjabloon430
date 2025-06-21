@@ -313,6 +313,7 @@ void convertAndSaveViewToDb(sqlite3 *db, ui::PinSetView &vw) {
 				o.pinset = ps;
 				cs.update(o); // also sets pinsetIdFor!
 			}
+			pinsets[o.pinset.id].linkedPackages.insert(o.pkg); // used only to correct pin count
 			odblPinsetLinks[o.name] = o.pinset.id;
 		}
 
@@ -345,6 +346,7 @@ void convertAndSaveViewToDb(sqlite3 *db, ui::PinSetView &vw) {
 	// these are saved only here to prevent an insert in each configset
 	for ( const pair<int, db::Pinset> &pr : pinsets ) {
 		db::Pinset ps = pr.second;
+		ps.pins = ps.pins / ps.linkedPackages.size();
 		db::saveOrUpdatePinset(db, ps);
 	}
 

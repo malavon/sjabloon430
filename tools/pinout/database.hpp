@@ -5,10 +5,12 @@
 
 #include <string>
 #include <unordered_map>
+#include <unordered_set>
 #include <vector>
 
 using std::string;
 using std::unordered_map;
+using std::unordered_set;
 using std::vector;
 
 namespace sjabloon430 { namespace tools {
@@ -90,6 +92,7 @@ struct Pinset {
 	int id = 0; // auto-increment
 	int parentId = 0;
 	int pins = 0;
+	unordered_set<Package> linkedPackages; // used for calculating correct(er) pin count
 	unordered_map<Pin, struct Signalset> signalsets;
 };
 
