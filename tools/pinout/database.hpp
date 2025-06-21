@@ -92,7 +92,6 @@ struct Pinset {
 	int id = 0; // auto-increment
 	int parentId = 0;
 	int pins = 0;
-	unordered_set<Package> linkedPackages; // used for calculating correct(er) pin count
 	unordered_map<Pin, struct Signalset> signalsets;
 };
 

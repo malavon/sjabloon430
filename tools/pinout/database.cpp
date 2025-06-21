@@ -387,7 +387,7 @@ int saveOrUpdatePinset(sqlite3 *db, Pinset &ps) { // assumes signal sets are all
 	}
 
 	int alteredRows = 0, rc;
-	// totalpins should already be set, this is NOT calculated in this function
+	// totalpins is set to # of signalsets
 	if ( ps.id == 0 ) {
 		sqlite3_reset(insStmt);
 		if ( ps.parentId == 0 ) {
@@ -396,7 +396,7 @@ int saveOrUpdatePinset(sqlite3 *db, Pinset &ps) { // assumes signal sets are all
 			rc = sqlite3_bind_int(insStmt, 1, ps.parentId);
 		}
 		assert(SQLITE_OK == rc);
-		rc = sqlite3_bind_int(insStmt, 2, ps.pins);
+		rc = sqlite3_bind_int(insStmt, 2, ps.signalsets.size());
 		assert(SQLITE_OK == rc);
 		rc = sqlite3_step(insStmt);
 		assert(SQLITE_DONE == rc);
@@ -404,7 +404,7 @@ int saveOrUpdatePinset(sqlite3 *db, Pinset &ps) { // assumes signal sets are all
 		alteredRows++;
 	} else { // if already in database, remove signalsets, update totalPins count
 		sqlite3_reset(updStmt);
-		rc = sqlite3_bind_int(updStmt, 1, ps.pins);
+		rc = sqlite3_bind_int(updStmt, 1, ps.signalsets.size());
 		assert(SQLITE_OK == rc);
 		rc = sqlite3_bind_int(updStmt, 2, ps.id);
 		assert(SQLITE_OK == rc);
