@@ -212,7 +212,7 @@ void convertDbToView(const vector<db::Signalset> &ssv, vector<db::Pinset> &psv, 
 		maxDsIdx = max(maxDsIdx, ss.datasheetIdx);
 	}
 	for ( int i = 0; i <= maxDsIdx; i++ ) {
-		vw.pinViews.push_back(vw.createNewPinView());
+		vw.emplace();
 	}
 
 	// TODO: is this correct? first looping pinsets, then orderables since they're needed for pins
@@ -221,7 +221,7 @@ void convertDbToView(const vector<db::Signalset> &ssv, vector<db::Pinset> &psv, 
 			Pin p = pr.first;
 			db::Signalset ss = pr.second;
 
-			ui::PinView &pv = vw.pinViews[ss.datasheetIdx];
+			ui::PinView &pv = vw[ss.datasheetIdx];
 			pv.cviews[ps.cset].signalsetId = ss.id;
 			pv.cviews[ps.cset].signals = ss.signals;
 			for ( const db::Orderable &o : odv ) {
@@ -246,7 +246,7 @@ void convertAndSaveViewToDb(sqlite3 *db, ui::PinSetView &vw) {
 	int ssIdx = 0, csetIdx = 0;
 	for ( ui::Configset &cs : vw.csets ) {
 		ssIdx = 0;
-		for ( const ui::PinView &pv : vw.pinViews ) {
+		for ( const ui::PinView &pv : vw ) {
 			ui::PinView::ConfigView cv = pv.cviews[csetIdx];
 			db::Signalset ss;
 			ss.id = cv.signalsetId;
@@ -294,7 +294,7 @@ void convertAndSaveViewToDb(sqlite3 *db, ui::PinSetView &vw) {
 		}
 
 		ssIdx = 0;
-		for ( const ui::PinView &pv : vw.pinViews ) {
+		for ( const ui::PinView &pv : vw ) {
 			// using fact that PinView is present even if no pins present and
 			// for every config set the same amount of signalsets exist in-memory
 			db::Signalset &ss = signalsets[ssIdx];

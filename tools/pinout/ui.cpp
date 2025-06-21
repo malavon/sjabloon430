@@ -326,7 +326,7 @@ void editPinSet(Window &win, int &row, const vector<Package> &pkgs, unordered_ma
 // MVP: this function keeps the selected index on the last row unless it's on the very first screen
 // it might be nicer if it behaves like a text editor: scrollin upwards from below until the first line is reached
 void drawPinSetEditingWindow(Window &win, PinSetView &vw) {
-	if ( vw.editIdx < 0 || vw.selIdx == vw.pinViews.size() ) {
+	if ( vw.editIdx < 0 || vw.selIdx == vw.size() ) {
 		// erasing window IS necessary to clean everything up BUT ...
 		// when editIdx is set, it is set to selIdx meaning everything _can_ simply stay in the same place
 		// and the editing form has its own subwindow, which _is_ cleared anyway
@@ -336,8 +336,7 @@ void drawPinSetEditingWindow(Window &win, PinSetView &vw) {
 
 	int row = 0, idx = 0;
 	bool roomToDisplayMore = true, selectionReached = false;
-	for ( vector<PinView>::iterator it = vw.pinViews.begin();
-	      it != vw.pinViews.end() && (roomToDisplayMore || !selectionReached); it++, idx++ ) {
+	for ( auto it = vw.begin(); it != vw.end() && (roomToDisplayMore || !selectionReached); it++, idx++ ) {
 		PinView &pv = *it;
 		if ( idx == vw.editIdx ) {
 			// ensure there is enough room to display entire form, will not be dynamically expanded
@@ -348,7 +347,7 @@ void drawPinSetEditingWindow(Window &win, PinSetView &vw) {
 
 			// if it's not valid, remove it
 			if ( !pv.hasPinsAndSignals() ) {
-				vw.pinViews.erase(it);
+				vw.erase(it);
 			}
 
 			// if signals are added or removed, everything below will need to be redrawn
@@ -384,7 +383,7 @@ void drawPinSetEditingWindow(Window &win, PinSetView &vw) {
 	}
 
 	// at last option editing means inserting a new one
-	if ( vw.editIdx == vw.pinViews.size() ) {
+	if ( vw.editIdx == vw.size() ) {
 		PinView pv = vw.createNewPinView();
 		scrollToAccomodate(win, MAX_SIGNALS + 1 /* header */, row);
 		drawPinSetHeader(win, row++, vw.pkgs);
@@ -394,7 +393,7 @@ void drawPinSetEditingWindow(Window &win, PinSetView &vw) {
 		row--; // advanced to draw header above, OVERWRITE exact edit position with view-only
 		if ( pv.hasPinsAndSignals() ) {
 			win.clearLine(row);
-			vw.pinViews.push_back(pv);
+			vw.push_back(pv);
 			drawPinSet(win, row, vw.pkgs, vw.signalDescs, pv);
 			mvwhline(win, row++, 1, 0, min(win.maxCols() - 2, 79)); // capped at 80, esthaetics
 			vw.selIdx++;
@@ -403,7 +402,7 @@ void drawPinSetEditingWindow(Window &win, PinSetView &vw) {
 
 	// scrolled/selected all the way to the botton
 	// render an empty placeholder
-	if ( vw.selIdx == vw.pinViews.size() ) {
+	if ( vw.selIdx == vw.size() ) {
 		scrollToAccomodate(win, MAX_SIGNALS + 1 /* header */, row); // scroll as if editing
 		win.enableAttributes(WA_BOLD);
 		drawPinSetHeader(win, row++, vw.pkgs);
@@ -558,7 +557,7 @@ void loopPinsetEditing(Window &win, Window &hot, BorderedWindow &config, ui::Pin
 				break;
 			case KEY_DOWN:
 				// size() is 1 higher than max to allow selecting pin at the end
-				vw.selIdx = min(static_cast<int>(vw.pinViews.size()), vw.selIdx + 1);
+				vw.selIdx = min(static_cast<int>(vw.size()), vw.selIdx + 1);
 				break;
 			case KEY_ENTER:
 			case 10 /* RETURN */:
@@ -567,14 +566,14 @@ void loopPinsetEditing(Window &win, Window &hot, BorderedWindow &config, ui::Pin
 				break;
 			case KEY_IC /* insert */:
 				// insert and edit; will be removed by ui code if no signals are inserted!
-				if ( vw.selIdx < vw.pinViews.size() ) {
-					vw.pinViews.insert(vw.pinViews.begin() + vw.selIdx, vw.createNewPinView());
+				if ( vw.selIdx < vw.size() ) {
+					vw.insert(vw.begin() + vw.selIdx, vw.createNewPinView());
 					vw.editIdx = vw.selIdx;
 				}
 				break;
 			case KEY_DC /* delete */:
-				if ( vw.selIdx < vw.pinViews.size() ) {
-					vw.pinViews.erase(vw.pinViews.begin() + vw.selIdx);
+				if ( vw.selIdx < vw.size() ) {
+					vw.erase(vw.begin() + vw.selIdx);
 				}
 				break;
 			case KEY_F(5):
