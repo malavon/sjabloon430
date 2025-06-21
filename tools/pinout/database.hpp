@@ -5,10 +5,12 @@
 
 #include <string>
 #include <unordered_map>
+#include <unordered_set>
 #include <vector>
 
 using std::string;
 using std::unordered_map;
+using std::unordered_set;
 using std::vector;
 
 namespace sjabloon430 { namespace tools {
