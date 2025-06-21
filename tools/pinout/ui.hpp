@@ -172,27 +172,83 @@ struct PinView {
 	}
 };
 
-struct PinSetView {
-	// fixed list of packages
-	const vector<Package> pkgs;
-	// map of all existing signals & descriptions, can be modified (well, extended at least)!
-	unordered_map<string, string> signalDescs;
-	// each item on the screen
-	vector<PinView> pinViews;
-	vector<Configset> csets;
+class PinSetView {
+  public:
+	PinSetView(const vector<Package> &p) : pkgs(p) { }
+
 	void add(Configset &cs) {
 		csets.push_back(cs);
 		for ( PinView &pv : pinViews ) {
 			pv.cviews.push_back(PinView::ConfigView());
 		}
 	}
+
 	PinView createNewPinView() {
 		PinView pv;
-		for ( const Configset &cs : csets ) {
+		for ( const Configset &ignored : csets ) {
 			pv.cviews.push_back(PinView::ConfigView());
 		}
 		return pv;
 	}
+
+	/* vector<PinView>-like operation */
+	vector<PinView>::iterator begin() {
+		return pinViews.begin();
+	}
+
+	vector<PinView>::const_iterator cbegin() {
+		return pinViews.cbegin();
+	}
+
+	vector<PinView>::const_iterator cend() {
+		return pinViews.cend();
+	}
+
+	vector<PinView>::iterator end() {
+		return pinViews.end();
+	}
+
+	PinView &emplace() {
+		PinView pv = createNewPinView();
+		pinViews.push_back(pv);
+		return pinViews.at(pinViews.size() - 1);
+	}
+
+	vector<PinView>::iterator erase(vector<PinView>::iterator it) {
+		return pinViews.erase(it);
+	}
+
+	vector<PinView>::iterator insert(vector<PinView>::const_iterator it, const PinView &pv) {
+		return pinViews.insert(it, pv);
+	}
+
+	void push_back(PinView &pv) {
+		pinViews.push_back(pv);
+	}
+
+	size_t size() {
+		return pinViews.size();
+	}
+
+	PinView &operator[](int idx) {
+		return pinViews.at(idx);
+	}
+	const PinView &operator[](int idx) const {
+		return pinViews.at(idx);
+	}
+
+  public:
+	// fixed list of packages
+	const vector<Package> pkgs;
+	// map of all existing signals & descriptions, can be modified (well, extended at least)!
+	unordered_map<string, string> signalDescs;
+	vector<Configset> csets;
+
+  private:
+	// each item on the screen
+	vector<PinView> pinViews;
+
+  public:
 	/*
 	 * index of pin that is edited
 	 * if higher than pins.size(), add at end
