@@ -8,6 +8,14 @@ namespace sjabloon430 { namespace tools { namespace pinout { namespace ui {
 using namespace cccurses;
 using namespace sjabloon430::tools::pinout::db;
 
+// hard-coded max # of signals required for window size
+static const int MAX_SIGNALS = 10;
+static const int MAX_CONFIGSETS = 3;
+
+static const char CHAR_CONFIGSET = '*';
+static const char *SIGNAL_HDR("SIGNAL");
+static const char *DESCRIPTION_HDR("DESCRIPTION");
+
 // 7 is fixed; all datasheets are 7 wide
 static const int FIELD_WIDTH_DATASHEET = 7;
 // 3 characters is enough for pin numbers, even BGA
@@ -16,15 +24,8 @@ static const int FIELD_WIDTH_PIN = 4;
 // packages (drawing + pins) are up to 6 wide, so always format them at 6
 static const int FIELD_WIDTH_PKG = 6;
 // as far as I know, signal is max 8 EXCEPT for PM_<signal> signals; then it's 11
-static const int FIELD_WIDTH_SIGNAL = 11 + 2 /* configset characters, max 2 */;
+static const int FIELD_WIDTH_SIGNAL = 11 + MAX_CONFIGSETS * sizeof(CHAR_CONFIGSET) / sizeof(char);
 static const int FIELD_WIDTH_DESC = 60; // is resized dynamically if too large
-
-// hard-coded max # of signals required for window size
-static const int MAX_SIGNALS = 10;
-
-static const char *SIGNAL_HDR("SIGNAL");
-static const char *DESCRIPTION_HDR("DESCRIPTION");
-static const char CHAR_CONFIGSET = '*';
 
 // internally used (partial window) functions
 void drawPinSetHeader(Window &, const int row, const vector<string> &pkgs);
@@ -610,6 +611,7 @@ void loopPinsetEditing(Window &win, Window &hot, BorderedWindow &config, ui::Pin
 					}
 				} else if ( tempChar - KEY_F(5) < vw.csets.size() ) {
 					int idx = tempChar - KEY_F(5) + 1;
+					assert(idx <= MAX_CONFIGSETS); // safety check; increasing # of sets will break this
 					Configset cs = ui::filterForConfigset(vw.csets[0].orderablesView(), vw.csets[idx]);
 
 					if ( cs.empty() ) { // clearing a set is hidden delete function :p
