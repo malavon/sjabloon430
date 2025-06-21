@@ -24,8 +24,6 @@ void displayEditHotkeys(Window &);
 void displayHotkey(Window &win, const string &text, const vector<chtype> &keys);
 void displayHotkey(Window &win, const string &text, const string &key);
 
-static const char CHAR_CONFIGSET = '*';
-
 class PinsetEventer : public FormEventHandler {
   public:
 	PinsetEventer(Window &win, EventEmittingForm<PinsetEventer> &form, const vector<Package> &pkgs,
@@ -591,6 +589,7 @@ void loopPinsetEditing(Window &win, Window &hot, BorderedWindow &config, ui::Pin
 					}
 				} else if ( tempChar - KEY_F(5) < vw.csets.size() ) {
 					int idx = tempChar - KEY_F(5) + 1;
+					assert(idx <= MAX_CONFIGSETS); // safety check; increasing # of sets will break this
 					Configset cs = ui::filterForConfigset(vw.csets[0].orderablesView(), vw.csets[idx]);
 
 					if ( cs.empty() ) { // clearing a set is hidden delete function :p
