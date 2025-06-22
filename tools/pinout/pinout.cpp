@@ -206,21 +206,13 @@ void convertDbToView(const vector<db::Signalset> &ssv, vector<db::Pinset> &psv, 
 	}
 	assert(vw.csets[0].orderablesView().size() == odv.size()); // DB consistency
 
-	// create view objects in advance to reduce complexity in conversion code below
-	int maxDsIdx = -1; // -1, not 0; otherwise no signalsets result in 1 PinView!!!
-	for ( const db::Signalset &ss : ssv ) {
-		maxDsIdx = max(maxDsIdx, ss.datasheetIdx);
-	}
-	for ( int i = 0; i <= maxDsIdx; i++ ) {
-		vw.emplace();
-	}
-
 	// TODO: is this correct? first looping pinsets, then orderables since they're needed for pins
 	for ( const db::Pinset &ps : psv ) {
 		for ( const pair<Pin, db::Signalset> &pr : ps.signalsets ) {
 			Pin p = pr.first;
 			db::Signalset ss = pr.second;
 
+			vw.ensureSize(ss.datasheetIdx);
 			ui::PinView &pv = vw[ss.datasheetIdx];
 			pv.cviews[ps.cset].signalsetId = ss.id;
 			pv.cviews[ps.cset].signals = ss.signals;
