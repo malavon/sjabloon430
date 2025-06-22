@@ -873,15 +873,17 @@ void displayHotkey(Window &win, const string &text, const string &key) {
 }
 
 void displayBrowseHotkeys(Window &win, const PinSetView &vw) {
+	static const int EXL = strlen("ESC QUIT F2 Sort U/D Nav. Enter Edit Ins Insert Del Delete");
+	bool shorten = win.maxCols() < EXL; // terminal 80 characters not all available here!
 	win.clearLine(0);
 	displayHotkey(win, "QUIT", "ESC");
 	displayHotkey(win, "Sort", "F2");
 	displayHotkey(win, "Nav.", vector<chtype>({ACS_UARROW, '/', ACS_DARROW}));
-	displayHotkey(win, "Edit", "Enter");
+	displayHotkey(win, "Edit", shorten ? "Ret" : "Enter");
 	if ( vw.canInsert() ) {
-		displayHotkey(win, "Insert", "Ins");
+		displayHotkey(win, shorten ? "In" : "Insert", "Ins");
 	}
-	displayHotkey(win, "Delete", "Del");
+	displayHotkey(win, shorten ? "Dl" : "Delete", "Del");
 	win.paint();
 }
 
