@@ -24,11 +24,12 @@ struct Pin {
 	bool empty() const {
 		return bgaRow.empty() && number <= 0;
 	}
-
 	bool operator==(const Pin &o) const {
 		return bgaRow == o.bgaRow && number == o.number;
 	}
-
+	bool operator<(const Pin &o) const { // for addition to (ordered) containers
+		return bgaRow < o.bgaRow || (number < o.number && bgaRow == o.bgaRow);
+	}
 	operator const string() const {
 		return bgaRow + (number == 0 ? "" : std::to_string(number));
 	}
