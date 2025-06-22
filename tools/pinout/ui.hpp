@@ -160,8 +160,111 @@ struct PinView {
 };
 
 class PinSetView {
+	typedef vector<PinView>::iterator internal_iterator;
+
   public:
+	// wrapping iterator?
+	template<typename dataType>
+	class OrderingIterator {
+	  public:
+		// OrderingIterator traits
+		using difference_type = int;
+		using value_type = PinView;
+		using pointer = const dataType *;
+		using reference = const PinView &;
+		using iterator_category = std::forward_iterator_tag;
+		using wrapped_iterator = vector<int>::iterator;
+
+		OrderingIterator(vector<value_type> &val, wrapped_iterator wrp) : wrapped(wrp), original(val) { }
+
+		OrderingIterator(const OrderingIterator<dataType> &raw) = default;
+
+		bool operator==(const OrderingIterator<dataType> &raw) const {
+			return wrapped == raw.wrapped;
+		}
+
+		bool operator!=(const OrderingIterator<dataType> &raw) const {
+			return wrapped != raw.wrapped;
+		}
+
+		OrderingIterator<dataType> &operator+=(const difference_type &movement) {
+			wrapped += movement;
+			return *this;
+		}
+
+		OrderingIterator<dataType> &operator-=(const difference_type &movement) {
+			wrapped -= movement;
+			return *this;
+		}
+
+		OrderingIterator<dataType> &operator++() {
+			++wrapped;
+			return *this;
+		}
+
+		OrderingIterator<dataType> &operator--() {
+			--wrapped;
+			return *this;
+		}
+
+		OrderingIterator<dataType> operator++(int) {
+			auto temp(*this);
+			++wrapped;
+			return temp;
+		}
+
+		OrderingIterator<dataType> operator--(int) {
+			auto temp(*this);
+			--wrapped;
+			return temp;
+		}
+
+		OrderingIterator<dataType> operator+(const difference_type &movement) {
+			wrapped_iterator oldPtr = wrapped;
+			wrapped += movement;
+			auto temp(*this);
+			wrapped = oldPtr;
+			return temp;
+		}
+
+		OrderingIterator<dataType> operator-(const difference_type &movement) {
+			wrapped_iterator oldPtr = wrapped;
+			wrapped -= movement;
+			auto temp(*this);
+			wrapped = oldPtr;
+			return temp;
+		}
+
+		dataType &operator*() {
+			return original[*wrapped];
+		}
+
+		const dataType &operator*() const {
+			return original[*wrapped];
+		}
+
+		wrapped_iterator getWrapped() {
+			return wrapped;
+		}
+
+	  private:
+		wrapped_iterator wrapped;
+		vector<value_type> &original;
+	};
+
+	typedef OrderingIterator<PinView> iterator;
+	typedef OrderingIterator<const PinView> const_iterator;
+
 	PinSetView(const vector<Package> &p) : pkgs(p) { }
+
+	// factory method to create a valid PinView
+	PinView createNewPinView() const {
+		PinView pv;
+		for ( size_t i = csets.size(); i > 0; i-- ) {
+			pv.cviews.push_back(PinView::ConfigView());
+		}
+		return pv;
+	}
 
 	void add(Configset &cs) {
 		csets.push_back(cs);
@@ -170,67 +273,88 @@ class PinSetView {
 		}
 	}
 
-	PinView createNewPinView() {
-		PinView pv;
-		for ( size_t i = csets.size(); i > 0; i-- ) {
-			pv.cviews.push_back(PinView::ConfigView());
-		}
-		return pv;
-	}
-
-	void orderBy(const Package & /*pkg*/) {
-		assert(false);
-	}
-
-	void orderBy(size_t idx) {
-		assert(idx < pkgs.size());
-		orderByPkgIdx = idx;
-	}
-
 	/* vector<PinView>-like operation */
-	vector<PinView>::iterator begin() {
-		return pinViews.begin();
+	iterator begin() {
+		assert(ordIdx.size() == pinViews.size());
+		return iterator(pinViews, ordIdx.begin());
 	}
 
-	vector<PinView>::const_iterator cbegin() {
-		return pinViews.cbegin();
+	const_iterator cbegin() {
+		assert(ordIdx.size() == pinViews.size());
+		return const_iterator(pinViews, ordIdx.begin());
 	}
 
-	vector<PinView>::const_iterator cend() {
-		return pinViews.cend();
+	const_iterator cend() {
+		assert(ordIdx.size() == pinViews.size());
+		return const_iterator(pinViews, ordIdx.end());
 	}
 
-	vector<PinView>::iterator end() {
-		return pinViews.end();
+	iterator end() {
+		assert(ordIdx.size() == pinViews.size());
+		return iterator(pinViews, ordIdx.end());
 	}
 
-	PinView &emplace() {
-		PinView pv = createNewPinView();
-		pinViews.push_back(pv);
-		return pinViews.at(pinViews.size() - 1);
+	iterator erase(iterator it) {
+		vector<int>::iterator wrp = it.getWrapped();
+		int idx = ordIdx[*wrp];
+		pinViews.erase(pinViews.begin() + idx);
+		// ordIdx cannot be erased as-is, indices are changed ...
+		// TODO: trigger 'reorder' instead?
+		for ( int &i : ordIdx ) {
+			if ( i >= idx ) {
+				i--;
+			}
+		}
+		return iterator(pinViews, ordIdx.erase(wrp));
 	}
 
-	vector<PinView>::iterator erase(vector<PinView>::iterator it) {
-		return pinViews.erase(it);
-	}
-
-	vector<PinView>::iterator insert(vector<PinView>::const_iterator it, const PinView &pv) {
-		return pinViews.insert(it, pv);
+	iterator insert(iterator it, const PinView &pv) {
+		// insert is undefined when ordering! asserted but view code should not allow this!
+		assert(orderByPkgIdx == ORDERING_DEFAULT);
+		vector<int>::iterator wrp = it.getWrapped();
+		int idx = ordIdx[*wrp];
+		internal_iterator pvIt = pinViews.insert(pinViews.begin() + idx, pv);
+		for ( int &i : ordIdx ) {
+			if ( i >= idx ) {
+				i++;
+			}
+		}
+		return iterator(pinViews, ordIdx.insert(wrp, pvIt - pinViews.begin()));
 	}
 
 	void push_back(PinView &pv) {
+		int psize = pv.cviews.size(), csize = csets.size();
+		// "upgrade" if need be
+		for ( int i = csize - psize; i >= 0; i-- ) {
+			pv.cviews.push_back(PinView::ConfigView());
+		}
+		// always adds to end of UNORDERED collection
+		ordIdx.push_back(pinViews.size());
 		pinViews.push_back(pv);
+		// then reorder?
+	}
+
+	// bulk import of empty elements
+	void ensureSize(int requiredSize) {
+		for ( int i = pinViews.size(); i <= requiredSize; i++ ) {
+			PinView pv = createNewPinView();
+			push_back(pv);
+		}
 	}
 
 	size_t size() {
+		assert(ordIdx.size() == pinViews.size());
 		return pinViews.size();
 	}
 
-	PinView &operator[](int idx) {
-		return pinViews.at(idx);
+	PinView &operator[](size_t idx) {
+		assert(idx < ordIdx.size());
+		return pinViews.at(ordIdx[idx]);
 	}
-	const PinView &operator[](int idx) const {
-		return pinViews.at(idx);
+
+	const PinView &operator[](size_t idx) const {
+		assert(idx < ordIdx.size());
+		return pinViews.at(ordIdx[idx]);
 	}
 
   public:
@@ -243,9 +367,12 @@ class PinSetView {
   private:
 	// each item on the screen
 	vector<PinView> pinViews;
+	// ordering mapping: pinview cannot be re-ordered directly (for datasheet idx), but is mapped
+	vector<int> ordIdx;
 
   public:
-	int orderByPkgIdx = -1; // -1 = default ordering as created datasheet_idx; otherwise order by
+	static const int ORDERING_DEFAULT = -1; // default ordering as created datasheet_idx; otherwise order by package
+	int orderByPkgIdx = ORDERING_DEFAULT;
 	/*
 	 * index of pin that is edited
 	 * if higher than pins.size(), add at end

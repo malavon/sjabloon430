@@ -358,7 +358,7 @@ void drawPinSetEditingWindow(Window &win, PinSetView &vw) {
 	int row = 0;
 	int idx = 0;
 	bool roomToDisplayMore = true, selectionReached = false;
-	for ( auto it = vw.begin(); it != vw.end() && (roomToDisplayMore || !selectionReached); it++, idx++ ) {
+	for ( PinSetView::iterator it = vw.begin(); it != vw.end() && (roomToDisplayMore || !selectionReached); it++, idx++ ) {
 		PinView &pv = *it;
 		if ( idx == vw.editIdx ) {
 			// ensure there is enough room to display entire form, will not be dynamically expanded
