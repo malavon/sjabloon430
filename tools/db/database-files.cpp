@@ -341,7 +341,7 @@ void exportSignalsetsFor(sqlite3 *db, const string &datasheetId, const string fi
 				   "		FROM pinset_id_view "
 				   "		WHERE datasheet_id = ? ))"
 				   "GROUP BY ss.id "
-				   "ORDER BY datasheet_idx ASC"; // no other columns needed, only 1 datasheet
+				   "ORDER BY datasheet_idx ASC, ifnull(ss.parent_id, ss.id) ASC"; // order parent/child
 	static sqlite3_stmt *stmt;
 	if ( stmt == nullptr ) {
 		prepare(db, &stmt, QUERY);
