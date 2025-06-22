@@ -24,7 +24,7 @@ int MAX_WIDTH_ORDERABLE = 18 + 2;
 int MAX_WIDTH_PKGDRW = 3 + 2;
 int MAX_WIDTH_PIN = 3;
 int MAX_WIDTH_PINSET = 4; // id=1-999, but NULL values possible thus 4
-int MAX_WIDTH_SIGNAL = 9 + 2;
+int MAX_WIDTH_SIGNAL = 11 + 2;
 int MAX_WIDTH_SIGNAL_INDEX = 1; // actually log10 of signal width (without quotes)
 int MAX_WIDTH_SIGNALSET = 5;	//id=1-99999
 int MAX_WIDTH_SIGNALGROUP = 9 + 2;
