@@ -336,7 +336,7 @@ void drawPinSetEditingWindow(Window &win, PinSetView &vw) {
 
 	int row = 0, idx = 0;
 	bool roomToDisplayMore = true, selectionReached = false;
-	for ( auto it = vw.begin(); it != vw.end() && (roomToDisplayMore || !selectionReached); it++, idx++ ) {
+	for ( PinSetView::iterator it = vw.begin(); it != vw.end() && (roomToDisplayMore || !selectionReached); it++, idx++ ) {
 		PinView &pv = *it;
 		if ( idx == vw.editIdx ) {
 			// ensure there is enough room to display entire form, will not be dynamically expanded
@@ -384,7 +384,7 @@ void drawPinSetEditingWindow(Window &win, PinSetView &vw) {
 
 	// at last option editing means inserting a new one
 	if ( vw.editIdx == vw.size() ) {
-		PinView pv = vw.createNewPinView();
+		PinView pv;
 		scrollToAccomodate(win, MAX_SIGNALS + 1 /* header */, row);
 		drawPinSetHeader(win, row++, vw);
 		editPinSet(win, row, vw, pv);
@@ -567,7 +567,7 @@ void loopPinsetEditing(Window &win, Window &hot, BorderedWindow &config, ui::Pin
 			case KEY_IC /* insert */:
 				// insert and edit; will be removed by ui code if no signals are inserted!
 				if ( vw.selIdx < vw.size() ) {
-					vw.insert(vw.begin() + vw.selIdx, vw.createNewPinView());
+					vw.insert(vw.begin() + vw.selIdx, PinView());
 					vw.editIdx = vw.selIdx;
 				}
 				break;
