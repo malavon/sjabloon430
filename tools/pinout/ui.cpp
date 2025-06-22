@@ -387,7 +387,7 @@ void drawPinSetEditingWindow(Window &win, PinSetView &vw) {
 
 	// at last option editing means inserting a new one
 	if ( vw.isEdit(vw.size()) ) {
-		PinView pv;
+		PinView pv = vw.createNewPinView();
 		scrollToAccomodate(win, MAX_SIGNALS + 1 /* header */, row);
 		drawPinSetHeader(win, row++, vw);
 		editPinSet(win, row, vw, pv);

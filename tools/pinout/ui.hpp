@@ -127,6 +127,10 @@ class Configset {
 };
 
 struct PinView {
+  private:
+	PinView() { }
+
+  public:
 	// this struct was conceived to prevent using a db:: scoped object in the ui (like db::Signalset)
 	// and once parenting/configsets has been implemented it will be much more useful
 	// hindsight(c) powered by rebase (R)
@@ -171,6 +175,8 @@ struct PinView {
 	bool hasPinsAndSignals() const {
 		return hasPins() && countSignals() > 0;
 	}
+
+	friend class PinSetView;
 };
 
 class PinSetView {
@@ -279,11 +285,20 @@ class PinSetView {
 		}
 	}
 
+	// factory method to create a valid PinView
+	PinView createNewPinView() const {
+		PinView pv;
+		for ( const Configset &cs : csets ) {
+			pv.cviews.push_back(PinView::ConfigView());
+		}
+		return pv;
+	}
+
+	// encapsulated view manipulation
 	bool canInsert() const {
 		return orderByPkgIdx == ORDER_BY_DATASHEET_IDX;
 	}
 
-	// encapsulated view manipulation
 	void deleteView() {
 		if ( selIdx < size() ) {
 			erase(begin() + selIdx);
@@ -296,7 +311,7 @@ class PinSetView {
 
 	void insertView() {
 		if ( selIdx < size() && orderByPkgIdx == ORDER_BY_DATASHEET_IDX ) {
-			insertView(begin() + selIdx, PinView());
+			insertView(begin() + selIdx, createNewPinView());
 			editIdx = selIdx;
 		}
 	}
@@ -349,7 +364,7 @@ class PinSetView {
 				ordIdx[backIdx--] = (*it).second; // second = index in the pinViews collection
 			}
 			orderByPkgIdx = idx;
-			assert(backIdx == -1); // all pinviews have to be processed! but no negative accesses done
+			assert(backIdx == -1); // all pinviews have to be processed! but no negative accesses done either
 		}
 	}
 
@@ -366,7 +381,7 @@ class PinSetView {
 		editIdx = -1;
 	}
 
-	const vector<PinView> unorderedView() const {
+	const vector<PinView> rawView() const {
 		return pinViews;
 	}
 
@@ -416,7 +431,8 @@ class PinSetView {
 				i++;
 			}
 		}
-		return iterator(pinViews, ordIdx.insert(wrp, pvIt - pinViews.begin()));
+		wrp = ordIdx.insert(wrp, idx);
+		return iterator(pinViews, wrp);
 	}
 
 	void push_back(PinView &pv) {
@@ -435,8 +451,8 @@ class PinSetView {
 	void resize(int requiredSize) {
 		assert(requiredSize >= pinViews.size());
 		for ( int i = 0; i <= requiredSize; i++ ) {
-			PinView v;
-			push_back(v);
+			PinView pv = createNewPinView();
+			push_back(pv);
 		}
 	}
 
