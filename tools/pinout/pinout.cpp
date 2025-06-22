@@ -200,9 +200,7 @@ void convertDbToView(const vector<db::Signalset> &ssv, vector<db::Pinset> &psv, 
 	for ( const db::Signalset &ss : ssv ) {
 		maxDsIdx = max(maxDsIdx, ss.datasheetIdx);
 	}
-	for ( int i = 0; i <= maxDsIdx; i++ ) {
-		vw.emplace();
-	}
+	vw.resize(maxDsIdx);
 
 	// TODO: is this correct? first looping pinsets, then orderables since they're needed for pins
 	for ( const db::Pinset &ps : psv ) {
