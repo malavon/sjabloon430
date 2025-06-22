@@ -18,7 +18,7 @@ void editPinSet(Window &, int &row, PinSetView &vw, PinView &pv);
 int scrollToAccomodate(Window &win, int rows, int &currentRow);
 
 // hotkey displays
-void displayBrowseHotkeys(Window &);
+void displayBrowseHotkeys(Window &, const PinSetView &);
 void displayEditHotkeys(Window &);
 // hotkey helpers
 void displayHotkey(Window &win, const string &text, const vector<chtype> &keys);
@@ -193,10 +193,13 @@ int scrollToAccomodate(Window &win, int rows, int &currentRow) {
 
 void drawPinSetHeader(Window &win, const int hdrRow, const PinSetView &vw) {
 	int col = 0;
+	const Package orderedBy = vw.orderedBy();
 	for ( const Package &pkg : vw.pkgs ) {
 		col += HEADER_WIDTH_PKG + 1;
 		string conc = pkg.drawing + to_string(pkg.pins);
-		win.add(hdrRow, col - conc.length(), conc);
+		win.moveCursor(hdrRow, col - conc.length() - 1);
+		win.add(orderedBy == pkg ? ACS_DARROW : ' ');
+		win.add(conc);
 	}
 
 	int sgnCol = col + 1;
@@ -318,6 +321,7 @@ void editPinSet(Window &win, int &row, PinSetView &vw, PinView &pv) {
 
 	// after looping of edit, complete the pinview
 	formToSignalData(pv, vw, pinFields, pev);
+	vw.stopEdit();
 }
 
 // Window drawing functions
@@ -326,7 +330,7 @@ void editPinSet(Window &win, int &row, PinSetView &vw, PinView &pv) {
 // MVP: this function keeps the selected index on the last row unless it's on the very first screen
 // it might be nicer if it behaves like a text editor: scrollin upwards from below until the first line is reached
 void drawPinSetEditingWindow(Window &win, PinSetView &vw) {
-	if ( vw.editIdx < 0 || vw.selIdx == vw.size() ) {
+	if ( vw.isEdit(-1) || vw.isSelection(vw.size()) ) {
 		// erasing window IS necessary to clean everything up BUT ...
 		// when editIdx is set, it is set to selIdx meaning everything _can_ simply stay in the same place
 		// and the editing form has its own subwindow, which _is_ cleared anyway
@@ -338,7 +342,7 @@ void drawPinSetEditingWindow(Window &win, PinSetView &vw) {
 	bool roomToDisplayMore = true, selectionReached = false;
 	for ( PinSetView::iterator it = vw.begin(); it != vw.end() && (roomToDisplayMore || !selectionReached); it++, idx++ ) {
 		PinView &pv = *it;
-		if ( idx == vw.editIdx ) {
+		if ( vw.isEdit(idx) ) {
 			// ensure there is enough room to display entire form, will not be dynamically expanded
 			scrollToAccomodate(win, MAX_SIGNALS + 1 /* header */, row);
 			drawPinSetHeader(win, row++, vw);
@@ -354,7 +358,7 @@ void drawPinSetEditingWindow(Window &win, PinSetView &vw) {
 			win.clearToEndOfScreen();
 		}
 
-		if ( idx == vw.selIdx ) {
+		if ( vw.isSelection(idx) ) {
 			selectionReached = true;
 			scrollToAccomodate(win, pv.countSignals() + 1 /* header */ + 1 /* horiz. ruler */, row);
 			win.enableAttributes(WA_BOLD);
@@ -383,7 +387,7 @@ void drawPinSetEditingWindow(Window &win, PinSetView &vw) {
 	}
 
 	// at last option editing means inserting a new one
-	if ( vw.editIdx == vw.size() ) {
+	if ( vw.isEdit(vw.size()) ) {
 		PinView pv = vw.createNewPinView();
 		scrollToAccomodate(win, MAX_SIGNALS + 1 /* header */, row);
 		drawPinSetHeader(win, row++, vw);
@@ -396,13 +400,13 @@ void drawPinSetEditingWindow(Window &win, PinSetView &vw) {
 			vw.push_back(pv);
 			drawPinSet(win, row, vw, pv);
 			mvwhline(win, row++, 1, 0, min(win.maxCols() - 2, 79)); // capped at 80, esthaetics
-			vw.selIdx++;
+			vw.moveDown();
 		}
 	}
 
 	// scrolled/selected all the way to the botton
 	// render an empty placeholder
-	if ( vw.selIdx == vw.size() ) {
+	if ( vw.isSelection(vw.size()) ) {
 		scrollToAccomodate(win, MAX_SIGNALS + 1 /* header */, row); // scroll as if editing
 		win.enableAttributes(WA_BOLD);
 		drawPinSetHeader(win, row++, vw);
@@ -553,28 +557,22 @@ void loopPinsetEditing(Window &win, Window &hot, BorderedWindow &config, ui::Pin
 	do {
 		switch ( tempChar ) {
 			case KEY_UP:
-				vw.selIdx = max(0, vw.selIdx - 1);
+				vw.moveUp();
 				break;
 			case KEY_DOWN:
-				// size() is 1 higher than max to allow selecting pin at the end
-				vw.selIdx = min(static_cast<int>(vw.size()), vw.selIdx + 1);
+				vw.moveDown();
 				break;
 			case KEY_ENTER:
 			case 10 /* RETURN */:
-				vw.editIdx = vw.selIdx;
+				vw.edit();
 				displayEditHotkeys(hot);
 				break;
 			case KEY_IC /* insert */:
 				// insert and edit; will be removed by ui code if no signals are inserted!
-				if ( vw.selIdx < vw.size() ) {
-					vw.insert(vw.begin() + vw.selIdx, vw.createNewPinView());
-					vw.editIdx = vw.selIdx;
-				}
+				vw.insertView();
 				break;
 			case KEY_DC /* delete */:
-				if ( vw.selIdx < vw.size() ) {
-					vw.erase(vw.begin() + vw.selIdx);
-				}
+				vw.deleteView();
 				break;
 			case KEY_F(2):
 				vw.orderByNext();
@@ -609,8 +607,7 @@ void loopPinsetEditing(Window &win, Window &hot, BorderedWindow &config, ui::Pin
 		}
 
 		drawPinSetEditingWindow(win, vw);
-		displayBrowseHotkeys(hot); // default hotkeys
-		vw.editIdx = -1;	   // reset editIdx otherwise editing would never stop
+		displayBrowseHotkeys(hot, vw); // default hotkeys
 	} while ( (tempChar = wgetch(win)) != 27 ); // ESC key for exit
 }
 
@@ -853,13 +850,15 @@ void displayHotkey(Window &win, const string &text, const string &key) {
 	win.add(text);
 }
 
-void displayBrowseHotkeys(Window &win) {
+void displayBrowseHotkeys(Window &win, const PinSetView &vw) {
 	win.clearLine(0);
 	displayHotkey(win, "QUIT", "ESC");
-	displayHotkey(win, "Order", "F2");
+	displayHotkey(win, "Sort", "F2");
 	displayHotkey(win, "Nav.", vector<chtype>({ACS_UARROW, '/', ACS_DARROW}));
 	displayHotkey(win, "Edit", "Enter");
-	displayHotkey(win, "Insert", "Ins");
+	if ( vw.canInsert() ) {
+		displayHotkey(win, "Insert", "Ins");
+	}
 	displayHotkey(win, "Delete", "Del");
 	win.paint();
 }
