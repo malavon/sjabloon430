@@ -274,12 +274,53 @@ class PinSetView {
 		}
 	}
 
-	// view manipulation
+	// view manipulation encapsulation
+
+	bool canInsert() const {
+		return orderByPkgIdx == ORDER_BY_DATASHEET_IDX;
+	}
+
+	// encapsulated view manipulation
+	void deleteView() {
+		if ( selIdx < static_cast<int>(size()) ) {
+			erase(begin() + selIdx);
+		}
+	}
+
+	void edit() {
+		editIdx = selIdx;
+	}
+
+	void insertView() {
+		if ( selIdx < static_cast<int>(size()) && orderByPkgIdx == ORDER_BY_DATASHEET_IDX ) {
+			insertView(begin() + selIdx, createNewPinView());
+			editIdx = selIdx;
+		}
+	}
+
+	bool isEdit(int idx) const {
+		return idx == editIdx;
+	}
+
+	bool isSelection(int idx) const {
+		return idx == selIdx;
+	}
+
+	void moveDown() {
+		assert(editIdx == -1); // cannot move while editing
+		// size() is 1 higher than max to allow selecting pin at the end
+		selIdx = min<int>(pinViews.size(), selIdx + 1);
+	}
+
+	void moveUp() {
+		assert(editIdx == -1);
+		selIdx = max(0, selIdx - 1);
+	}
 
 	void orderBy(const size_t idx) {
 		assert(ordIdx.size() == pinViews.size());
 		if ( idx >= pkgs.size() ) {
-			orderByPkgIdx = ORDERING_DEFAULT;
+			orderByPkgIdx = ORDER_BY_DATASHEET_IDX;
 			// I have a feeling I can do this with something from std:: and it's not <ranges>
 			for ( size_t i = 0; i < pinViews.size(); i++ ) {
 				ordIdx[i] = i; // 1-1, thus no ordering
@@ -312,6 +353,15 @@ class PinSetView {
 
 	void orderByNext() {
 		orderBy(orderByPkgIdx + 1);
+	}
+
+	Package orderedBy() const {
+		// returns dummy when not ordered just in case; if need for checking this, add a simple function to do so!
+		return orderByPkgIdx == ORDER_BY_DATASHEET_IDX ? Package{"UNORDERED", -1} : pkgs[orderByPkgIdx];
+	}
+
+	void stopEdit() {
+		editIdx = -1;
 	}
 
 	const vector<PinView> rawView() const {
@@ -353,9 +403,9 @@ class PinSetView {
 		return iterator(pinViews, ordIdx.erase(wrp));
 	}
 
-	iterator insert(iterator it, const PinView & /*pv*/) {
+	iterator insertView(iterator it, const PinView & /*pv*/) {
 		// insert is undefined when ordering! asserted but view code should not allow this!
-		assert(orderByPkgIdx == ORDERING_DEFAULT);
+		assert(orderByPkgIdx == ORDER_BY_DATASHEET_IDX);
 		vector<int>::iterator wrp = it.getWrapped();
 		int idx = ordIdx[*wrp];
 		// pv_iterator pvIt = pinViews.insert(pinViews.begin() + idx, pv);
@@ -415,10 +465,7 @@ class PinSetView {
 	vector<PinView> pinViews;
 	// ordering mapping: pinview cannot be re-ordered directly (for datasheet idx), but is mapped
 	vector<int> ordIdx;
-	int orderByPkgIdx = ORDERING_DEFAULT;
-
-  public:
-	static const int ORDERING_DEFAULT = -1; // default ordering as created datasheet_idx; otherwise order by package
+	int orderByPkgIdx = ORDER_BY_DATASHEET_IDX;
 	/*
 	 * index of pin that is edited
 	 * if higher than pins.size(), add at end
@@ -426,7 +473,10 @@ class PinSetView {
 	 */
 	int editIdx = -1;
 	/* selection index, for browsing; 0-based */
-	size_t selIdx = 0;
+	int selIdx = 0;
+
+  public:
+	static const int ORDER_BY_DATASHEET_IDX = -1; // default ordering as created datasheet_idx; otherwise order by package
 };
 
 // partial drawing functions
@@ -443,6 +493,5 @@ Configset filterForConfigset(const vector<db::Orderable> &, const Configset &bas
 void loopPinsetEditing(Window &pinset, Window &hotkeys, BorderedWindow &config, ui::PinSetView &);
 void reorderPackages(vector<Package> &pkgs); // given vector is reordered in-place
 string searchDatasheet(const unordered_map<string, string> &dsModels, const int modelFieldWidth);
-
 }}}} // namespace sjabloon430::tools::pinout::ui
 #endif // SJABLOON430_TOOLS_PINOUT_UI_HPP
