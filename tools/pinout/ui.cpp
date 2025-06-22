@@ -384,7 +384,7 @@ void drawPinSetEditingWindow(Window &win, PinSetView &vw) {
 
 	// at last option editing means inserting a new one
 	if ( vw.editIdx == vw.size() ) {
-		PinView pv;
+		PinView pv = vw.createNewPinView();
 		scrollToAccomodate(win, MAX_SIGNALS + 1 /* header */, row);
 		drawPinSetHeader(win, row++, vw);
 		editPinSet(win, row, vw, pv);
@@ -567,7 +567,7 @@ void loopPinsetEditing(Window &win, Window &hot, BorderedWindow &config, ui::Pin
 			case KEY_IC /* insert */:
 				// insert and edit; will be removed by ui code if no signals are inserted!
 				if ( vw.selIdx < vw.size() ) {
-					vw.insert(vw.begin() + vw.selIdx, PinView());
+					vw.insert(vw.begin() + vw.selIdx, vw.createNewPinView());
 					vw.editIdx = vw.selIdx;
 				}
 				break;
@@ -575,6 +575,9 @@ void loopPinsetEditing(Window &win, Window &hot, BorderedWindow &config, ui::Pin
 				if ( vw.selIdx < vw.size() ) {
 					vw.erase(vw.begin() + vw.selIdx);
 				}
+				break;
+			case KEY_F(2):
+				vw.orderByNext();
 				break;
 			case KEY_F(5):
 			case KEY_F(6):
@@ -853,6 +856,7 @@ void displayHotkey(Window &win, const string &text, const string &key) {
 void displayBrowseHotkeys(Window &win) {
 	win.clearLine(0);
 	displayHotkey(win, "QUIT", "ESC");
+	displayHotkey(win, "Order", "F2");
 	displayHotkey(win, "Nav.", vector<chtype>({ACS_UARROW, '/', ACS_DARROW}));
 	displayHotkey(win, "Edit", "Enter");
 	displayHotkey(win, "Insert", "Ins");
