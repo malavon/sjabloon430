@@ -23,7 +23,7 @@ int MAX_WIDTH_ORDERABLE = 18 + 2;
 int MAX_WIDTH_PKGDRW = 3 + 2;
 int MAX_WIDTH_PIN = 3;
 int MAX_WIDTH_PINSET = 4; // id=1-999, but NULL values possible thus 4
-int MAX_WIDTH_SIGNAL = 9 + 2;
+int MAX_WIDTH_SIGNAL = 11 + 2;
 int MAX_WIDTH_SIGNAL_INDEX = 1; // actually log10 of signal width (without quotes)
 int MAX_WIDTH_SIGNALSET = 5;	//id=1-99999
 int MAX_WIDTH_SIGNALGROUP = 9 + 2;
@@ -53,13 +53,12 @@ void prepare(sqlite3 *db, sqlite3_stmt **stmt, const char *query) {
 	assert(rc == SQLITE_OK);
 }
 
-const char *paddingTo(const int real, const int required) {
-	// constants array containing spaces required to pad n characters up to 8 wide
-	static const char *PADDING[] = {"", " ", "  ", "   ", "    ", "     ", "      ", "       ", "         "};
-	if ( real < required && required - real <= 8 ) {
-		return PADDING[required - real];
+string paddingTo(int real, const int required) {
+	string pad;
+	if ( real < required ) {
+		pad.resize(required - real, ' ');
 	}
-	return PADDING[0];
+	return pad;
 }
 
 string insertStringFromResultSet(sqlite3_stmt *stmt, vector<int> widths) {
