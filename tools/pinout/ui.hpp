@@ -338,13 +338,14 @@ class PinSetView {
 
 	void orderBy(const int idx) {
 		assert(ordIdx.size() == pinViews.size());
+		int os = ordIdx.size();
+		int prevSel = selIdx >= os ? os : ordIdx[selIdx];
 		if ( idx >= pkgs.size() ) {
 			orderByPkgIdx = ORDER_BY_DATASHEET_IDX;
 			// I have a feeling I can do this with something from std:: and it's not <ranges>
 			for ( int i = 0; i < pinViews.size(); i++ ) {
 				ordIdx[i] = i; // 1-1, thus no ordering
 			}
-			return;
 		} else {
 			const Package pkg = pkgs[idx];
 			vector<std::pair<Pin, int>> vsort; // allows duplicate pins to be sorted!
@@ -368,6 +369,12 @@ class PinSetView {
 			orderByPkgIdx = idx;
 			assert(backIdx == -1); // all pinviews have to be processed! but no negative accesses done either
 		}
+		// restore selection to the same item
+		selIdx = os;
+		for ( int i = 0; i < os && selIdx == os; i++ ) {
+			selIdx = ordIdx[i] == prevSel ? i : selIdx;
+		}
+		assert(selIdx <= os && selIdx >= 0);
 	}
 
 	void orderByNext() {
