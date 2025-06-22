@@ -599,6 +599,9 @@ void loopPinsetEditing(Window &win, Window &hot, BorderedWindow &config, ui::Pin
 					vw.erase(vw.begin() + vw.selIdx);
 				}
 				break;
+			case KEY_F(2):
+				vw.orderByNext();
+				break;
 			case KEY_F(5):
 			case KEY_F(6):
 			case KEY_F(7):
@@ -875,6 +878,7 @@ void displayHotkey(Window &win, const string &text, const string &key) {
 void displayBrowseHotkeys(Window &win) {
 	win.clearLine(0);
 	displayHotkey(win, "QUIT", "ESC");
+	displayHotkey(win, "Sort", "F2");
 	displayHotkey(win, "Nav.", vector<chtype>({ACS_UARROW, '/', ACS_DARROW}));
 	displayHotkey(win, "Edit", "Enter");
 	displayHotkey(win, "Insert", "Ins");
