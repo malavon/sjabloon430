@@ -1,6 +1,7 @@
 #ifndef UI_HPP
 #define UI_HPP
 
+#include <map>
 #include <set>
 #include <unordered_map>
 
@@ -126,6 +127,10 @@ class Configset {
 };
 
 struct PinView {
+  private:
+	PinView() { }
+
+  public:
 	// this struct was conceived to prevent using a db:: scoped object in the ui (like db::Signalset)
 	// and once parenting/configsets has been implemented it will be much more useful
 	// hindsight(c) powered by rebase (R)
@@ -170,10 +175,13 @@ struct PinView {
 	bool hasPinsAndSignals() const {
 		return hasPins() && countSignals() > 0;
 	}
+
+	friend class PinSetView;
 };
 
 class PinSetView {
-	typedef vector<PinView>::iterator internal_iterator;
+	typedef vector<PinView>::iterator pv_iterator;
+	typedef vector<PinView>::const_reverse_iterator pvcr_iterator;
 
   public:
 	// wrapping iterator?
@@ -286,6 +294,49 @@ class PinSetView {
 		}
 	}
 
+	// view manipulation
+
+	void orderBy(const int idx) {
+		assert(ordIdx.size() == pinViews.size());
+		if ( idx >= pkgs.size() ) {
+			orderByPkgIdx = ORDERING_DEFAULT;
+			// I have a feeling I can do this with something from std:: and it's not <ranges>
+			for ( int i = 0; i < pinViews.size(); i++ ) {
+				ordIdx[i] = i; // 1-1, thus no ordering
+			}
+			return;
+		} else {
+			const Package pkg = pkgs[idx];
+			std::map<Pin, int> pin2Idx;
+			int backIdx = pinViews.size() - 1, pvIdx = pinViews.size() - 1;
+			// create a (ordered) map of all pins; if not present, add at end of ordering
+			// starting at the back means datasheetIdx is honoured for these! :)
+			for ( pvcr_iterator it = pinViews.crbegin(); it < pinViews.crend(); it++, pvIdx-- ) {
+				PinView pv = (*it);
+				Pin p = pv.pins[pkg];
+				if ( p.empty() ) {
+					ordIdx[backIdx--] = pvIdx;
+				} else {
+					pin2Idx[p] = pvIdx;
+				}
+			}
+			// then read ordered pins and add them; to ensure there are no errors, also reverse and using backIdx
+			for ( map<Pin, int>::const_reverse_iterator it = pin2Idx.crbegin(); it != pin2Idx.crend(); it++ ) {
+				ordIdx[backIdx--] = (*it).second; // second = index in the pinViews collection
+			}
+			orderByPkgIdx = idx;
+			assert(backIdx == -1); // all pinviews have to be processed! but no negative accesses done either
+		}
+	}
+
+	void orderByNext() {
+		orderBy(orderByPkgIdx + 1);
+	}
+
+	const vector<PinView> rawView() const {
+		return pinViews;
+	}
+
 	/* vector<PinView>-like operation */
 	iterator begin() {
 		assert(ordIdx.size() == pinViews.size());
@@ -326,13 +377,14 @@ class PinSetView {
 		assert(orderByPkgIdx == ORDERING_DEFAULT);
 		vector<int>::iterator wrp = it.getWrapped();
 		int idx = ordIdx[*wrp];
-		internal_iterator pvIt = pinViews.insert(pinViews.begin() + idx, pv);
+		pv_iterator pvIt = pinViews.insert(pinViews.begin() + idx, pv);
 		for ( int &i : ordIdx ) {
 			if ( i >= idx ) {
 				i++;
 			}
 		}
-		return iterator(pinViews, ordIdx.insert(wrp, pvIt - pinViews.begin()));
+		wrp = ordIdx.insert(wrp, idx);
+		return iterator(pinViews, wrp);
 	}
 
 	void push_back(PinView &pv) {
@@ -382,10 +434,10 @@ class PinSetView {
 	vector<PinView> pinViews;
 	// ordering mapping: pinview cannot be re-ordered directly (for datasheet idx), but is mapped
 	vector<int> ordIdx;
+	int orderByPkgIdx = ORDERING_DEFAULT;
 
   public:
 	static const int ORDERING_DEFAULT = -1; // default ordering as created datasheet_idx; otherwise order by package
-	int orderByPkgIdx = ORDERING_DEFAULT;
 	/*
 	 * index of pin that is edited
 	 * if higher than pins.size(), add at end
