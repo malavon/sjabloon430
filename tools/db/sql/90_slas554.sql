@@ -60,7 +60,7 @@ INSERT INTO orderable (name, device_id, drawing, pins, status, msl_level, op_tem
 
 INSERT INTO pinset (id, parent_id, pins, comment) VALUES (  33, NULL,  48, NULL);
 INSERT INTO pinset (id, parent_id, pins, comment) VALUES (  34, NULL,  64, NULL);
-INSERT INTO pinset (id, parent_id, pins, comment) VALUES (  35,   34,  16, NULL);
+INSERT INTO pinset (id, parent_id, pins, comment) VALUES (  35,   34,  18, NULL);
 INSERT INTO pinset (id, parent_id, pins, comment) VALUES (  37,   35,   8, NULL);
 INSERT INTO pinset (id, parent_id, pins, comment) VALUES (  38,   33,   6, NULL);
 
@@ -137,9 +137,11 @@ INSERT INTO signalset (id, parent_id, datasheet_idx) VALUES (  331,  NULL,  53);
 INSERT INTO signalset (id, parent_id, datasheet_idx) VALUES (  332,  NULL,  54);
 INSERT INTO signalset (id, parent_id, datasheet_idx) VALUES (  333,  NULL,  55);
 INSERT INTO signalset (id, parent_id, datasheet_idx) VALUES (  334,  NULL,  56);
-INSERT INTO signalset (id, parent_id, datasheet_idx) VALUES (  358,   334,  56);
+INSERT INTO signalset (id, parent_id, datasheet_idx) VALUES (  372,   334,  56);
+INSERT INTO signalset (id, parent_id, datasheet_idx) VALUES (  358,   372,  56);
 INSERT INTO signalset (id, parent_id, datasheet_idx) VALUES (  335,  NULL,  57);
-INSERT INTO signalset (id, parent_id, datasheet_idx) VALUES (  359,   335,  57);
+INSERT INTO signalset (id, parent_id, datasheet_idx) VALUES (  373,   335,  57);
+INSERT INTO signalset (id, parent_id, datasheet_idx) VALUES (  359,   373,  57);
 INSERT INTO signalset (id, parent_id, datasheet_idx) VALUES (  336,  NULL,  58);
 INSERT INTO signalset (id, parent_id, datasheet_idx) VALUES (  360,   336,  58);
 INSERT INTO signalset (id, parent_id, datasheet_idx) VALUES (  366,   360,  58);
@@ -273,9 +275,11 @@ INSERT INTO pinset_signalset (pinset_id, signalset_id, pin_bga_row, pin_number) 
 INSERT INTO pinset_signalset (pinset_id, signalset_id, pin_bga_row, pin_number) VALUES (  34,   333, NULL,  56);
 INSERT INTO pinset_signalset (pinset_id, signalset_id, pin_bga_row, pin_number) VALUES (  33,   334, NULL,  23);
 INSERT INTO pinset_signalset (pinset_id, signalset_id, pin_bga_row, pin_number) VALUES (  34,   334, NULL,  57);
+INSERT INTO pinset_signalset (pinset_id, signalset_id, pin_bga_row, pin_number) VALUES (  35,   372, NULL,  57);
 INSERT INTO pinset_signalset (pinset_id, signalset_id, pin_bga_row, pin_number) VALUES (  37,   358, NULL,  57);
 INSERT INTO pinset_signalset (pinset_id, signalset_id, pin_bga_row, pin_number) VALUES (  33,   335, NULL,  24);
 INSERT INTO pinset_signalset (pinset_id, signalset_id, pin_bga_row, pin_number) VALUES (  34,   335, NULL,  58);
+INSERT INTO pinset_signalset (pinset_id, signalset_id, pin_bga_row, pin_number) VALUES (  35,   373, NULL,  58);
 INSERT INTO pinset_signalset (pinset_id, signalset_id, pin_bga_row, pin_number) VALUES (  37,   359, NULL,  58);
 INSERT INTO pinset_signalset (pinset_id, signalset_id, pin_bga_row, pin_number) VALUES (  33,   336, NULL,  46);
 INSERT INTO pinset_signalset (pinset_id, signalset_id, pin_bga_row, pin_number) VALUES (  34,   336, NULL,  59);
@@ -367,7 +371,7 @@ INSERT INTO signalset_signal (signalset_id, idx, signal_id) VALUES (  354, 2, 'S
 INSERT INTO signalset_signal (signalset_id, idx, signal_id) VALUES (  299, 0, 'P3.2'       );
 INSERT INTO signalset_signal (signalset_id, idx, signal_id) VALUES (  299, 1, 'PM_TA0CCR1A');
 INSERT INTO signalset_signal (signalset_id, idx, signal_id) VALUES (  355, 2, 'S12'        );
-INSERT INTO signalset_signal (signalset_id, idx, signal_id) VALUES (  300, 0, 'P3.0'       );
+INSERT INTO signalset_signal (signalset_id, idx, signal_id) VALUES (  300, 0, 'P3.1'       );
 INSERT INTO signalset_signal (signalset_id, idx, signal_id) VALUES (  300, 1, 'PM_TA0CCR0A');
 INSERT INTO signalset_signal (signalset_id, idx, signal_id) VALUES (  356, 2, 'S11'        );
 INSERT INTO signalset_signal (signalset_id, idx, signal_id) VALUES (  301, 0, 'P3.0'       );
@@ -429,11 +433,11 @@ INSERT INTO signalset_signal (signalset_id, idx, signal_id) VALUES (  333, 0, 'A
 INSERT INTO signalset_signal (signalset_id, idx, signal_id) VALUES (  334, 0, 'P2.7'       );
 INSERT INTO signalset_signal (signalset_id, idx, signal_id) VALUES (  334, 1, 'PM_ADC12CLK');
 INSERT INTO signalset_signal (signalset_id, idx, signal_id) VALUES (  334, 2, 'PM_DMAE0'   );
-INSERT INTO signalset_signal (signalset_id, idx, signal_id) VALUES (  334, 3, 'CB7'        );
+INSERT INTO signalset_signal (signalset_id, idx, signal_id) VALUES (  372, 3, 'CB7'        );
 INSERT INTO signalset_signal (signalset_id, idx, signal_id) VALUES (  358, 4, 'A7'         );
 INSERT INTO signalset_signal (signalset_id, idx, signal_id) VALUES (  335, 0, 'P2.6'       );
 INSERT INTO signalset_signal (signalset_id, idx, signal_id) VALUES (  335, 1, 'PM_ACLK'    );
-INSERT INTO signalset_signal (signalset_id, idx, signal_id) VALUES (  335, 2, 'CB6'        );
+INSERT INTO signalset_signal (signalset_id, idx, signal_id) VALUES (  373, 2, 'CB6'        );
 INSERT INTO signalset_signal (signalset_id, idx, signal_id) VALUES (  359, 3, 'A6'         );
 INSERT INTO signalset_signal (signalset_id, idx, signal_id) VALUES (  336, 0, 'P2.5'       );
 INSERT INTO signalset_signal (signalset_id, idx, signal_id) VALUES (  336, 1, 'PM_SVMOUT'  );
