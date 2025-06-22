@@ -235,7 +235,7 @@ void convertAndSaveViewToDb(sqlite3 *db, ui::PinSetView &vw) {
 	int ssIdx = 0, csetIdx = 0;
 	for ( ui::Configset &cs : vw.csets ) {
 		ssIdx = 0;
-		for ( const ui::PinView &pv : vw ) {
+		for ( const ui::PinView &pv : vw.unorderedView() ) {
 			ui::PinView::ConfigView cv = pv.cviews[csetIdx];
 			db::Signalset ss;
 			ss.id = cv.signalsetId;
@@ -282,7 +282,7 @@ void convertAndSaveViewToDb(sqlite3 *db, ui::PinSetView &vw) {
 		}
 
 		ssIdx = 0;
-		for ( const ui::PinView &pv : vw ) {
+		for ( const ui::PinView &pv : vw.unorderedView() ) {
 			// using fact that PinView is present even if no pins present and
 			// for every config set the same amount of signalsets exist in-memory
 			db::Signalset &ss = signalsets[ssIdx];
