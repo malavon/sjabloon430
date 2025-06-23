@@ -190,7 +190,16 @@ void convertDbToView(const vector<db::Signalset> &ssv, vector<db::Pinset> &psv, 
 		if ( o.pinset.id == 0 ) {
 			vw.csets[0].add(o);
 		} else {
-			vw.csets[o.pinset.cset].add(o);
+			// vw.csets[o.pinset.cset].add(o); // only possible after fallback is no longer necessary!
+			db::Pinset &ps = id2Ps[o.pinset.id];
+			vw.csets[ps.cset].add(o);
+
+			// keep adding to parent sets until no more parent; required for always-correct parent reconstruction
+			while ( ps.parentId != 0 ) {
+				assert(id2Ps.find(ps.parentId) != id2Ps.end());
+				ps = id2Ps[ps.parentId];
+				vw.csets[ps.cset].add(o, ps.id);
+			}
 		}
 	}
 	assert(vw.csets[0].orderablesView().size() == odv.size()); // DB consistency

@@ -190,14 +190,14 @@ vector<Package> findPackagesByDatasheet(sqlite3 *db, const string datasheetId) {
 
 // fills pinset using data already in database, but Signalsets already in memory
 vector<Pinset> findPinsetsByDatasheet(sqlite3 *db, const string &datasheetId, const vector<Signalset> &sgnsets) {
-	static const char *QUERY = "SELECT id, parent_id, idx, pins, pss.signalset_id, pss.pin_bga_row, pss.pin_number "
+	static const char *QUERY = "SELECT id, parent_id, cset, pins, pss.signalset_id, pss.pin_bga_row, pss.pin_number "
 				   "FROM pinset p "
 				   "LEFT OUTER JOIN pinset_signalset pss ON (p.id = pss.pinset_id) "
 				   "WHERE p.id IN ("
 				   "	SELECT id "
 				   "	FROM pinset_id_view "
 				   "	WHERE datasheet_id = ? )"
-				   "ORDER BY p.idx ASC, p.id ASC";
+				   "ORDER BY p.cset ASC, p.id ASC";
 
 	static sqlite3_stmt *stmt;
 	if ( stmt == nullptr ) { // assume both are null
@@ -354,8 +354,8 @@ int linkOrderableToItsPinset(sqlite3 *db, const Orderable &odbl) {
 }
 
 int saveOrUpdatePinset(sqlite3 *db, Pinset &ps) { // assumes signal sets are all in DB!
-	static const char *INSERT = "INSERT INTO pinset (parent_id, idx, pins) VALUES (?, ?, ?)";
-	static const char *UPDATE = "UPDATE pinset SET idx = ?, parent_id = ?, pins = ? WHERE id = ?";
+	static const char *INSERT = "INSERT INTO pinset (parent_id, cset, pins) VALUES (?, ?, ?)";
+	static const char *UPDATE = "UPDATE pinset SET cset = ?, parent_id = ?, pins = ? WHERE id = ?";
 	static const char *UNLINK = "DELETE FROM pinset_signalset WHERE pinset_id = ?";
 	static const char *DOLINK = "INSERT INTO pinset_signalset (pinset_id, signalset_id, pin_bga_row, pin_number) "
 				    "VALUES (:psetId, :ssetId, :bgaRow, :pinNumber)";
