@@ -10,7 +10,7 @@ using namespace sjabloon430::tools::pinout::db;
 
 // hard-coded max # of signals required for window size
 static const int MAX_SIGNALS = 10;
-static const int MAX_CONFIGSETS = 3;
+static const int MAX_CONFIGSETS = 4;
 
 static const char CHAR_CONFIGSET = '*';
 static const char *SIGNAL_HDR("SIGNAL");
@@ -481,7 +481,7 @@ void drawSetConfigWindow(BorderedWindow &win, const vector<Configset> &cfs) {
 
 		mvwhline(win, lr, 0, ACS_HLINE, win.maxCols());
 		if ( csIdx == 0 ) {
-			win.print(lr++, 1, ":Default (%d):", cs.orderablesView().size()); // F5, F6, F7
+			win.print(lr++, 1, ":Default (%d):", cs.orderablesView().size());
 		} else {
 			win.print(lr++, 1, ":Config F%d (%d):", csIdx + 4, cs.orderablesView().size()); // F5, F6, F7
 		}
@@ -513,7 +513,7 @@ void drawSetConfigWindow(BorderedWindow &win, const vector<Configset> &cfs) {
 		mvwhline(win, lr, 0, ACS_HLINE, win.maxCols());
 		csIdx++;
 	}
-	if ( csIdx <= 3 ) { // hard-coded, but max 3 configured sets (aside from default)
+	if ( csIdx <= MAX_CONFIGSETS ) {
 		win.print(lr++, 1, "Press F%d to add", csIdx + 4);
 	}
 	win.paint();
@@ -603,16 +603,12 @@ void loopPinsetEditing(Window &win, Window &hot, BorderedWindow &config, ui::Pin
 			case KEY_F(5):
 			case KEY_F(6):
 			case KEY_F(7):
-				if ( tempChar - KEY_F(5) >= vw.csets.size() - 1 ) { // create new set
-					/* DEFAULT set, allowing non-linear parenting - user has to ensure everything is valid! */
-					Configset cs = ui::filterForConfigset(vw.csets[0].orderablesView());
-					if ( !cs.empty() ) {
-						vw.add(cs);
-						ui::drawSetConfigWindow(config, vw.csets);
-					}
-				} else if ( tempChar - KEY_F(5) < vw.csets.size() ) {
-					int idx = tempChar - KEY_F(5) + 1;
-					assert(idx <= MAX_CONFIGSETS); // safety check; increasing # of sets will break this
+			case KEY_F(8): // key bindings in case pinout tool created more sets than technically allowed...
+			case KEY_F(9): // ignored down below, but have to allow editing/deleting configsets that exist
+			case KEY_F(10): {
+				unsigned int idx = tempChar - KEY_F(5) + 1;
+				assert(idx > 0); // never allow editing default set; safety check for coding errors
+				if ( idx < vw.csets.size() ) {
 					Configset cs = ui::filterForConfigset(vw.csets[0].orderablesView(), vw.csets[idx]);
 
 					if ( cs.empty() ) { // clearing a set is hidden delete function :p
@@ -620,10 +616,15 @@ void loopPinsetEditing(Window &win, Window &hot, BorderedWindow &config, ui::Pin
 					} else {
 						vw.csets[idx] = cs;
 					}
-
-					ui::drawSetConfigWindow(config, vw.csets);
+				} else if ( idx <= MAX_CONFIGSETS ) {
+					// create new set
+					Configset cs = ui::filterForConfigset(vw.csets[0].orderablesView());
+					if ( !cs.empty() ) {
+						vw.add(cs);
+					}
 				}
-				break;
+				ui::drawSetConfigWindow(config, vw.csets);
+			} break;
 
 			case 27 /*ESCAPE*/: // open a menu or something, probably beyond MVP though
 				break;
