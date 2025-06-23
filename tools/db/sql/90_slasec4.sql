@@ -56,20 +56,20 @@ INSERT INTO orderable (name, device_id, drawing, pins, status, msl_level, op_tem
 INSERT INTO orderable (name, device_id, drawing, pins, status, msl_level, op_temp_min, op_temp_max, comment) VALUES ('MSP430FR2355TRSMR' , 'MSP430FR2355', 'RSM',  32, 'ACTIVE', 1, -40, 105, 'AUTOMATIC RESOLUTION');
 INSERT INTO orderable (name, device_id, drawing, pins, status, msl_level, op_temp_min, op_temp_max, comment) VALUES ('MSP430FR2355TRSMT' , 'MSP430FR2355', 'RSM',  32, 'ACTIVE', 1, -40, 105, 'AUTOMATIC RESOLUTION');
 
-INSERT INTO pinset (id, parent_id, idx, pins, comment) VALUES (  19, NULL, 0,  38, NULL);
-INSERT INTO pinset (id, parent_id, idx, pins, comment) VALUES (  20, NULL, 0,  48, NULL);
-INSERT INTO pinset (id, parent_id, idx, pins, comment) VALUES (  21, NULL, 0,  40, NULL);
-INSERT INTO pinset (id, parent_id, idx, pins, comment) VALUES (  22, NULL, 0,  32, NULL);
-INSERT INTO pinset (id, parent_id, idx, pins, comment) VALUES (  23,   19, 1,   2, NULL);
-INSERT INTO pinset (id, parent_id, idx, pins, comment) VALUES (  24,   20, 1,   2, NULL);
-INSERT INTO pinset (id, parent_id, idx, pins, comment) VALUES (  25,   21, 1,   2, NULL);
-INSERT INTO pinset (id, parent_id, idx, pins, comment) VALUES (  26,   19, 2,  12, NULL);
-INSERT INTO pinset (id, parent_id, idx, pins, comment) VALUES (  27,   20, 2,  12, NULL);
-INSERT INTO pinset (id, parent_id, idx, pins, comment) VALUES (  28,   21, 2,  12, NULL);
-INSERT INTO pinset (id, parent_id, idx, pins, comment) VALUES (  29,   22, 2,  12, NULL);
-INSERT INTO pinset (id, parent_id, idx, pins, comment) VALUES (  30,   26, 3,   2, NULL);
-INSERT INTO pinset (id, parent_id, idx, pins, comment) VALUES (  31,   27, 3,   2, NULL);
-INSERT INTO pinset (id, parent_id, idx, pins, comment) VALUES (  32,   28, 3,   2, NULL);
+INSERT INTO pinset (id, parent_id, pins, comment) VALUES (  19, NULL,  38, NULL);
+INSERT INTO pinset (id, parent_id, pins, comment) VALUES (  20, NULL,  48, NULL);
+INSERT INTO pinset (id, parent_id, pins, comment) VALUES (  21, NULL,  40, NULL);
+INSERT INTO pinset (id, parent_id, pins, comment) VALUES (  22, NULL,  32, NULL);
+INSERT INTO pinset (id, parent_id, pins, comment) VALUES (  23,   19,   2, NULL);
+INSERT INTO pinset (id, parent_id, pins, comment) VALUES (  24,   20,   2, NULL);
+INSERT INTO pinset (id, parent_id, pins, comment) VALUES (  25,   21,   2, NULL);
+INSERT INTO pinset (id, parent_id, pins, comment) VALUES (  26,   19,  12, NULL);
+INSERT INTO pinset (id, parent_id, pins, comment) VALUES (  27,   20,  12, NULL);
+INSERT INTO pinset (id, parent_id, pins, comment) VALUES (  28,   21,  12, NULL);
+INSERT INTO pinset (id, parent_id, pins, comment) VALUES (  29,   22,  12, NULL);
+INSERT INTO pinset (id, parent_id, pins, comment) VALUES (  30,   26,   2, NULL);
+INSERT INTO pinset (id, parent_id, pins, comment) VALUES (  31,   27,   2, NULL);
+INSERT INTO pinset (id, parent_id, pins, comment) VALUES (  32,   28,   2, NULL);
 
 INSERT INTO signalset (id, parent_id, datasheet_idx) VALUES (  214,  NULL,   0);
 INSERT INTO signalset (id, parent_id, datasheet_idx) VALUES (  265,   214,   0);

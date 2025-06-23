@@ -58,11 +58,11 @@ INSERT INTO orderable (name, device_id, drawing, pins, status, msl_level, op_tem
 INSERT INTO orderable (name, device_id, drawing, pins, status, msl_level, op_temp_min, op_temp_max, comment) VALUES ('CC430F6137IRGCR'   , 'CC430F6137', 'RGC',  64, 'ACTIVE', 3, -40, 85, 'AUTOMATIC RESOLUTION');
 INSERT INTO orderable (name, device_id, drawing, pins, status, msl_level, op_temp_min, op_temp_max, comment) VALUES ('CC430F6137IRGCT'   , 'CC430F6137', 'RGC',  64, 'ACTIVE', 3, -40, 85, 'AUTOMATIC RESOLUTION');
 
-INSERT INTO pinset (id, parent_id, idx, pins, comment) VALUES (  33, NULL, 0,  48, NULL);
-INSERT INTO pinset (id, parent_id, idx, pins, comment) VALUES (  34, NULL, 0,  64, NULL);
-INSERT INTO pinset (id, parent_id, idx, pins, comment) VALUES (  35,   34, 1,  18, NULL);
-INSERT INTO pinset (id, parent_id, idx, pins, comment) VALUES (  37,   35, 2,   8, NULL);
-INSERT INTO pinset (id, parent_id, idx, pins, comment) VALUES (  38,   33, 3,   6, NULL);
+INSERT INTO pinset (id, parent_id, pins, comment) VALUES (  33, NULL,  48, NULL);
+INSERT INTO pinset (id, parent_id, pins, comment) VALUES (  34, NULL,  64, NULL);
+INSERT INTO pinset (id, parent_id, pins, comment) VALUES (  35,   34,  18, NULL);
+INSERT INTO pinset (id, parent_id, pins, comment) VALUES (  37,   35,   8, NULL);
+INSERT INTO pinset (id, parent_id, pins, comment) VALUES (  38,   33,   6, NULL);
 
 INSERT INTO signalset (id, parent_id, datasheet_idx) VALUES (  278,  NULL,   0);
 INSERT INTO signalset (id, parent_id, datasheet_idx) VALUES (  342,   278,   0);
