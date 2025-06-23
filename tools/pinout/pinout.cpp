@@ -110,11 +110,8 @@ int main() {
 }
 
 // Starting from pinsets is not possible BUT not every pinset is linked through orderable (i.e. parent pinsets).
-// On top this also improves support for save-and-pick-up-later editing.
-// logic: * all pinsets without parents are part of the default config set
-//	  * all pinsets that have default pinsets as parent, are the second config set
-//	  * all pinsets that have second ... etc
-// Note: - pinsets are (required to be) ordered by id & parent id, so parents always come before their children!
+// pinset has an index now, so that's easier now
+// Note: - pinsets are (required to be) ordered by idx, id & parent id, so parents always come before their children!
 //	 - every pinset already has a valid DB id since the data is supposed to be coming straight from DB!
 void pinsetsToViewConfigsets(const vector<db::Pinset> &psv, ui::PinSetView &vw, unordered_map<int, int> &id2cs,
 			     set<int> pids = {0}) {
@@ -259,6 +256,7 @@ void convertAndSaveViewToDb(sqlite3 *db, ui::PinSetView &vw) {
 			if ( pinsets.find(o.pinset.id) == pinsets.end() ) {
 				db::Pinset ps;
 				ps.id = o.pinset.id;
+				ps.cset = csetIdx;
 
 				if ( csetIdx > 0 ) {
 					// with non-linear parents cannot assume previous set is parent!
