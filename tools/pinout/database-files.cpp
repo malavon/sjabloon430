@@ -60,6 +60,23 @@ ColumnDecl inferColumnDecl(sqlite3_stmt *stmt, int idx) {
 	}
 }
 
+// basically reads all data from the statement, calculates maxima, then resets statement again
+void inferColwidthsFromData(sqlite3_stmt *stmt, ExportConfig &config) {
+	const int columns = sqlite3_column_count(stmt);
+	config.colWidths.resize(columns); // base it one the config in case something exists already!
+	const char *val;
+	int qt;
+	while ( sqlite3_step(stmt) == SQLITE_ROW ) {
+		for ( int c = 0; c < columns; c++ ) {
+			ColumnDecl cd = inferColumnDecl(stmt, c);
+			qt = ColumnDecl::TEXT == cd ? 2 : 0; // for the 2 ' quotes
+			val = reinterpret_cast<const char *>(sqlite3_column_text(stmt, c));
+			config.colWidths[c] = max<int>(config.colWidths[c], val == nullptr ? MAX_WIDTH_NULL : strlen(val) + qt);
+		}
+	}
+	sqlite3_reset(stmt);
+}
+
 string paddingTo(const int actual, const vector<int> &widths, unsigned int idx) {
 	if ( widths.size() > idx && actual < widths[idx] /* required width */ ) {
 		string pad;
@@ -142,10 +159,15 @@ string updateStringFromResultSet(sqlite3_stmt *stmt, const vector<int> &widths, 
 	return sql + updates.str() + condition.str() + ";";
 }
 
-void exportFromPrepStmt(sqlite3_stmt *stmt, const string fileName, const ExportConfig &config) {
+void exportFromPrepStmt(sqlite3_stmt *stmt, const string fileName, const ExportConfig &cf) {
+	ExportConfig config = cf;
 	std::filesystem::path outFile(DB_DIRECTORY);
 	outFile /= fileName;
 	std::ofstream out(outFile, config.appendFile ? (ios::out | ios::app) : ios::out); // output & append (todo)
+
+	if ( config.fmt == ExportConfig::Format::CALCULATE ) {
+		inferColwidthsFromData(stmt, config);
+	}
 
 	if ( !config.appendFile ) {
 		out << "--" << endl;
@@ -192,8 +214,8 @@ void exportSignals(sqlite3 *db) {
 		prepare(db, &sgnStmt, SIGNALS);
 	}
 
-	exportFromPrepStmt(grpStmt, "24_signal.sql", ExportConfig{false, ExportConfig::Tx::BEGIN});
-	exportFromPrepStmt(sgnStmt, "24_signal.sql", ExportConfig{true, ExportConfig::Tx::COMMIT});
+	exportFromPrepStmt(grpStmt, "24_signal.sql", ExportConfig{.appendFile = false, .tx = ExportConfig::Tx::BEGIN});
+	exportFromPrepStmt(sgnStmt, "24_signal.sql", ExportConfig{.appendFile = true, .tx = ExportConfig::Tx::COMMIT});
 }
 
 // maybe this should be a function shared with other programs
