@@ -15,16 +15,23 @@ using std::string;
 struct ExportConfig {
 	enum class Tx { NONE, BEGIN, COMMIT, BOTH };
 	enum class SQL { INSERT, UPDATE };
+	enum class Format { CALCULATE /* max widths from data */, FIXED /* user-specified */ };
 
 	bool appendFile = false;
 	Tx tx = Tx::BOTH;
 	SQL sql = SQL::INSERT;
-
+	Format fmt = Format::FIXED; // harmless default: use colwidth (which is empty by default)
 	std::vector<int> colWidths;
 
 	ExportConfig appendOverride(bool app) {
 		ExportConfig res(*this);
 		res.appendFile = app;
+		return res;
+	}
+
+	ExportConfig fmtOverride(Format ovr) {
+		ExportConfig res(*this);
+		res.fmt = ovr;
 		return res;
 	}
 
@@ -40,7 +47,6 @@ struct ExportConfig {
 		return res;
 	}
 };
-
 // only publicly-accessible functions are declared here; privately used ones are in the .cpp file
 
 void exportSignals(sqlite3 *db);
