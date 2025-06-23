@@ -112,27 +112,23 @@ int main() {
 	return EXIT_SUCCESS;
 }
 
-// Starting from pinsets is not possible BUT not every pinset is linked through orderable (i.e. parent pinsets).
-// pinset has an index now, so that's easier now
-// Note: - pinsets are (required to be) ordered by idx, id & parent id, so parents always come before their children!
-//	 - every pinset already has a valid DB id since the data is supposed to be coming straight from DB!
-void pinsetsToViewConfigsets(const vector<db::Pinset> &psv, ui::PinSetView &vw, unordered_map<int, int> &id2cs,
-			     set<int> pids = {0}) {
+// old logic, kept as a fallback in order to be able to read data until all data migrated!
+void pinsetsToViewConfigsetsFallback(vector<db::Pinset> &psv, ui::PinSetView &vw, set<int> pids = {0}) {
 	int lastPnt = 0;
 	if ( !pids.empty() ) {
 		set<int> nextPids;
-		for ( const db::Pinset &ps : psv ) {
+		for ( db::Pinset &ps : psv ) {
 			if ( pids.find(ps.parentId) != pids.end() ) {
 				// parents should be incrementing WITHIN the same set, start a new set when this isn't true
 				if ( lastPnt != 0 && ps.parentId <= lastPnt ) {
 					ui::Configset cs;
 					vw.add(cs);
-					pinsetsToViewConfigsets(psv, vw, id2cs, nextPids);
+					pinsetsToViewConfigsetsFallback(psv, vw, nextPids);
 					nextPids.clear();
 				}
 
 				nextPids.insert(ps.id);
-				id2cs[ps.id] = vw.csets.size();
+				ps.cset = vw.csets.size();
 				lastPnt = ps.parentId;
 			}
 		}
@@ -147,7 +143,26 @@ void pinsetsToViewConfigsets(const vector<db::Pinset> &psv, ui::PinSetView &vw, 
 			for ( int pid : pids ) {
 				nextPids.erase(pid);
 			}
-			pinsetsToViewConfigsets(psv, vw, id2cs, nextPids);
+			pinsetsToViewConfigsetsFallback(psv, vw, nextPids);
+		}
+	}
+}
+
+// Starting from pinsets is not possible BUT not every pinset is linked through orderable (i.e. parent pinsets).
+// pinset has an index now, so that's easier now
+// Note: - pinsets are (required to be) ordered by cset, id & parent id, so parents always come before their children!
+void pinsetsToViewConfigsets(/*const: fallback cannot do this */ vector<db::Pinset> &psv, ui::PinSetView &vw) {
+	if ( !psv.empty() && psv[0].cset == -1 ) {
+		pinsetsToViewConfigsetsFallback(psv, vw);
+	} else {
+		// this is the new code
+		int lastIdx = -1;
+		for ( const db::Pinset &ps : psv ) {
+			if ( lastIdx != ps.cset ) {
+				ui::Configset cs;
+				vw.add(cs);
+			}
+			lastIdx = ps.cset;
 		}
 	}
 }
@@ -163,31 +178,19 @@ void convertDbToView(const vector<db::Signalset> &ssv, vector<db::Pinset> &psv, 
 		return;
 	}
 
-	unordered_map<int, int> psId2Cset;
-	pinsetsToViewConfigsets(psv, vw, psId2Cset);
+	pinsetsToViewConfigsets(psv, vw);
 
 	unordered_map<int, db::Pinset> id2Ps;
 	for ( const db::Pinset &ps : psv ) {
 		id2Ps[ps.id] = ps;
 	}
 
-	int csetIdx = 0, prntId = 0;
 	for ( db::Orderable &o : odv ) {
 		// check if orderable has a pinset assigned; it may not when it's a new orderable for this datasheet AFTER assigning signals
 		if ( o.pinset.id == 0 ) {
 			vw.csets[0].add(o);
 		} else {
-			assert(psId2Cset.find(o.pinset.id) != psId2Cset.end());
-			csetIdx = psId2Cset[o.pinset.id];
-			vw.csets[csetIdx].add(o);
-
-			prntId = o.pinset.parentId;
-			// keep adding to parent sets until no more parent; required for always-correct parent reconstruction
-			while ( prntId != 0 ) {
-				csetIdx = psId2Cset[prntId];
-				vw.csets[csetIdx].add(o, prntId);
-				prntId = id2Ps[prntId].parentId;
-			}
+			vw.csets[o.pinset.cset].add(o);
 		}
 	}
 	assert(vw.csets[0].orderablesView().size() == odv.size()); // DB consistency
@@ -201,15 +204,13 @@ void convertDbToView(const vector<db::Signalset> &ssv, vector<db::Pinset> &psv, 
 
 	// TODO: is this correct? first looping pinsets, then orderables since they're needed for pins
 	for ( const db::Pinset &ps : psv ) {
-		csetIdx = psId2Cset[ps.id];
-
 		for ( const pair<Pin, db::Signalset> &pr : ps.signalsets ) {
 			Pin p = pr.first;
 			db::Signalset ss = pr.second;
 
 			ui::PinView &pv = vw[ss.datasheetIdx];
-			pv.cviews[csetIdx].signalsetId = ss.id;
-			pv.cviews[csetIdx].signals = ss.signals;
+			pv.cviews[ps.cset].signalsetId = ss.id;
+			pv.cviews[ps.cset].signals = ss.signals;
 			for ( const db::Orderable &o : odv ) {
 				if ( o.pinset.id == ps.id || o.pinset.parentId == ps.id ) {
 					pv.pins[o.pkg] = p;
@@ -257,7 +258,7 @@ void convertAndSaveViewToDb(sqlite3 *db, ui::PinSetView &vw) {
 			if ( pinsets.find(o.pinset.id) == pinsets.end() ) {
 				db::Pinset ps;
 				ps.id = o.pinset.id;
-				ps.idx = csetIdx;
+				ps.cset = csetIdx;
 
 				if ( csetIdx > 0 ) {
 					// with non-linear parents cannot assume previous set is parent!

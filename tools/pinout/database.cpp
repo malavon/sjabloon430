@@ -221,7 +221,7 @@ vector<Pinset> findPinsetsByDatasheet(sqlite3 *db, const string &datasheetId, co
 		Pinset p;
 		p.id = sqlite3_column_int(stmt, 0);
 		p.parentId = sqlite3_column_int(stmt, 1);
-		p.idx = sqlite3_column_int(stmt, 2);
+		p.cset = sqlite3_column_int(stmt, 2);
 		p.pins = sqlite3_column_int(stmt, 3);
 		assert(psIds.find(p.parentId) != psIds.end());
 		psIds.insert(p.id);
@@ -378,7 +378,7 @@ int saveOrUpdatePinset(sqlite3 *db, Pinset &ps) { // assumes signal sets are all
 		} else {
 			rc[pm] = sqlite3_bind_int(insStmt, ++pm, ps.parentId);
 		}
-		rc[pm] = sqlite3_bind_int(insStmt, ++pm, ps.idx);
+		rc[pm] = sqlite3_bind_int(insStmt, ++pm, ps.cset);
 		rc[pm] = sqlite3_bind_int(insStmt, ++pm, ps.signalsets.size());
 		std::for_each(rc.begin() + 1, rc.begin() + 1 + pm, [](int n) { assert(n == SQLITE_OK); });
 		rc[pm] = sqlite3_step(insStmt);
@@ -388,7 +388,7 @@ int saveOrUpdatePinset(sqlite3 *db, Pinset &ps) { // assumes signal sets are all
 	} else { // if already in database, update all fields, remove signalsets
 		pm = 0;
 		sqlite3_reset(updStmt);
-		rc[pm] = sqlite3_bind_int(updStmt, ++pm, ps.idx);
+		rc[pm] = sqlite3_bind_int(updStmt, ++pm, ps.cset);
 		if ( ps.parentId == 0 ) {
 			rc[pm] = sqlite3_bind_null(updStmt, ++pm);
 		} else {
