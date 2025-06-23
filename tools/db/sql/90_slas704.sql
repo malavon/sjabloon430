@@ -88,4 +88,65 @@ INSERT INTO orderable (name, device_id, drawing, pins, status, msl_level, op_tem
 INSERT INTO orderable (name, device_id, drawing, pins, status, msl_level, op_temp_min, op_temp_max, comment) VALUES ('MSP430FR5969IRGZR' , 'MSP430FR5969', 'RGZ',  48, 'ACTIVE', 3, -40, 85, 'AUTOMATIC RESOLUTION');
 INSERT INTO orderable (name, device_id, drawing, pins, status, msl_level, op_temp_min, op_temp_max, comment) VALUES ('MSP430FR5969IRGZT' , 'MSP430FR5969', 'RGZ',  48, 'ACTIVE', 3, -40, 85, 'AUTOMATIC RESOLUTION');
 
+INSERT INTO pinset (id, parent_id, pins, comment) VALUES (  50, NULL,   1, NULL);
+INSERT INTO pinset (id, parent_id, pins, comment) VALUES (  51, NULL,   1, NULL);
+INSERT INTO pinset (id, parent_id, pins, comment) VALUES (  52, NULL,   1, NULL);
+INSERT INTO pinset (id, parent_id, pins, comment) VALUES (  53,   50,   1, NULL);
+INSERT INTO pinset (id, parent_id, pins, comment) VALUES (  54,   51,   1, NULL);
+INSERT INTO pinset (id, parent_id, pins, comment) VALUES (  55,   52,   1, NULL);
+
+INSERT INTO signalset (id, parent_id, datasheet_idx) VALUES (  508,  NULL,   0);
+INSERT INTO signalset (id, parent_id, datasheet_idx) VALUES (  509,   508,   0);
+
+INSERT INTO pinset_signalset (pinset_id, signalset_id, pin_bga_row, pin_number) VALUES (  50,   508, NULL,   1);
+INSERT INTO pinset_signalset (pinset_id, signalset_id, pin_bga_row, pin_number) VALUES (  51,   508, NULL,   5);
+INSERT INTO pinset_signalset (pinset_id, signalset_id, pin_bga_row, pin_number) VALUES (  52,   508, NULL,   1);
+INSERT INTO pinset_signalset (pinset_id, signalset_id, pin_bga_row, pin_number) VALUES (  53,   509, NULL,   1);
+INSERT INTO pinset_signalset (pinset_id, signalset_id, pin_bga_row, pin_number) VALUES (  54,   509, NULL,   5);
+INSERT INTO pinset_signalset (pinset_id, signalset_id, pin_bga_row, pin_number) VALUES (  55,   509, NULL,   1);
+
+INSERT INTO signalset_signal (signalset_id, idx, signal_id) VALUES (  508, 0, 'P1.0'       );
+INSERT INTO signalset_signal (signalset_id, idx, signal_id) VALUES (  508, 1, 'TA0.1'      );
+INSERT INTO signalset_signal (signalset_id, idx, signal_id) VALUES (  508, 2, 'DMAE0'      );
+INSERT INTO signalset_signal (signalset_id, idx, signal_id) VALUES (  509, 3, 'RTCCLK'     );
+INSERT INTO signalset_signal (signalset_id, idx, signal_id) VALUES (  508, 4, 'A0'         );
+INSERT INTO signalset_signal (signalset_id, idx, signal_id) VALUES (  508, 5, 'C0'         );
+INSERT INTO signalset_signal (signalset_id, idx, signal_id) VALUES (  508, 6, 'VREF-'      );
+INSERT INTO signalset_signal (signalset_id, idx, signal_id) VALUES (  508, 7, 'VEREF-'     );
+
+UPDATE orderable SET pinset_id =   51 WHERE name = 'MSP430FR5957IDA';
+UPDATE orderable SET pinset_id =   51 WHERE name = 'MSP430FR5957IDAR';
+UPDATE orderable SET pinset_id =   51 WHERE name = 'MSP430FR5958IDA';
+UPDATE orderable SET pinset_id =   51 WHERE name = 'MSP430FR5958IDAR';
+UPDATE orderable SET pinset_id =   51 WHERE name = 'MSP430FR5959IDA';
+UPDATE orderable SET pinset_id =   51 WHERE name = 'MSP430FR5959IDAR';
+UPDATE orderable SET pinset_id =   54 WHERE name = 'MSP430FR5947IDA';
+UPDATE orderable SET pinset_id =   54 WHERE name = 'MSP430FR5947IDAR';
+UPDATE orderable SET pinset_id =   54 WHERE name = 'MSP430FR5948IDA';
+UPDATE orderable SET pinset_id =   54 WHERE name = 'MSP430FR5948IDAR';
+UPDATE orderable SET pinset_id =   54 WHERE name = 'MSP430FR5949IDA';
+UPDATE orderable SET pinset_id =   54 WHERE name = 'MSP430FR5949IDAR';
+UPDATE orderable SET pinset_id =   55 WHERE name = 'MSP430FR5967IRGZR';
+UPDATE orderable SET pinset_id =   55 WHERE name = 'MSP430FR5967IRGZT';
+UPDATE orderable SET pinset_id =   55 WHERE name = 'MSP430FR5968IRGZR';
+UPDATE orderable SET pinset_id =   55 WHERE name = 'MSP430FR5968IRGZT';
+UPDATE orderable SET pinset_id =   55 WHERE name = 'MSP430FR5969IRGZR';
+UPDATE orderable SET pinset_id =   55 WHERE name = 'MSP430FR5969IRGZT';
+UPDATE orderable SET pinset_id =   55 WHERE name = 'MSP430FR59691IRGZR';
+UPDATE orderable SET pinset_id =   55 WHERE name = 'MSP430FR59691IRGZT';
+UPDATE orderable SET pinset_id =   50 WHERE name = 'MSP430FR5957IRHAR';
+UPDATE orderable SET pinset_id =   50 WHERE name = 'MSP430FR5957IRHAT';
+UPDATE orderable SET pinset_id =   50 WHERE name = 'MSP430FR5958IRHAR';
+UPDATE orderable SET pinset_id =   50 WHERE name = 'MSP430FR5958IRHAT';
+UPDATE orderable SET pinset_id =   50 WHERE name = 'MSP430FR5959IRHAR';
+UPDATE orderable SET pinset_id =   50 WHERE name = 'MSP430FR5959IRHAT';
+UPDATE orderable SET pinset_id =   53 WHERE name = 'MSP430FR5947IRHAR';
+UPDATE orderable SET pinset_id =   53 WHERE name = 'MSP430FR5947IRHAT';
+UPDATE orderable SET pinset_id =   53 WHERE name = 'MSP430FR59471IRHAR';
+UPDATE orderable SET pinset_id =   53 WHERE name = 'MSP430FR59471IRHAT';
+UPDATE orderable SET pinset_id =   53 WHERE name = 'MSP430FR5948IRHAR';
+UPDATE orderable SET pinset_id =   53 WHERE name = 'MSP430FR5948IRHAT';
+UPDATE orderable SET pinset_id =   53 WHERE name = 'MSP430FR5949IRHAR';
+UPDATE orderable SET pinset_id =   53 WHERE name = 'MSP430FR5949IRHAT';
+
 COMMIT TRANSACTION;
