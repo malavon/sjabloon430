@@ -91,9 +91,9 @@ INSERT INTO orderable (name, device_id, drawing, pins, status, msl_level, op_tem
 INSERT INTO pinset (id, parent_id, group_idx, pins, comment) VALUES (49, NULL, 0, 40, NULL);
 INSERT INTO pinset (id, parent_id, group_idx, pins, comment) VALUES (50, NULL, 0, 37, NULL);
 INSERT INTO pinset (id, parent_id, group_idx, pins, comment) VALUES (51, NULL, 0, 48, NULL);
-INSERT INTO pinset (id, parent_id, group_idx, pins, comment) VALUES (52,   49, 1,  1, NULL);
-INSERT INTO pinset (id, parent_id, group_idx, pins, comment) VALUES (53,   50, 1,  1, NULL);
-INSERT INTO pinset (id, parent_id, group_idx, pins, comment) VALUES (54,   51, 1,  1, NULL);
+INSERT INTO pinset (id, parent_id, group_idx, pins, comment) VALUES (52,   49, 1,  3, NULL);
+INSERT INTO pinset (id, parent_id, group_idx, pins, comment) VALUES (53,   50, 1,  3, NULL);
+INSERT INTO pinset (id, parent_id, group_idx, pins, comment) VALUES (54,   51, 1,  3, NULL);
 
 INSERT INTO signalset (id, parent_id, datasheet_idx) VALUES (508, NULL,  0);
 INSERT INTO signalset (id, parent_id, datasheet_idx) VALUES (556,  508,  0);
@@ -141,7 +141,9 @@ INSERT INTO signalset (id, parent_id, datasheet_idx) VALUES (549, NULL, 41);
 INSERT INTO signalset (id, parent_id, datasheet_idx) VALUES (550, NULL, 42);
 INSERT INTO signalset (id, parent_id, datasheet_idx) VALUES (551, NULL, 43);
 INSERT INTO signalset (id, parent_id, datasheet_idx) VALUES (552, NULL, 44);
+INSERT INTO signalset (id, parent_id, datasheet_idx) VALUES (557,  552, 44);
 INSERT INTO signalset (id, parent_id, datasheet_idx) VALUES (553, NULL, 45);
+INSERT INTO signalset (id, parent_id, datasheet_idx) VALUES (558,  553, 45);
 INSERT INTO signalset (id, parent_id, datasheet_idx) VALUES (554, NULL, 46);
 INSERT INTO signalset (id, parent_id, datasheet_idx) VALUES (555, NULL, 47);
 
@@ -265,9 +267,15 @@ INSERT INTO pinset_signalset (pinset_id, signalset_id, pin_bga_row, pin_number) 
 INSERT INTO pinset_signalset (pinset_id, signalset_id, pin_bga_row, pin_number) VALUES (49, 552, NULL, 37);
 INSERT INTO pinset_signalset (pinset_id, signalset_id, pin_bga_row, pin_number) VALUES (50, 552, NULL,  1);
 INSERT INTO pinset_signalset (pinset_id, signalset_id, pin_bga_row, pin_number) VALUES (51, 552, NULL, 45);
+INSERT INTO pinset_signalset (pinset_id, signalset_id, pin_bga_row, pin_number) VALUES (52, 557, NULL, 37);
+INSERT INTO pinset_signalset (pinset_id, signalset_id, pin_bga_row, pin_number) VALUES (53, 557, NULL,  1);
+INSERT INTO pinset_signalset (pinset_id, signalset_id, pin_bga_row, pin_number) VALUES (54, 557, NULL, 45);
 INSERT INTO pinset_signalset (pinset_id, signalset_id, pin_bga_row, pin_number) VALUES (49, 553, NULL, 38);
 INSERT INTO pinset_signalset (pinset_id, signalset_id, pin_bga_row, pin_number) VALUES (50, 553, NULL,  2);
 INSERT INTO pinset_signalset (pinset_id, signalset_id, pin_bga_row, pin_number) VALUES (51, 553, NULL, 46);
+INSERT INTO pinset_signalset (pinset_id, signalset_id, pin_bga_row, pin_number) VALUES (52, 558, NULL, 38);
+INSERT INTO pinset_signalset (pinset_id, signalset_id, pin_bga_row, pin_number) VALUES (53, 558, NULL,  2);
+INSERT INTO pinset_signalset (pinset_id, signalset_id, pin_bga_row, pin_number) VALUES (54, 558, NULL, 46);
 INSERT INTO pinset_signalset (pinset_id, signalset_id, pin_bga_row, pin_number) VALUES (49, 554, NULL, 39);
 INSERT INTO pinset_signalset (pinset_id, signalset_id, pin_bga_row, pin_number) VALUES (51, 554, NULL, 47);
 INSERT INTO pinset_signalset (pinset_id, signalset_id, pin_bga_row, pin_number) VALUES (49, 555, NULL, 40);
@@ -421,7 +429,9 @@ INSERT INTO signalset_signal (signalset_id, idx, signal_id) VALUES (549, 0, 'PJ.
 INSERT INTO signalset_signal (signalset_id, idx, signal_id) VALUES (550, 0, 'PJ.7'       );
 INSERT INTO signalset_signal (signalset_id, idx, signal_id) VALUES (551, 0, 'AVSS'       );
 INSERT INTO signalset_signal (signalset_id, idx, signal_id) VALUES (552, 0, 'PJ.4'       );
+INSERT INTO signalset_signal (signalset_id, idx, signal_id) VALUES (557, 1, 'LFXIN'      );
 INSERT INTO signalset_signal (signalset_id, idx, signal_id) VALUES (553, 0, 'PJ.5'       );
+INSERT INTO signalset_signal (signalset_id, idx, signal_id) VALUES (558, 1, 'LFXOUT'     );
 INSERT INTO signalset_signal (signalset_id, idx, signal_id) VALUES (554, 0, 'AVSS'       );
 INSERT INTO signalset_signal (signalset_id, idx, signal_id) VALUES (555, 0, 'AVCC'       );
 
