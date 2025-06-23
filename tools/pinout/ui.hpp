@@ -1,9 +1,9 @@
 #ifndef UI_HPP
 #define UI_HPP
 
-#include <map>
 #include <set>
 #include <unordered_map>
+#include <vector>
 
 #include "database.hpp"
 #include "cccurses/form.hpp"
@@ -12,6 +12,7 @@
 namespace sjabloon430 { namespace tools { namespace pinout { namespace ui {
 
 using namespace cccurses;
+using std::vector;
 
 static const int MAX_CONFIGSETS = 4;
 static const char CHAR_CONFIGSET = '*';
@@ -347,21 +348,22 @@ class PinSetView {
 			}
 		} else {
 			const Package pkg = pkgs[idx];
-			std::map<Pin, int> pin2Idx;
+			vector<std::pair<Pin, int>> vsort; // allows duplicate pins to be sorted!
 			int backIdx = pinViews.size() - 1, pvIdx = pinViews.size() - 1;
-			// create a (ordered) map of all pins; if not present, add at end of ordering
-			// starting at the back means datasheetIdx is honoured for these! :)
+			// create a list of known pins; if not present, start adding to order from the back
+			// this keeps datasheetIdx intact for all other pins
 			for ( pvcr_iterator it = pinViews.crbegin(); it < pinViews.crend(); it++, pvIdx-- ) {
 				PinView pv = (*it);
 				Pin p = pv.pins[pkg];
 				if ( p.empty() ) {
 					ordIdx[backIdx--] = pvIdx;
 				} else {
-					pin2Idx[p] = pvIdx;
+					vsort.push_back({p, pvIdx});
 				}
 			}
+			std::stable_sort(vsort.begin(), vsort.end());
 			// then read ordered pins and add them; to ensure there are no errors, also reverse and using backIdx
-			for ( map<Pin, int>::const_reverse_iterator it = pin2Idx.crbegin(); it != pin2Idx.crend(); it++ ) {
+			for ( auto it = vsort.crbegin(); it != vsort.crend(); it++ ) {
 				ordIdx[backIdx--] = (*it).second; // second = index in the pinViews collection
 			}
 			orderByPkgIdx = idx;
