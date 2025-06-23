@@ -190,14 +190,14 @@ vector<Package> findPackagesByDatasheet(sqlite3 *db, const string datasheetId) {
 
 // fills pinset using data already in database, but Signalsets already in memory
 vector<Pinset> findPinsetsByDatasheet(sqlite3 *db, const string &datasheetId, const vector<Signalset> &sgnsets) {
-	static const char *QUERY = "SELECT id, parent_id, pins, pss.signalset_id, pss.pin_bga_row, pss.pin_number "
+	static const char *QUERY = "SELECT id, parent_id, idx, pins, pss.signalset_id, pss.pin_bga_row, pss.pin_number "
 				   "FROM pinset p "
 				   "LEFT OUTER JOIN pinset_signalset pss ON (p.id = pss.pinset_id) "
 				   "WHERE p.id IN ("
 				   "	SELECT id "
 				   "	FROM pinset_id_view "
 				   "	WHERE datasheet_id = ? )"
-				   "ORDER BY p.id ASC";
+				   "ORDER BY p.idx ASC, p.id ASC";
 
 	static sqlite3_stmt *stmt;
 	if ( stmt == nullptr ) { // assume both are null
@@ -221,16 +221,17 @@ vector<Pinset> findPinsetsByDatasheet(sqlite3 *db, const string &datasheetId, co
 		Pinset p;
 		p.id = sqlite3_column_int(stmt, 0);
 		p.parentId = sqlite3_column_int(stmt, 1);
-		p.pins = sqlite3_column_int(stmt, 2);
+		p.idx = sqlite3_column_int(stmt, 2);
+		p.pins = sqlite3_column_int(stmt, 3);
 		assert(psIds.find(p.parentId) != psIds.end());
 		psIds.insert(p.id);
 		while ( sqlite3_column_int(stmt, 0) == p.id ) {
-			int sgnStId = sqlite3_column_int(stmt, 3);
+			int sgnStId = sqlite3_column_int(stmt, 4);
 
-			const unsigned char *bgaRow = sqlite3_column_text(stmt, 4);
+			const unsigned char *bgaRow = sqlite3_column_text(stmt, 5);
 			Pin key;
 			key.bgaRow = bgaRow == nullptr ? "" : string(reinterpret_cast<const char *>(bgaRow));
-			key.number = sqlite3_column_int(stmt, 5);
+			key.number = sqlite3_column_int(stmt, 6);
 
 			// signalset id can be 0 after changes BECAUSE of left outer join
 			if ( sgnStId != 0 ) {
@@ -353,8 +354,8 @@ int linkOrderableToItsPinset(sqlite3 *db, const Orderable &odbl) {
 }
 
 int saveOrUpdatePinset(sqlite3 *db, Pinset &ps) { // assumes signal sets are all in DB!
-	static const char *INSERT = "INSERT INTO pinset (parent_id, pins) VALUES (?, ?)";
-	static const char *UPDATE = "UPDATE pinset SET pins = ? WHERE id = ?";
+	static const char *INSERT = "INSERT INTO pinset (parent_id, idx, pins) VALUES (?, ?, ?)";
+	static const char *UPDATE = "UPDATE pinset SET idx = ?, parent_id = ?, pins = ? WHERE id = ?";
 	static const char *UNLINK = "DELETE FROM pinset_signalset WHERE pinset_id = ?";
 	static const char *DOLINK = "INSERT INTO pinset_signalset (pinset_id, signalset_id, pin_bga_row, pin_number) "
 				    "VALUES (:psetId, :ssetId, :bgaRow, :pinNumber)";
@@ -366,60 +367,66 @@ int saveOrUpdatePinset(sqlite3 *db, Pinset &ps) { // assumes signal sets are all
 		prepare(db, &lnkStmt, DOLINK);
 	}
 
-	int alteredRows = 0, rc;
+	int alteredRows = 0, pm;
+	std::array<int, 5> rc;
 	// totalpins is set to # of signalsets
 	if ( ps.id == 0 ) {
+		pm = 0;
 		sqlite3_reset(insStmt);
 		if ( ps.parentId == 0 ) {
-			rc = sqlite3_bind_null(insStmt, 1);
+			rc[pm] = sqlite3_bind_null(insStmt, ++pm);
 		} else {
-			rc = sqlite3_bind_int(insStmt, 1, ps.parentId);
+			rc[pm] = sqlite3_bind_int(insStmt, ++pm, ps.parentId);
 		}
-		assert(SQLITE_OK == rc);
-		rc = sqlite3_bind_int(insStmt, 2, ps.signalsets.size());
-		assert(SQLITE_OK == rc);
-		rc = sqlite3_step(insStmt);
-		assert(SQLITE_DONE == rc);
+		rc[pm] = sqlite3_bind_int(insStmt, ++pm, ps.idx);
+		rc[pm] = sqlite3_bind_int(insStmt, ++pm, ps.signalsets.size());
+		std::for_each(rc.begin() + 1, rc.begin() + 1 + pm, [](int n) { assert(n == SQLITE_OK); });
+		rc[pm] = sqlite3_step(insStmt);
+		assert(SQLITE_DONE == rc[pm]);
 		ps.id = sqlite3_last_insert_rowid(db);
 		alteredRows++;
-	} else { // if already in database, remove signalsets, update totalPins count
+	} else { // if already in database, update all fields, remove signalsets
+		pm = 0;
 		sqlite3_reset(updStmt);
-		rc = sqlite3_bind_int(updStmt, 1, ps.signalsets.size());
-		assert(SQLITE_OK == rc);
-		rc = sqlite3_bind_int(updStmt, 2, ps.id);
-		assert(SQLITE_OK == rc);
-		rc = sqlite3_step(updStmt);
-		assert(SQLITE_DONE == rc);
+		rc[pm] = sqlite3_bind_int(updStmt, ++pm, ps.idx);
+		if ( ps.parentId == 0 ) {
+			rc[pm] = sqlite3_bind_null(updStmt, ++pm);
+		} else {
+			rc[pm] = sqlite3_bind_int(updStmt, ++pm, ps.parentId);
+		}
+		rc[pm] = sqlite3_bind_int(updStmt, ++pm, ps.signalsets.size());
+		rc[pm] = sqlite3_bind_int(updStmt, ++pm, ps.id);
+		std::for_each(rc.begin() + 1, rc.begin() + 1 + pm, [](int n) { assert(n == SQLITE_OK); });
+		rc[pm] = sqlite3_step(updStmt);
+		assert(SQLITE_DONE == rc[pm]);
 		alteredRows++;
 
+		pm = 0;
 		sqlite3_reset(ulkStmt);
-		rc = sqlite3_bind_int(ulkStmt, 1, ps.id);
-		assert(SQLITE_OK == rc);
-		rc = sqlite3_step(ulkStmt);
-		assert(SQLITE_DONE == rc);
+		rc[pm] = sqlite3_bind_int(ulkStmt, ++pm, ps.id);
+		rc[++pm] = sqlite3_step(ulkStmt);
+		assert(SQLITE_OK == rc[1] && SQLITE_DONE == rc[pm]);
 		alteredRows += sqlite3_changes(db);
 	}
 
 	for ( const std::pair<Pin, Signalset> &pr : ps.signalsets ) {
+		pm = 0;
 		const Pin pin = pr.first;
 		const Signalset ss = pr.second;
 		sqlite3_reset(lnkStmt);
-		rc = sqlite3_bind_int(lnkStmt, 1, ps.id);
-		assert(SQLITE_OK == rc);
-		rc = sqlite3_bind_int(lnkStmt, 2, ss.id);
-		assert(SQLITE_OK == rc);
+		rc[pm] = sqlite3_bind_int(lnkStmt, ++pm, ps.id);
+		rc[pm] = sqlite3_bind_int(lnkStmt, ++pm, ss.id);
 		if ( pin.bgaRow.empty() ) {
-			rc = sqlite3_bind_null(lnkStmt, 3);
+			rc[pm] = sqlite3_bind_null(lnkStmt, ++pm);
 		} else {
-			rc = sqlite3_bind_text(lnkStmt, 3, pin.bgaRow.c_str(), -1, SQLITE_STATIC);
+			rc[pm] = sqlite3_bind_text(lnkStmt, ++pm, pin.bgaRow.c_str(), -1, SQLITE_STATIC);
 		}
-		assert(SQLITE_OK == rc);
 		if ( pin.number == 0 ) { // 0 is in-app value for no pin, save it as NULL
-			rc = sqlite3_bind_null(lnkStmt, 4);
+			rc[pm] = sqlite3_bind_null(lnkStmt, ++pm);
 		} else {
-			rc = sqlite3_bind_int(lnkStmt, 4, pin.number);
+			rc[pm] = sqlite3_bind_int(lnkStmt, ++pm, pin.number);
 		}
-		assert(SQLITE_OK == rc);
+		std::for_each(rc.begin() + 1, rc.begin() + 1 + pm, [](int n) { assert(n == SQLITE_OK); });
 		// execute, ignore errors for duplicates but reset statement before next
 		if ( SQLITE_DONE == sqlite3_step(lnkStmt) ) {
 			alteredRows++;
@@ -445,7 +452,7 @@ int saveOrUpdateSignalset(sqlite3 *db, Signalset &ss) {
 	int alteredRows = 0, rc;
 	if ( ss.id == 0 ) {
 		sqlite3_reset(insStmt);
-		rc = sqlite3_bind_int(insStmt, 1, ss.datasheetIdx);
+		sqlite3_bind_int(insStmt, 1, ss.datasheetIdx);
 		assert(SQLITE_OK == rc);
 		if ( ss.parentId == 0 ) {
 			rc = sqlite3_bind_null(insStmt, 2);

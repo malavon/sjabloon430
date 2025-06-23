@@ -18,6 +18,7 @@ using namespace std::filesystem;
 
 namespace sjabloon430 { namespace tools { namespace db {
 // constants for formatting of column widths
+int MAX_WIDTH_CONFIGSET_INDEX = 1;
 int MAX_WIDTH_NULL = 4;
 int MAX_WIDTH_ORDERABLE = 18 + 2;
 int MAX_WIDTH_PKGDRW = 3 + 2;
@@ -295,7 +296,7 @@ void exportPinsetsFor(sqlite3 *db, const string &datasheetId, const string filen
 
 	sqlite3_reset(stmt);
 	sqlite3_bind_text(stmt, 1, datasheetId.c_str(), -1, SQLITE_STATIC);
-	expConf.colWidths = {MAX_WIDTH_PINSET, MAX_WIDTH_PINSET, MAX_WIDTH_PIN};
+	expConf.colWidths = {MAX_WIDTH_PINSET, MAX_WIDTH_PINSET, MAX_WIDTH_CONFIGSET_INDEX, MAX_WIDTH_PIN};
 	exportFromPrepStmt(stmt, filename, expConf);
 }
 
