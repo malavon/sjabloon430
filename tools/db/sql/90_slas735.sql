@@ -102,12 +102,12 @@ INSERT INTO orderable (name, device_id, drawing, pins, status, msl_level, op_tem
 INSERT INTO orderable (name, device_id, drawing, pins, status, msl_level, op_temp_min, op_temp_max, comment) VALUES ('MSP430G2553IRHB32R', 'MSP430G2553', 'RHB',  32, 'ACTIVE', 2, -40, 85, 'AUTOMATIC RESOLUTION');
 INSERT INTO orderable (name, device_id, drawing, pins, status, msl_level, op_temp_min, op_temp_max, comment) VALUES ('MSP430G2553IRHB32T', 'MSP430G2553', 'RHB',  32, 'ACTIVE', 2, -40, 85, 'AUTOMATIC RESOLUTION');
 
-INSERT INTO pinset (id, parent_id, pins, comment) VALUES (   5, NULL,  20, NULL);
-INSERT INTO pinset (id, parent_id, pins, comment) VALUES (   6, NULL,  28, NULL);
-INSERT INTO pinset (id, parent_id, pins, comment) VALUES (   7, NULL,  32, NULL);
-INSERT INTO pinset (id, parent_id, pins, comment) VALUES (   8,    5,   8, NULL);
-INSERT INTO pinset (id, parent_id, pins, comment) VALUES (   9,    6,   8, NULL);
-INSERT INTO pinset (id, parent_id, pins, comment) VALUES (  10,    7,   8, NULL);
+INSERT INTO pinset (id, parent_id, idx, pins, comment) VALUES (   5, NULL, 0,  20, NULL);
+INSERT INTO pinset (id, parent_id, idx, pins, comment) VALUES (   6, NULL, 0,  28, NULL);
+INSERT INTO pinset (id, parent_id, idx, pins, comment) VALUES (   7, NULL, 0,  32, NULL);
+INSERT INTO pinset (id, parent_id, idx, pins, comment) VALUES (   8,    5, 1,   8, NULL);
+INSERT INTO pinset (id, parent_id, idx, pins, comment) VALUES (   9,    6, 1,   8, NULL);
+INSERT INTO pinset (id, parent_id, idx, pins, comment) VALUES (  10,    7, 1,   8, NULL);
 
 INSERT INTO signalset (id, parent_id, datasheet_idx) VALUES (   33,  NULL,   0);
 INSERT INTO signalset (id, parent_id, datasheet_idx) VALUES (   39,    33,   0);

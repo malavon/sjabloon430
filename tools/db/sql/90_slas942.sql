@@ -46,10 +46,10 @@ INSERT INTO orderable (name, device_id, drawing, pins, status, msl_level, op_tem
 INSERT INTO orderable (name, device_id, drawing, pins, status, msl_level, op_temp_min, op_temp_max, comment) VALUES ('MSP430FR2633IYQWR' , 'MSP430FR2633', 'YQW',  24, 'ACTIVE', 1, -40, 85, 'AUTOMATIC RESOLUTION');
 INSERT INTO orderable (name, device_id, drawing, pins, status, msl_level, op_temp_min, op_temp_max, comment) VALUES ('MSP430FR2633IYQWT' , 'MSP430FR2633', 'YQW',  24, 'ACTIVE', 1, -40, 85, 'AUTOMATIC RESOLUTION');
 
-INSERT INTO pinset (id, parent_id, pins, comment) VALUES (   1, NULL,  32, NULL);
-INSERT INTO pinset (id, parent_id, pins, comment) VALUES (   2, NULL,  32, NULL);
-INSERT INTO pinset (id, parent_id, pins, comment) VALUES (   3, NULL,  24, NULL);
-INSERT INTO pinset (id, parent_id, pins, comment) VALUES (   4, NULL,  24, NULL);
+INSERT INTO pinset (id, parent_id, idx, pins, comment) VALUES (   1, NULL, 0,  32, NULL);
+INSERT INTO pinset (id, parent_id, idx, pins, comment) VALUES (   2, NULL, 0,  32, NULL);
+INSERT INTO pinset (id, parent_id, idx, pins, comment) VALUES (   3, NULL, 0,  24, NULL);
+INSERT INTO pinset (id, parent_id, idx, pins, comment) VALUES (   4, NULL, 0,  24, NULL);
 
 INSERT INTO signalset (id, parent_id, datasheet_idx) VALUES (    1,  NULL,   0);
 INSERT INTO signalset (id, parent_id, datasheet_idx) VALUES (    2,  NULL,   1);
