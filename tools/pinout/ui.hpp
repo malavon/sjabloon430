@@ -12,7 +12,7 @@ namespace sjabloon430 { namespace tools { namespace pinout { namespace ui {
 
 using namespace cccurses;
 
-static const int MAX_CONFIGSETS = 3;
+static const int MAX_CONFIGSETS = 4;
 static const char CHAR_CONFIGSET = '*';
 
 // 3 characters is enough for pin numbers, even BGA
