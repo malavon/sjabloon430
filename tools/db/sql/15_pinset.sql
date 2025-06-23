@@ -11,6 +11,8 @@ CREATE TABLE IF NOT EXISTS pinset (
     parent_id INTEGER REFERENCES pinset (id) ON DELETE RESTRICT
                                              ON UPDATE CASCADE,
     pins      INTEGER DEFAULT (0),
+    group_idx INTEGER NOT NULL
+                      DEFAULT(-1),
     comment   TEXT
 )
 STRICT;
