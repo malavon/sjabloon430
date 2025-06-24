@@ -4,6 +4,8 @@
 #include <iostream>
 #include <unordered_set>
 
+#include "util.hpp"
+
 namespace sjabloon430 { namespace tools { namespace pinout { namespace db {
 
 using std::unordered_set;
@@ -122,7 +124,7 @@ Datasheet findDatasheet(sqlite3 *db, const string id) {
 	return ds;
 }
 
-vector<Orderable> findOrderablesByDatasheet(sqlite3 *db, const string datasheetId, const vector<Pinset> &pinsets) {
+vector<Orderable> findOrderablesByDatasheet(sqlite3 *db, const string datasheetId, const vector<Pinset> &psv) {
 	static const char *QUERY = "SELECT name, device_id, drawing, pins, pinset_id "
 				   "FROM orderable o "
 				   "INNER JOIN device d ON o.device_id = d.model "
@@ -134,16 +136,11 @@ vector<Orderable> findOrderablesByDatasheet(sqlite3 *db, const string datasheetI
 		prepare(db, &stmt, QUERY);
 	}
 
-	unordered_map<int, int> id2idx; // id->vector index!
-	int vtIdx = 0;
-	for ( const Pinset &ps : pinsets ) {
-		id2idx[ps.id] = vtIdx++;
-	}
-
 	sqlite3_reset(stmt);
 	int rc = sqlite3_bind_text(stmt, 1, datasheetId.c_str(), -1, SQLITE_STATIC);
 	assert(SQLITE_OK == rc);
 
+	util::VectorIdMapAdapter<int, Pinset> pinsets(psv);
 	vector<Orderable> result;
 	while ( sqlite3_step(stmt) == SQLITE_ROW ) {
 		Orderable o;
@@ -152,8 +149,8 @@ vector<Orderable> findOrderablesByDatasheet(sqlite3 *db, const string datasheetI
 		o.pkg.drawing = reinterpret_cast<const char *>(sqlite3_column_text(stmt, 2));
 		o.pkg.pins = sqlite3_column_int(stmt, 3);
 		o.pinset.id = sqlite3_column_int(stmt, 4);
-		if ( o.pinset.id != 0 && id2idx.find(o.pinset.id) != id2idx.end() ) {
-			o.pinset = pinsets[id2idx[o.pinset.id]];
+		if ( o.pinset.id != 0 && pinsets.contains(o.pinset.id) ) {
+			o.pinset = pinsets[o.pinset.id];
 		}
 		result.push_back(o);
 	}
@@ -189,7 +186,7 @@ vector<Package> findPackagesByDatasheet(sqlite3 *db, const string datasheetId) {
 }
 
 // fills pinset using data already in database, but Signalsets already in memory
-vector<Pinset> findPinsetsByDatasheet(sqlite3 *db, const string &datasheetId, const vector<Signalset> &sgnsets) {
+vector<Pinset> findPinsetsByDatasheet(sqlite3 *db, const string &datasheetId, const vector<Signalset> &ssets) {
 	static const char *QUERY = "SELECT id, parent_id, group_idx, pins, pss.signalset_id, pss.pin_bga_row, pss.pin_number "
 				   "FROM pinset p "
 				   "LEFT OUTER JOIN pinset_signalset pss ON (p.id = pss.pinset_id) "
@@ -204,11 +201,7 @@ vector<Pinset> findPinsetsByDatasheet(sqlite3 *db, const string &datasheetId, co
 		prepare(db, &stmt, QUERY);
 	}
 
-	unordered_map<int, int> ssId2Idx; // id->vector index!
-	int vtIdx = 0;
-	for ( const Signalset &ss : sgnsets ) {
-		ssId2Idx[ss.id] = vtIdx++;
-	}
+	util::VectorIdMapAdapter<int, Signalset> signalsets(ssets);
 	unordered_set<int> psIds = {0}; // only used for asserting database consistency (or query issues)
 
 	sqlite3_reset(stmt);
@@ -226,7 +219,7 @@ vector<Pinset> findPinsetsByDatasheet(sqlite3 *db, const string &datasheetId, co
 		assert(psIds.find(p.parentId) != psIds.end());
 		psIds.insert(p.id);
 		while ( sqlite3_column_int(stmt, 0) == p.id ) {
-			int sgnStId = sqlite3_column_int(stmt, 4);
+			int ssId = sqlite3_column_int(stmt, 4);
 
 			const unsigned char *bgaRow = sqlite3_column_text(stmt, 5);
 			Pin key;
@@ -234,9 +227,9 @@ vector<Pinset> findPinsetsByDatasheet(sqlite3 *db, const string &datasheetId, co
 			key.number = sqlite3_column_int(stmt, 6);
 
 			// signalset id can be 0 after changes BECAUSE of left outer join
-			if ( sgnStId != 0 ) {
-				assert(ssId2Idx.find(sgnStId) != ssId2Idx.end()); // DB inconsistency
-				p.signalsets[key] = sgnsets[ssId2Idx[sgnStId]];
+			if ( ssId != 0 ) {
+				assert(signalsets.contains(ssId)); // DB inconsistency
+				p.signalsets[key] = signalsets[ssId];
 			}
 			rc = sqlite3_step(stmt);
 		}
