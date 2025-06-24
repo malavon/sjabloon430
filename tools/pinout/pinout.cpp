@@ -285,6 +285,15 @@ void convertAndSaveViewToDb(sqlite3 *db, ui::PinSetView &vw) {
 			odblPinsetLinks[o.name] = o.pinset.id;
 		}
 
+		// really rare, but possible that pinset is not referenced anywhere except for a configset, which is parent to another
+		for ( const pair<const Package, int> &pr : cs.getPinsetIds() ) {
+			int psId = pr.second;
+			if ( pinsets.find(psId) == pinsets.end() ) {
+				db::Pinset ps{psId};
+				pinsets[psId] = ps;
+			}
+		}
+
 		ssIdx = 0;
 		for ( const ui::PinView &pv : vw.rawView() ) {
 			// using fact that PinView is present even if no pins present and
@@ -294,12 +303,10 @@ void convertAndSaveViewToDb(sqlite3 *db, ui::PinSetView &vw) {
 				for ( const pair<const Package, Pin> &pr : pv.pins ) {
 					int psId = cs.pinsetIdFor(pr.first);
 					// can be 0 when _this_ configset has less packages than view (i.e. other configsets)
-					if ( psId != 0 ) {
+					if ( psId != 0 && !pr.second.empty() ) {
 						assert(pinsets.find(psId) != pinsets.end());
 						db::Pinset &ps = pinsets[psId];
-						if ( !pr.second.empty() ) {
-							ps.signalsets[pr.second] = ss;
-						}
+						ps.signalsets[pr.second] = ss;
 					}
 				}
 			}

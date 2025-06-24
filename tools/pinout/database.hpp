@@ -93,8 +93,8 @@ struct Pinset {
 	int id = 0; // auto-increment
 	int parentId = 0;
 	int pins = 0;
-	int cset; // groupIdx column
-	unordered_map<Pin, struct Signalset> signalsets;
+	int cset = 0; // groupIdx column
+	unordered_map<Pin, struct Signalset> signalsets = {};
 };
 
 struct Orderable {

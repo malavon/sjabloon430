@@ -91,6 +91,10 @@ class Configset {
 		return pinsetIds.find(pkg) == pinsetIds.end() ? 0 : pinsetIds.at(pkg);
 	}
 
+	const unordered_map<Package, int> getPinsetIds() const {
+		return pinsetIds;
+	}
+
   private:
 	void pinsetIdFor(const Package &pkg, int id) {
 		if ( id != 0 ) {
