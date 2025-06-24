@@ -18,6 +18,7 @@ using namespace std::filesystem;
 
 namespace sjabloon430 { namespace tools { namespace db {
 // constants for formatting of column widths
+int MAX_WIDTH_CONFIGSET_INDEX = 1;
 int MAX_WIDTH_NULL = 4;
 int MAX_WIDTH_ORDERABLE = 18 + 2;
 int MAX_WIDTH_PKGDRW = 3 + 2;
