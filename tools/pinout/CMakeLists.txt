@@ -29,6 +29,7 @@ set(PINOUT_HEADERS
     ${DB_PROJECT_DIR}/database-files.hpp
     database.hpp
     ui.hpp
+    util.hpp
 )
 
 add_executable(pinout
