@@ -5,6 +5,7 @@
 #include "database-files.hpp"
 #include "database.hpp"
 #include "ui.hpp"
+#include "util.hpp"
 #include "cccurses/cccurses.hpp"
 #include "cccurses/form.hpp"
 #include "cccurses/window.hpp"
@@ -15,7 +16,7 @@ namespace dbf = sjabloon430::tools::db;
 using sjabloon430::tools::Package;
 using sjabloon430::tools::Pin;
 
-void convertDbToView(const vector<db::Signalset> &, vector<db::Pinset> &, vector<db::Orderable> &, ui::PinSetView &);
+void convertDbToView(vector<db::Pinset> &, vector<db::Orderable> &, ui::PinSetView &);
 void convertAndSaveViewToDb(sqlite3 *db, ui::PinSetView &);
 
 static const int WIDEST_MODEL_LENGTH = strlen("MSP430F6459-HIREL"); /* hardcoded longest model */
@@ -86,7 +87,7 @@ int main() {
 		ui::reorderPackages(pkgs);
 		ui::PinSetView vw{pkgs};
 		vw.signalDescs = db::listAllSignalDescriptions(db);
-		convertDbToView(signalsets, pinsets, ordbls, vw);
+		convertDbToView(pinsets, ordbls, vw);
 
 		ui::loopPinsetEditing(pins, hotkeys, configs, vw);
 
@@ -171,8 +172,7 @@ void pinsetsToViewConfigsets(/*const: fallback cannot do this */ vector<db::Pins
 /* REQUIRES:
  * - pinsets sorted by pinset id ascending
  */
-void convertDbToView(const vector<db::Signalset> & /*ssv*/, vector<db::Pinset> &psv, vector<db::Orderable> &odv,
-		     ui::PinSetView &vw) {
+void convertDbToView(vector<db::Pinset> &psv, vector<db::Orderable> &odv, ui::PinSetView &vw) {
 	// quick return in case there are no pinsets, it's the same result but much less work
 	if ( psv.size() == 0 ) {
 		vw.csets.push_back(ui::Configset(odv));
@@ -180,12 +180,7 @@ void convertDbToView(const vector<db::Signalset> & /*ssv*/, vector<db::Pinset> &
 	}
 
 	pinsetsToViewConfigsets(psv, vw);
-
-	unordered_map<int, int> id2Idx;
-	int idx = 0;
-	for ( const db::Pinset &ps : psv ) {
-		id2Idx[ps.id] = idx++;
-	}
+	util::VectorIdMapAdapter<int, db::Pinset> pinsets(psv);
 
 	for ( db::Orderable &o : odv ) {
 		// check if orderable has a pinset assigned; it may not when it's a new orderable for this datasheet AFTER assigning signals
@@ -193,13 +188,13 @@ void convertDbToView(const vector<db::Signalset> & /*ssv*/, vector<db::Pinset> &
 			vw.csets[0].add(o);
 		} else {
 			// vw.csets[o.pinset.cset].add(o); // only possible after fallback is no longer necessary!
-			db::Pinset ps = psv[id2Idx[o.pinset.id]];
+			db::Pinset ps = pinsets[o.pinset.id];
 			vw.csets[ps.cset].add(o);
 
 			// keep adding to parent sets until no more parent; required for always-correct parent reconstruction
 			while ( ps.parentId != 0 ) {
-				assert(id2Idx.find(ps.parentId) != id2Idx.end());
-				ps = psv[id2Idx[ps.parentId]];
+				assert(pinsets.contains(ps.parentId));
+				ps = pinsets[ps.parentId];
 				vw.csets[ps.cset].add(o, ps.id);
 			}
 		}
@@ -217,8 +212,16 @@ void convertDbToView(const vector<db::Signalset> & /*ssv*/, vector<db::Pinset> &
 			pv.cviews[ps.cset].signalsetId = ss.id;
 			pv.cviews[ps.cset].signals = ss.signals;
 			for ( const db::Orderable &o : odv ) {
-				if ( o.pinset.id == ps.id || o.pinset.parentId == ps.id ) {
+				if ( o.pinset.id == ps.id || o.pinset.parentId == ps.id ) { // fast option: id & parent
 					pv.pins[o.pkg] = p;
+				} else if ( o.pinset.parentId != 0 ) { // slower option: grandparents etc
+					int par = pinsets[o.pinset.parentId].parentId;
+					while ( par != 0 ) {
+						if ( ps.id == par ) {
+							pv.pins[o.pkg] = p;
+						}
+						par = pinsets[par].parentId;
+					}
 				}
 			}
 		}
