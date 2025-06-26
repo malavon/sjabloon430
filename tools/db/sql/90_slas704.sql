@@ -382,10 +382,12 @@ INSERT INTO signalset_signal (signalset_id, idx, signal_id) VALUES (531, 2, 'UCA
 INSERT INTO signalset_signal (signalset_id, idx, signal_id) VALUES (531, 3, 'UCA0SIMO'   );
 INSERT INTO signalset_signal (signalset_id, idx, signal_id) VALUES (531, 4, 'TB0CLK'     );
 INSERT INTO signalset_signal (signalset_id, idx, signal_id) VALUES (531, 5, 'ACLK'       );
+INSERT INTO signalset_signal (signalset_id, idx, signal_id) VALUES (531, 6, 'BSLTX'      );
 INSERT INTO signalset_signal (signalset_id, idx, signal_id) VALUES (532, 0, 'P2.1'       );
 INSERT INTO signalset_signal (signalset_id, idx, signal_id) VALUES (532, 1, 'TB0.0'      );
 INSERT INTO signalset_signal (signalset_id, idx, signal_id) VALUES (532, 2, 'UCA0RXD'    );
 INSERT INTO signalset_signal (signalset_id, idx, signal_id) VALUES (532, 3, 'UCA0SOMI'   );
+INSERT INTO signalset_signal (signalset_id, idx, signal_id) VALUES (532, 4, 'BSLRX'      );
 INSERT INTO signalset_signal (signalset_id, idx, signal_id) VALUES (533, 0, 'P2.2'       );
 INSERT INTO signalset_signal (signalset_id, idx, signal_id) VALUES (533, 1, 'TB0.2'      );
 INSERT INTO signalset_signal (signalset_id, idx, signal_id) VALUES (533, 2, 'UCB0CLK'    );
@@ -404,11 +406,13 @@ INSERT INTO signalset_signal (signalset_id, idx, signal_id) VALUES (538, 1, 'TB0
 INSERT INTO signalset_signal (signalset_id, idx, signal_id) VALUES (538, 2, 'UCB0SIMO'   );
 INSERT INTO signalset_signal (signalset_id, idx, signal_id) VALUES (538, 3, 'UCB0SDA'    );
 INSERT INTO signalset_signal (signalset_id, idx, signal_id) VALUES (538, 4, 'TA0.0'      );
+INSERT INTO signalset_signal (signalset_id, idx, signal_id) VALUES (538, 5, 'BSLSDA'     );
 INSERT INTO signalset_signal (signalset_id, idx, signal_id) VALUES (539, 0, 'P1.7'       );
 INSERT INTO signalset_signal (signalset_id, idx, signal_id) VALUES (539, 1, 'TB0.4'      );
 INSERT INTO signalset_signal (signalset_id, idx, signal_id) VALUES (539, 2, 'UCB0SOMI'   );
 INSERT INTO signalset_signal (signalset_id, idx, signal_id) VALUES (539, 3, 'UCB0SCL'    );
 INSERT INTO signalset_signal (signalset_id, idx, signal_id) VALUES (539, 4, 'TA1.0'      );
+INSERT INTO signalset_signal (signalset_id, idx, signal_id) VALUES (539, 5, 'BSLSCL'     );
 INSERT INTO signalset_signal (signalset_id, idx, signal_id) VALUES (540, 0, 'P4.4'       );
 INSERT INTO signalset_signal (signalset_id, idx, signal_id) VALUES (540, 1, 'TB0.5'      );
 INSERT INTO signalset_signal (signalset_id, idx, signal_id) VALUES (541, 0, 'P4.5'       );
