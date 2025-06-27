@@ -46,7 +46,33 @@ void exportPinsetSignalsetsFor(sqlite3 *db, const string &datasheetId, const str
 void exportSignalsetsFor(sqlite3 *db, const string &datasheetId, const string filename, const ExportConfig &);
 void exportSignalsetSignalsFor(sqlite3 *db, const string &datasheetId, const string filename, ExportConfig);
 
-enum class ColumnDecl { NULL_VALUE, NUMBER, TEXT };
+enum class ColumnDecl { NULL_VALUE, NUMBER, RESULT, TEXT };
+
+// custom sqlite functions; THIS TIES everything into sqlite heavily!
+
+// expands numbers into a string for lexicological ordering; A0 and A10 become A000.0 and A010.0 respectively
+static void sqliteExpandNumber(sqlite3_context *context, int argc, sqlite3_value **argv) {
+	static const char *NUMBERS = "0123456789";
+	static const char *NUMBERSANDDEC = "0123456789.";
+	static char buffer[128] = "";
+	assert(argc == 1);
+	const char *inArg = reinterpret_cast<const char *>(sqlite3_value_text(argv[0]));
+	if ( inArg == nullptr ) {
+		sqlite3_result_null(context);
+		return;
+	}
+	string in(inArg);
+	int first = in.find_first_of(NUMBERS);		       // index of number
+	int last = in.find_first_not_of(NUMBERSANDDEC, first); // index of part after number
+	if ( first == string::npos ) {
+		sqlite3_result_value(context, argv[0]);
+	} else {
+		last = last == string::npos ? in.size() : last; // if ends with the number, last == string::npos
+		string nr = in.substr(first, last - first);
+		std::sprintf(buffer, "%s%05.1f%s", in.substr(0, first).c_str(), stod(nr), in.substr(last).c_str());
+		sqlite3_result_text(context, buffer, strlen(buffer), nullptr);
+	}
+}
 
 // helper functions
 void prepare(sqlite3 *db, sqlite3_stmt **stmt, const char *query) {
@@ -72,6 +98,8 @@ ColumnDecl inferColumnDecl(sqlite3_stmt *stmt, int idx) {
 	const unsigned char *value = sqlite3_column_text(stmt, idx);
 	if ( value == nullptr ) {
 		return ColumnDecl::NULL_VALUE;
+	} else if ( type == nullptr ) {
+		return ColumnDecl::RESULT;
 	} else if ( strcmp(type, "INTEGER") == 0 || strcmp(type, "REAL") == 0 ) {
 		return ColumnDecl::NUMBER;
 	} else {
@@ -117,21 +145,26 @@ string insertStringFromResultSet(sqlite3_stmt *stmt, const vector<int> &widths) 
 	insert << table;
 	insert << " (";
 	for ( int c = 0; c < columns; c++ ) {
-		insert << (c > 0 ? ", " : "") << inferColumnName(stmt, c);
+		ColumnDecl cd = inferColumnDecl(stmt, c);
+		if ( cd != ColumnDecl::RESULT ) { // filtering out results of calculations; used once for sorting
+			insert << (c > 0 ? ", " : "") << inferColumnName(stmt, c);
+		}
 	}
 	insert << ") VALUES (";
 
 	for ( int c = 0; c < columns; c++ ) {
-		insert << (c > 0 ? ", " : "");
 		ColumnDecl cd = inferColumnDecl(stmt, c);
+		if ( ColumnDecl::RESULT != cd ) { // function results are ignored, add no comma!
+			insert << (c > 0 ? ", " : "");
+		}
 		const char *value = reinterpret_cast<const char *>(sqlite3_column_text(stmt, c));
 		if ( ColumnDecl::NULL_VALUE == cd ) {
 			insert << paddingTo(MAX_WIDTH_NULL, widths, c) << "NULL";
 		} else if ( ColumnDecl::NUMBER == cd ) {
 			insert << paddingTo(strlen(value), widths, c) << value;
-		} else /* ColumnDecl::Text */ {
+		} else if ( ColumnDecl::TEXT == cd ) {
 			insert << '\'' << value << '\'' << paddingTo(strlen(value) + 2 /* quotes */, widths, c);
-		}
+		} // else: RESULT ignored
 		const char *type = sqlite3_column_decltype(stmt, c);
 	}
 	insert << ");";
@@ -428,9 +461,14 @@ void exportSignals(sqlite3 *db) {
 				     "ORDER BY name";
 	static const char *SIGNALS = "SELECT signalgroup, id, alias_for, desc "
 				     "FROM signal s "
-				     "ORDER BY signalgroup ASC, ifnull(alias_for, id) ASC, alias_for ASC";
+				     "ORDER BY signalgroup ASC, ifnull( expand_number(alias_for), expand_number(id) ) ASC, "
+				     "	       expand_number(alias_for) ASC";
 	static sqlite3_stmt *grpStmt, *sgnStmt;
 	if ( sgnStmt == nullptr ) {
+		// assumes this is only ever used in exportSignals() function ...
+		int rc = sqlite3_create_function(db, "expand_number", 1, SQLITE_UTF8 | SQLITE_DETERMINISTIC | SQLITE_INNOCUOUS,
+						 nullptr, sqliteExpandNumber, nullptr, nullptr);
+		assert(SQLITE_OK == rc);
 		prepare(db, &grpStmt, SGROUPS);
 		prepare(db, &sgnStmt, SIGNALS);
 	}
