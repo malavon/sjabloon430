@@ -43,6 +43,15 @@ void displayEditHotkeys(Window &);
 void displayHotkey(Window &win, const string &text, const vector<chtype> &keys);
 void displayHotkey(Window &win, const string &text, const string &key);
 
+class UpperCasingFormKeyEventConsumer : public SimpleFormKeyEventConsumer {
+  public:
+	static KeyFeedback keyCharacter(FORM *ctx, const int ch) {
+		form_driver(ctx, std::toupper(ch));
+		return FEEDBACK_CONTINUE;
+	}
+};
+
+typedef BasicForm<UpperCasingFormKeyEventConsumer> UpperCasingForm;
 typedef EventEmittingForm<class PinsetEventer, SimpleFormKeyEventConsumer> PinsetForm;
 
 class PinsetEventer : public FormEventHandler {
@@ -807,13 +816,12 @@ string searchDatasheet(const unordered_map<string, string> &dsModels, const int 
 	// TODO: also add some help on this window/form fields using F1
 	static const string DATASHEET_HDR("Datasheet ");
 	static const string MODEL_HDR("Model ");
-	static const string MVP_DISCLAIMER("MVP: UPPERCASE & exact. No autocomplete.");
+	static const string ERROR("Invalid/unknown datasheet or model!");
 
 	const int LINE = 1;
 	const int COL = 1;
 	const int ML_FIELD_COL = MODEL_HDR.length() + 1;
 	const int DS_FIELD_COL = max<int>(DATASHEET_HDR.length() + 1, ML_FIELD_COL + modelFieldWidth - FIELD_WIDTH_DATASHEET);
-	// 7 is fixed; all datasheets are 7 wide
 	const int MENU_COL = max(DS_FIELD_COL + FIELD_WIDTH_DATASHEET, ML_FIELD_COL + modelFieldWidth) + 2;
 
 	static const int WIN_WIDTH = MENU_COL + modelFieldWidth + 1 + 2 /* border */;
@@ -824,17 +832,17 @@ string searchDatasheet(const unordered_map<string, string> &dsModels, const int 
 	center.setTitle("Search");
 
 	FormBuilder fb;
-	// 7 is fixed; all datasheets are 7 wide
-	Field dsField(1, 7, LINE + 0, DS_FIELD_COL);
+	Field dsField(1, FIELD_WIDTH_DATASHEET, LINE + 0, DS_FIELD_COL);
 	dsField.optionAutoSkip(Toggle::OFF);
+	dsField.setBuffer("SLAS"); // default can be deleted by user
 	fb.addField(dsField);
 	// from database or also hard-coded constant
 	Field mdField(1, modelFieldWidth, LINE + 2, ML_FIELD_COL);
+	mdField.setBuffer("MSP430"); // default can be deleted by user
 	mdField.optionAutoSkip(Toggle::OFF);
 	fb.addField(mdField);
-	SimpleForm form = fb.build<SimpleForm>(center);
+	UpperCasingForm form = fb.build<UpperCasingForm>(center);
 
-	center.add(LINE - 1, COL, MVP_DISCLAIMER);
 	center.add(LINE + 0, COL, DATASHEET_HDR);
 	center.add(LINE + 2, COL, MODEL_HDR);
 
@@ -843,17 +851,24 @@ string searchDatasheet(const unordered_map<string, string> &dsModels, const int 
 	center.add(WIN_HEIGHT - 3, (WIN_WIDTH - BUTTON_TEXT.length()) / 2, BUTTON_TEXT, COLOR_PAIR(COLOR_PAIR_BUTTON_SELECTED));
 	center.paint();
 
-	form.loop();
-
-	string dsId = dsField.buffer<string>();
-	string mdlId = mdField.buffer<string>();
-	if ( dsId.empty() ) {
-		assert(!mdlId.empty());
-		if ( dsModels.count(mdlId) > 0 ) {
-			dsId = dsModels.at(mdlId);
+	string validDs;
+	while ( validDs.empty() ) {
+		form.loop();
+		string dsId = dsField.buffer<string>();
+		string mdl = mdField.buffer<string>();
+		if ( dsModels.find(mdl) != dsModels.end() ) { // model comes first if exists
+			validDs = dsModels.at(mdl);
+		} else if ( dsId.length() == FIELD_WIDTH_DATASHEET ) { // then datasheet, if correct length
+			// need to iterate all since there is no simple collection of datasheets
+			for ( const pair<const string, string> &pr : dsModels ) {
+				if ( pr.second == dsId ) {
+					return dsId;
+				}
+			}
 		}
+		center.add(LINE - 1, COL, ERROR); // just display error, window will disappear anyway
 	}
-	return dsId;
+	return validDs;
 }
 
 // hotkey helpers
