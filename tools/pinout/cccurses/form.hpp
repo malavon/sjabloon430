@@ -170,7 +170,7 @@ class FormEventHandlerWrapper {
 };
 }
 
-using namespace cccurses::internal;
+using namespace internal;
 
 class SimpleFormKeyEventConsumer : public KeyEventConsumer<FORM *> {
   public:
@@ -230,32 +230,31 @@ class SimpleFormKeyEventConsumer : public KeyEventConsumer<FORM *> {
 	}
 };
 
-template<class EH>
-class EventingFormKeyEventConsumer
-    : public KeyEventConsumer<FormEventHandlerWrapper<EH>> /*, private SimpleFormKeyEventConsumer*/ {
+template<typename _EventHandler, typename _Delegate>
+class EventingFormKeyEventConsumer : public KeyEventConsumer<FormEventHandlerWrapper<_EventHandler>> {
   public:
-	static KeyFeedback keyBackTab(FormEventHandlerWrapper<EH> &wrapper) {
-		KeyFeedback res = SimpleFormKeyEventConsumer::keyBackTab(wrapper.formptr);
+	static KeyFeedback keyBackTab(FormEventHandlerWrapper<_EventHandler> &wrapper) {
+		KeyFeedback res = _Delegate::keyBackTab(wrapper.formptr);
 		// this needs to be AFTER the form handling, otherwise buffer is not changed!
 		wrapper.handler.onPreviousField();
 		return res;
 	}
 
-	static KeyFeedback keyBackspace(FormEventHandlerWrapper<EH> &wrapper) {
-		return SimpleFormKeyEventConsumer::keyBackspace(wrapper.formptr);
+	static KeyFeedback keyBackspace(FormEventHandlerWrapper<_EventHandler> &wrapper) {
+		return _Delegate::keyBackspace(wrapper.formptr);
 	}
 
-	static KeyFeedback keyCharacter(FormEventHandlerWrapper<EH> &wrapper, const int ch) {
-		return SimpleFormKeyEventConsumer::keyCharacter(wrapper.formptr, ch);
+	static KeyFeedback keyCharacter(FormEventHandlerWrapper<_EventHandler> &wrapper, const int ch) {
+		return _Delegate::keyCharacter(wrapper.formptr, ch);
 	}
 
-	static KeyFeedback keyDelete(FormEventHandlerWrapper<EH> &wrapper) {
-		return SimpleFormKeyEventConsumer::keyDelete(wrapper.formptr);
+	static KeyFeedback keyDelete(FormEventHandlerWrapper<_EventHandler> &wrapper) {
+		return _Delegate::keyDelete(wrapper.formptr);
 	}
 
 	// TODO: would be more logical to move to next field after validation?
-	static KeyFeedback keyEnter(FormEventHandlerWrapper<EH> &wrapper) {
-		return SimpleFormKeyEventConsumer::keyEnter(wrapper.formptr);
+	static KeyFeedback keyEnter(FormEventHandlerWrapper<_EventHandler> &wrapper) {
+		return _Delegate::keyEnter(wrapper.formptr);
 	}
 
 	// KeyFeedback keyLeftArrow(FORM* ctx) {
@@ -268,15 +267,15 @@ class EventingFormKeyEventConsumer
 	// 	return ;
 	// }
 
-	static KeyFeedback keyTab(FormEventHandlerWrapper<EH> &wrapper) {
-		KeyFeedback res = SimpleFormKeyEventConsumer::keyTab(wrapper.formptr);
+	static KeyFeedback keyTab(FormEventHandlerWrapper<_EventHandler> &wrapper) {
+		KeyFeedback res = _Delegate::keyTab(wrapper.formptr);
 		// this needs to be AFTER the form handling, otherwise buffer is not changed!
 		wrapper.handler.onNextField();
 		return res;
 	}
 
-	static KeyFeedback keyWhitespace(FormEventHandlerWrapper<EH> &wrapper, const int ch) {
-		return SimpleFormKeyEventConsumer::keyWhitespace(wrapper.formptr, ch);
+	static KeyFeedback keyWhitespace(FormEventHandlerWrapper<_EventHandler> &wrapper, const int ch) {
+		return _Delegate::keyWhitespace(wrapper.formptr, ch);
 	}
 };
 
@@ -381,27 +380,29 @@ class BasicForm : public Form<_EventConsumer> {
 	}
 };
 
-template<class EH>
-class EventEmittingForm : public Form<EventingFormKeyEventConsumer<EH>> {
+template<typename _EventHandler, typename _EventConsumer>
+class EventEmittingForm : public Form<EventingFormKeyEventConsumer<_EventHandler, _EventConsumer>> {
   public:
-	EventEmittingForm(const Window &win, vector<Field> fields) : Form<EventingFormKeyEventConsumer<EH>>(win, fields) { }
+	EventEmittingForm(const Window &win, vector<Field> fields) :
+		Form<EventingFormKeyEventConsumer<_EventHandler, _EventConsumer>>(win, fields) { }
 
 	EventEmittingForm(const Window &win, const Window &formSub, vector<Field> fields) :
-	    Form<EventingFormKeyEventConsumer<EH>>(win, formSub, fields) { }
+		Form<EventingFormKeyEventConsumer<_EventHandler, _EventConsumer>>(win, formSub, fields) { }
 
 	/**
-	 * @brief loop template method to include a EH object
+	 * @brief loop template method to include a _EventHandler object
 	 * @param callback the callback
 	 */
-	void loop(EH &callback) {
+	void loop(_EventHandler &callback) {
 		// TODO: there is no automatic jump to first field, so that should be implemented as well on Form
 		// along with possibly a bunch of other things; not sure if a single function for each one
-		FORM *localPtr = Form<EventingFormKeyEventConsumer<EH>>::ptr;
-		const Window &localWin = Form<EventingFormKeyEventConsumer<EH>>::window;
+		FORM *localPtr = Form<EventingFormKeyEventConsumer<_EventHandler, _EventConsumer>>::ptr;
+		const Window &localWin = Form<EventingFormKeyEventConsumer<_EventHandler, _EventConsumer>>::window;
 		form_driver(localPtr, REQ_FIRST_FIELD);
-		FormEventHandlerWrapper<EH> wrapper(callback, localPtr);
-		KeyEventProducer<EventingFormKeyEventConsumer<EH>, FormEventHandlerWrapper<EH> &>::captureAndConsume(localWin,
-														     wrapper);
+		form_driver(localPtr, REQ_END_LINE);
+		FormEventHandlerWrapper<_EventHandler> wrapper(callback, localPtr);
+		KeyEventProducer<EventingFormKeyEventConsumer<_EventHandler, _EventConsumer>,
+				 FormEventHandlerWrapper<_EventHandler> &>::captureAndConsume(localWin, wrapper);
 	}
 };
 
