@@ -52,7 +52,7 @@ class UpperCasingFormKeyEventConsumer : public SimpleFormKeyEventConsumer {
 };
 
 typedef BasicForm<UpperCasingFormKeyEventConsumer> UpperCasingForm;
-typedef EventEmittingForm<class PinsetEventer, SimpleFormKeyEventConsumer> PinsetForm;
+typedef EventEmittingForm<class PinsetEventer, UpperCasingFormKeyEventConsumer> PinsetForm;
 
 class PinsetEventer : public FormEventHandler {
   public:
