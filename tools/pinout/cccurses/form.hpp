@@ -275,7 +275,7 @@ class Form {
 		assert(pc == E_OK);
 	}
 
-  private:
+  protected:
 	FORM *ptr;
 	const Window &window;
 	vector<FIELD *> fieldPtrs;
@@ -283,14 +283,28 @@ class Form {
 	friend class FormBuilder;
 };
 
-/** A simple pre-defined form that uses sensible key bindings for general use **/
-class SimpleForm : public Form<DefaultFormKeyEventDelegate> {
+template<typename _EventConsumer>
+class BasicForm : public Form<_EventConsumer> {
   public:
-	SimpleForm(const Window &win, vector<Field> fields) : Form<DefaultFormKeyEventDelegate>(win, fields) { }
+	BasicForm<_EventConsumer>(const Window &win, vector<Field> fields) : Form<_EventConsumer>(win, fields) { }
 
-	SimpleForm(const Window &win, const Window &formSub, vector<Field> fields) :
-	    Form<DefaultFormKeyEventDelegate>(win, formSub, fields) { }
+	BasicForm<_EventConsumer>(const Window &win, const Window &formSub, vector<Field> fields) :
+		Form<_EventConsumer>(win, formSub, fields) { }
+
+	void loop() {
+		// why can I not simply access these? superclass (but templated) & protected scope
+		FORM *lPtr = Form<_EventConsumer>::ptr;
+		const Window &lWin = Form<_EventConsumer>::window;
+		// TODO: there is no automatic jump to first field, so that should be implemented as well on Form
+		// along with possibly a bunch of other things; not sure if a single function for each one
+		form_driver(lPtr, REQ_FIRST_FIELD); // be nice to the user, nothing selected otherwise
+		form_driver(lPtr, REQ_END_LINE);    // in case there is pre-filled data
+		KeyEventProducer<_EventConsumer, FORM *>::captureAndDelegate(lWin, lPtr);
+	}
 };
+
+/** A simple pre-defined form that uses sensible key bindings for general use **/
+typedef BasicForm<DefaultFormKeyEventDelegate> SimpleForm;
 
 // TODO: remove? post_form can happen outside of constructor
 class FormBuilder {
