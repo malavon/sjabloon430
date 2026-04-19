@@ -50,12 +50,12 @@ int main() {
 		Window &statusWin = pins;
 		statusWin.add(0, 0, "Importing SQLite DB:");
 		int files = 0, errors = 0;
-		dbf::importDatabase(db, [&](const string &filename, const char *error) {
+		dbf::importDatabase(db, [&](const string &filename, const int lineNr, const char *error) {
 			files++;
 			if ( error != nullptr ) {
 				errors++;
 				if ( errors < statusWin.maxRows() - WIN_TOP_HEIGHT - 2 /**/ ) {
-					statusWin.print("\n  \"%s\" ERR: %s", filename.c_str(), error);
+					statusWin.print("\n  \"%s\" ERR (line %d): %s", filename.c_str(), lineNr, error);
 				} else if ( errors < statusWin.maxRows() - WIN_TOP_HEIGHT - 1 ) {
 					statusWin.add("\n  ... more errors ...");
 				}
