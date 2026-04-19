@@ -381,7 +381,8 @@ void drawPinSetEditingWindow(Window &win, PinSetView &vw) {
 			}
 
 			// if signals are added or removed, everything below will need to be redrawn
-			win.clearToEndOfScreen();
+			// but always assume more can be displayed after editing: remember the scrolling earlier
+			roomToDisplayMore = true;
 		}
 
 		if ( vw.isSelection(idx) ) {
