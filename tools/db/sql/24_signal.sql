@@ -137,6 +137,7 @@ INSERT INTO signal (signalgroup, id, alias_for, desc) VALUES (       NULL, 'OA3+
 INSERT INTO signal (signalgroup, id, alias_for, desc) VALUES (       NULL, 'OA3-'       ,          NULL, 'SAC3, OA negative input');
 INSERT INTO signal (signalgroup, id, alias_for, desc) VALUES (       NULL, 'OA3O'       ,          NULL, 'SAC3, OA output');
 INSERT INTO signal (signalgroup, id, alias_for, desc) VALUES (       NULL, 'PM_ACLK'    ,          NULL, 'Default mapping: ACLK output');
+INSERT INTO signal (signalgroup, id, alias_for, desc) VALUES (       NULL, 'PM_ADC10CLK',          NULL, 'Default mapping: ADC10, conversion clock output');
 INSERT INTO signal (signalgroup, id, alias_for, desc) VALUES (       NULL, 'PM_ADC12CLK',          NULL, 'Default mapping: ADC12, conversion clock output');
 INSERT INTO signal (signalgroup, id, alias_for, desc) VALUES (       NULL, 'PM_CBOUT0'  ,          NULL, 'Comparator_B output');
 INSERT INTO signal (signalgroup, id, alias_for, desc) VALUES (       NULL, 'PM_CBOUT1'  ,          NULL, 'Comparator_B output');
@@ -601,6 +602,6 @@ INSERT INTO signal (signalgroup, id, alias_for, desc) VALUES ('LCD'      , 'S7' 
 INSERT INTO signal (signalgroup, id, alias_for, desc) VALUES ('LCD'      , 'S8'         ,          NULL, 'LCD segment output S8');
 INSERT INTO signal (signalgroup, id, alias_for, desc) VALUES ('LCD'      , 'S9'         ,          NULL, 'LCD segment output S9');
 INSERT INTO signal (signalgroup, id, alias_for, desc) VALUES ('WRONG'    , 'VREF+/VEREF+',          NULL, 'WRONG use VREF+ and VEREF+');
-INSERT INTO signal (signalgroup, id, alias_for, desc) VALUES ('WRONG'    , 'VREF-/VEREF-',          NULL, 'WRONG use VEF- and VEREF-');
+INSERT INTO signal (signalgroup, id, alias_for, desc) VALUES ('WRONG'    , 'VREF-/VEREF-',          NULL, 'WRONG use VREF- and VEREF-');
 
 COMMIT TRANSACTION;
