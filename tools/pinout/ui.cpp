@@ -237,7 +237,6 @@ void drawPinSetHeader(Window &win, const int hdrRow, const PinSetView &vw) {
 
 	win.add(hdrRow, sgnCol, SIGNAL_HDR);
 	win.add(hdrRow, descCol, DESCRIPTION_HDR);
-	win.paint();
 }
 
 // this function renders a pinset; it assumes that there is enough room available to render 1 signal/line
@@ -360,13 +359,9 @@ void editPinSet(Window &win, int &row, PinSetView &vw, PinView &pv) {
 // MVP: this function keeps the selected index on the last row unless it's on the very first screen
 // it might be nicer if it behaves like a text editor: scrollin upwards from below until the first line is reached
 void drawPinSetEditingWindow(Window &win, PinSetView &vw) {
-	if ( vw.isEdit(-1) || vw.isSelection(vw.size()) ) {
-		// erasing window IS necessary to clean everything up BUT ...
-		// when editIdx is set, it is set to selIdx meaning everything _can_ simply stay in the same place
-		// and the editing form has its own subwindow, which _is_ cleared anyway
-		// so no global clear necessary AND the sets below the edited one are still displayed without redrawing!
-		win.erase();
-	}
+	// hard erase and paint() at the end; fixes all possible rendering issues
+	// yes, there is data in the window that can be reused; but I'm recreating the entire window anyway
+	win.erase();
 
 	int row = 0;
 	int idx = 0;
@@ -444,6 +439,7 @@ void drawPinSetEditingWindow(Window &win, PinSetView &vw) {
 		win.add(row++, 1, "> End of signals reached. Inserting will add a new signalset.");
 		win.disableAttributes(WA_BOLD);
 	}
+	win.paint();
 }
 
 void drawSetConfigWindow(BorderedWindow &win, const vector<Configset> &cfs) {
