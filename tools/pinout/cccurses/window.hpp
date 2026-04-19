@@ -106,6 +106,11 @@ class Window {
 		}
 	}
 
+	void clear() {
+		int re = wclear(ptr);
+		assert(re != ERR);
+	}
+
 	/*
 	 * Clears an entire line from the start, moves the cursor to do so.
 	 */
@@ -148,8 +153,6 @@ class Window {
 	void erase() {
 		int re = werase(ptr);
 		assert(re != ERR);
-		int rr = wrefresh(ptr);
-		assert(rr != ERR);
 	}
 
 	int maxCols() {
@@ -191,11 +194,6 @@ class Window {
 		va_end(args);
 	}
 #pragma GCC diagnostic pop
-
-	void clear() {
-		wclear(ptr);
-		wrefresh(ptr);
-	}
 
 #undef scroll // scroll is a macro ... needs to be undef'ed in order to define this function
 	void scroll(int lines) {
