@@ -91,8 +91,6 @@ int main(int argc, char **argv) // opties voor elke .txt file? misschien niet sl
 		if ( error != nullptr ) {
 			std::cerr << "Error: could not import SQL from " << filename << " (line " << lineNr << ") with error "
 				  << error << std::endl;
-			statusWin.print("\n  \"%s\" ERR (line %d): %s", filename.c_str(), lineNr, error);
-
 		} else if ( verbose ) {
 			std::cout << filename << '\t';
 		}
