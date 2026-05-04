@@ -13,7 +13,7 @@ target_link_libraries (device ${SQLite3_LIBRARIES})
 
 # cmake option? gcc/clang check too
 target_compile_options	    (device PUBLIC -Werror)
-target_compile_options	    (device PUBLIC -Wall -Wextra -Wpedantic)
+target_compile_options	    (device PUBLIC -Wall -Wextra -Wpedantic -Wno-unused-parameter)
 
 include(GNUInstallDirs)
 install(TARGETS device
