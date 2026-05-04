@@ -21,7 +21,7 @@ struct ExportConfig {
 	Tx tx = Tx::BOTH;
 	SQL sql = SQL::INSERT;
 	Format fmt = Format::FIXED; // harmless default: use colwidth (which is empty by default)
-	std::vector<int> colWidths;
+	std::vector<int> colWidths = {};
 
 	ExportConfig appendOverride(bool app) const {
 		ExportConfig res(*this);
@@ -53,7 +53,7 @@ void exportDataForDatasheet(sqlite3 *db, const string &datasheetId);
 void exportDatasheets(sqlite3 *db);
 void exportPackages(sqlite3 *db);
 void exportSignals(sqlite3 *db);
-void importDatabase(sqlite3 *db, std::function<void(const std::string &file, const char *error)> callback);
+void importDatabase(sqlite3 *db, std::function<void(const std::string &file, const int lineNr, const char *error)> callback);
 
 }}} // namespace sjabloon430::tools::db
 #endif // SJABLOON430_TOOLS_DATABASE_FILES_HPP

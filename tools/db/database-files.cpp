@@ -96,7 +96,7 @@ void inferColwidthsFromData(sqlite3_stmt *stmt, ExportConfig &config) {
 	sqlite3_reset(stmt);
 }
 
-string paddingTo(const int actual, const vector<int> &widths, int idx) {
+string paddingTo(const int actual, const vector<int> &widths, unsigned int idx) {
 	if ( widths.size() > idx && actual < widths[idx] /* required width */ ) {
 		string pad;
 		pad.resize(widths[idx] - actual, ' ');
@@ -132,7 +132,7 @@ string insertStringFromResultSet(sqlite3_stmt *stmt, const vector<int> &widths) 
 		} else /* ColumnDecl::Text */ {
 			insert << '\'' << value << '\'' << paddingTo(strlen(value) + 2 /* quotes */, widths, c);
 		}
-		const char *type = sqlite3_column_decltype(stmt, c);
+		// const char *type = sqlite3_column_decltype(stmt, c);
 	}
 	insert << ");";
 
@@ -443,7 +443,7 @@ void exportSignals(sqlite3 *db) {
 }
 
 // maybe this should be a function shared with other programs
-void importDatabase(sqlite3 *db, std::function<void(const std::string &file, const char *error)> callback) {
+void importDatabase(sqlite3 *db, std::function<void(const std::string &file, const int lineNr, const char *error)> callback) {
 	std::filesystem::path dbDir(DB_DIRECTORY);
 	// iterate all files, sort alphabetically/numerically and check if it's actually a (SQL) file
 	// TODO: recursive, should also include pinout per device later, simplifies files
@@ -456,21 +456,40 @@ void importDatabase(sqlite3 *db, std::function<void(const std::string &file, con
 	}
 
 	// insert all files into in-memory DB
+	std::string line, stmt;
+	int lineNr;
+	size_t cmtIdx;
+	char *errorMsg = nullptr;
 	for ( const path &p : files ) {
-		// read file completely into memory
 		std::ifstream input(p);
-		std::string content((std::istreambuf_iterator<char>(input)), std::istreambuf_iterator<char>());
+		lineNr = 0;
+		errorMsg = nullptr;
 
-		char *errorMsg;
-		sqlite3_exec(db, content.c_str(), nullptr /*NULL callback is valid?*/, nullptr, &errorMsg);
+		while ( errorMsg == nullptr && input ) {
+			stmt.clear();
+			do {
+				lineNr++;
+				std::getline(input, line);
+				cmtIdx = line.find("--");
+				if ( cmtIdx == std::string::npos ) {
+					stmt += line;
+				} else {
+					stmt += line.substr(0, cmtIdx);
+				}
+				// line ends in newline character
+				// sqlite3 removes linebreaks from errormessages and concatenates lines without whitespace
+				// resulting in ugly error; prevent that by adding a space
+				// is NOT necessary for correct execution though
+				stmt += ' ';
+			} while ( input && (line.empty() || line.back() != ';') );
+			sqlite3_exec(db, stmt.c_str(), nullptr /*NULL callback is valid?*/, nullptr, &errorMsg);
+		}
 
-		if ( errorMsg == nullptr ) {
-			callback(p.filename(), nullptr);
-		} else {
+		callback(p.filename(), lineNr, errorMsg);
+		if ( errorMsg != nullptr ) {
 			// rollback transaction; if there is no transaction, the error is ignored
 			// without rolling back the current transaction, all following files will error, possibly without real cause
 			sqlite3_exec(db, "ROLLBACK TRANSACTION;", nullptr, nullptr, nullptr);
-			callback(p.filename(), errorMsg);
 			sqlite3_free(errorMsg);
 		}
 	}
